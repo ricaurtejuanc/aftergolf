@@ -57,6 +57,20 @@ export function HomePage() {
         </Link>
 
         <Link
+          to="/handicap-federado"
+          className="rounded-2xl border border-cream-300 bg-white p-6 shadow-sm transition hover:border-fairway-400 hover:shadow-md"
+        >
+          <div className="text-sm font-semibold uppercase tracking-wide text-gold-600">
+            Oficial
+          </div>
+          <h2 className="mt-1 text-xl font-semibold text-fairway-900">Handicap Federado</h2>
+          <p className="mt-2 text-sm text-fairway-600">
+            Consulta tu Handicap Index oficial directamente en el buscador
+            de la RFEG.
+          </p>
+        </Link>
+
+        <Link
           to="/shop"
           className="rounded-2xl border border-cream-300 bg-white p-6 shadow-sm transition hover:border-fairway-400 hover:shadow-md"
         >
