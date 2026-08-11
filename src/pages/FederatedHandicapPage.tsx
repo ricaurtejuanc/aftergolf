@@ -1,4 +1,4 @@
-const HANDICAP_LOOKUP_URL = 'https://www.golfdirecto.com/handicap/calc'
+const HANDICAP_LOOKUP_URL = 'https://www.golfdirecto.com/handicap/search'
 
 export function FederatedHandicapPage() {
   return (
