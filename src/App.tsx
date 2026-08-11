@@ -6,6 +6,7 @@ import { PostRoundPage } from './pages/PostRoundPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { CoursesPage } from './pages/CoursesPage'
 import { ShopPage } from './pages/ShopPage'
+import { FederatedHandicapPage } from './pages/FederatedHandicapPage'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/post-ronda" element={<PostRoundPage />} />
             <Route path="/historial" element={<HistoryPage />} />
             <Route path="/campos" element={<CoursesPage />} />
+            <Route path="/handicap-federado" element={<FederatedHandicapPage />} />
             <Route path="/shop" element={<ShopPage />} />
           </Routes>
         </main>

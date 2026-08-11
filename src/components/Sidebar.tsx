@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/post-ronda', label: 'Post-Ronda' },
   { to: '/historial', label: 'Historial' },
   { to: '/campos', label: 'Campos' },
+  { to: '/handicap-federado', label: 'Handicap Federado' },
   { to: '/shop', label: 'Shop' },
 ]
 
