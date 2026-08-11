@@ -1,9 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CourseTeeSelect } from '../components/CourseTeeSelect'
+import { InfoTooltip } from '../components/InfoTooltip'
 import { StatCard } from '../components/StatCard'
 import type { CourseTee } from '../data/courses'
-import { calculateCourseHandicap, calculateRoundResult } from '../lib/handicap'
+import {
+  calculateCourseHandicap,
+  calculateRoundResult,
+  GROSS_STABLEFORD_EXPLANATION,
+} from '../lib/handicap'
 import { loadHandicapIndex, saveRound, type SavedRound } from '../lib/storage'
 
 function today() {
@@ -20,7 +25,8 @@ export function DespuesDeJugarPage() {
   const [tee, setTee] = useState<CourseTee | null>(null)
   const [courseName, setCourseName] = useState('')
   const [courseLocation, setCourseLocation] = useState('')
-  const [grossScore, setGrossScore] = useState<number>(90)
+  const [grossScoreInput, setGrossScoreInput] = useState('90')
+  const grossScore = Number(grossScoreInput) || 0
   const [datePlayed, setDatePlayed] = useState(today())
   const [saved, setSaved] = useState(false)
 
@@ -114,13 +120,14 @@ export function DespuesDeJugarPage() {
         />
 
         <div>
-          <label className="block text-sm font-medium text-fairway-800 mb-1">
-            Resultado bruto (golpes totales)
+          <label className="mb-1 flex items-center text-sm font-medium text-fairway-800">
+            Resultado Bruto Stableford
+            <InfoTooltip text={GROSS_STABLEFORD_EXPLANATION} />
           </label>
           <input
             type="number"
-            value={grossScore}
-            onChange={(e) => setGrossScore(Number(e.target.value))}
+            value={grossScoreInput}
+            onChange={(e) => setGrossScoreInput(e.target.value)}
             className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
           />
         </div>
