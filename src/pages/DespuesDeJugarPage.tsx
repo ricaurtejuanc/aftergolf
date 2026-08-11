@@ -103,7 +103,7 @@ export function DespuesDeJugarPage() {
             type="date"
             value={datePlayed}
             onChange={(e) => setDatePlayed(e.target.value)}
-            className="w-full max-w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+            className="box-border w-full min-w-0 max-w-full appearance-none rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 [color-scheme:light] focus:border-fairway-500 focus:outline-none"
           />
         </div>
 

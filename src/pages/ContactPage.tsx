@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 
-const CONTACT_EMAIL = 'ricaurtejuanc@aftergolf.es'
+const CONTACT_EMAIL = 'info@aftergolf.es'
 
 export function ContactPage() {
   const [name, setName] = useState('')
