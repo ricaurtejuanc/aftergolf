@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar'
 import { HomePage } from './pages/HomePage'
 import { AntesDeJugarPage } from './pages/AntesDeJugarPage'
 import { DespuesDeJugarPage } from './pages/DespuesDeJugarPage'
+import { HistoryPage } from './pages/HistoryPage'
 import { ShopPage } from './pages/ShopPage'
 import { AdminPage } from './pages/AdminPage'
 import { FederatedHandicapPage } from './pages/FederatedHandicapPage'
@@ -18,6 +19,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/antes-de-jugar" element={<AntesDeJugarPage />} />
             <Route path="/despues-de-jugar" element={<DespuesDeJugarPage />} />
+            <Route path="/historial" element={<HistoryPage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/handicap-federado" element={<FederatedHandicapPage />} />

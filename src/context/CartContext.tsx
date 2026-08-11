@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { PRODUCTS } from '../data/products'
 import { loadCart, saveCart, type CartItem } from '../lib/cart'
 
+export const SHIPPING_COST = 4.99
+export const FREE_SHIPPING_THRESHOLD = 100
+
 interface CartContextValue {
   items: CartItem[]
   addItem: (productId: string) => void
@@ -10,6 +13,8 @@ interface CartContextValue {
   clear: () => void
   totalCount: number
   totalPrice: number
+  shippingCost: number
+  orderTotal: number
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
@@ -61,9 +66,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return { totalCount: count, totalPrice: price }
   }, [items])
 
+  const shippingCost = totalCount === 0 || totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
+  const orderTotal = totalPrice + shippingCost
+
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, setQuantity, clear, totalCount, totalPrice }}
+      value={{
+        items,
+        addItem,
+        removeItem,
+        setQuantity,
+        clear,
+        totalCount,
+        totalPrice,
+        shippingCost,
+        orderTotal,
+      }}
     >
       {children}
     </CartContext.Provider>

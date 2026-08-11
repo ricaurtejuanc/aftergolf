@@ -1,16 +1,20 @@
 import { useState } from 'react'
-import { CourseTeeSelect, TEE_LABEL } from '../components/CourseTeeSelect'
+import { Link } from 'react-router-dom'
+import { CourseTeeSelect } from '../components/CourseTeeSelect'
 import { StatCard } from '../components/StatCard'
 import type { CourseTee } from '../data/courses'
 import { calculateCourseHandicap, calculateRoundResult } from '../lib/handicap'
-import { deleteRound, loadHandicapIndex, loadRounds, saveRound, type SavedRound } from '../lib/storage'
+import { loadHandicapIndex, saveRound, type SavedRound } from '../lib/storage'
 
 function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
 export function DespuesDeJugarPage() {
-  const [handicapIndex, setHandicapIndex] = useState<number>(() => loadHandicapIndex() ?? 12.0)
+  const [handicapIndexInput, setHandicapIndexInput] = useState<string>(() =>
+    String(loadHandicapIndex() ?? 12.0),
+  )
+  const handicapIndex = Number(handicapIndexInput) || 0
   const [courseId, setCourseId] = useState('')
   const [teeIndex, setTeeIndex] = useState(0)
   const [tee, setTee] = useState<CourseTee | null>(null)
@@ -19,7 +23,6 @@ export function DespuesDeJugarPage() {
   const [grossScore, setGrossScore] = useState<number>(90)
   const [datePlayed, setDatePlayed] = useState(today())
   const [saved, setSaved] = useState(false)
-  const [rounds, setRounds] = useState<SavedRound[]>(() => loadRounds())
 
   const { courseHandicap } = tee
     ? calculateCourseHandicap({
@@ -60,19 +63,10 @@ export function DespuesDeJugarPage() {
       differential: result!.differential,
       datePlayed,
     }
-    setRounds(saveRound(round))
+    saveRound(round)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
-
-  function handleDelete(id: string) {
-    setRounds(deleteRound(id))
-  }
-
-  const avgDifferential =
-    rounds.length > 0
-      ? (rounds.reduce((sum, r) => sum + r.differential, 0) / rounds.length).toFixed(1)
-      : null
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -93,8 +87,8 @@ export function DespuesDeJugarPage() {
             <input
               type="number"
               step="0.1"
-              value={handicapIndex}
-              onChange={(e) => setHandicapIndex(Number(e.target.value))}
+              value={handicapIndexInput}
+              onChange={(e) => setHandicapIndexInput(e.target.value)}
               className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
             />
           </div>
@@ -162,53 +156,15 @@ export function DespuesDeJugarPage() {
           >
             {saved ? 'Ronda guardada ✓' : 'Guardar ronda en mi historial'}
           </button>
+
+          <Link
+            to="/historial"
+            className="block text-center text-sm text-fairway-600 underline-offset-2 hover:underline"
+          >
+            Ver historial de rondas →
+          </Link>
         </>
       )}
-
-      <div className="space-y-3 border-t border-cream-300 pt-6">
-        <h2 className="text-lg font-semibold text-fairway-900">Historial de rondas</h2>
-
-        {rounds.length === 0 ? (
-          <div className="rounded-xl border border-cream-300 bg-white p-8 text-center text-fairway-500">
-            Aún no has guardado ninguna ronda.
-          </div>
-        ) : (
-          <>
-            {avgDifferential && (
-              <div className="rounded-xl border border-gold-400 bg-gold-400/10 p-4 text-fairway-800">
-                Differential medio de las últimas {rounds.length} rondas:{' '}
-                <span className="font-semibold text-fairway-900">{avgDifferential}</span>
-              </div>
-            )}
-            <div className="space-y-3">
-              {rounds.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center justify-between rounded-xl border border-cream-300 bg-white p-4 shadow-sm"
-                >
-                  <div>
-                    <div className="font-medium text-fairway-900">{r.courseName}</div>
-                    <div className="text-xs text-fairway-500">
-                      {r.datePlayed} · Tee {TEE_LABEL[r.teeColor]} · CR {r.courseRating} / Slope{' '}
-                      {r.slopeRating}
-                    </div>
-                    <div className="mt-1 text-sm text-fairway-700">
-                      Bruto {r.grossScore} · Neto {r.netScore} · Stableford{' '}
-                      {r.stablefordPoints} pts · Diff {r.differential.toFixed(1)}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleDelete(r.id)}
-                    className="rounded-lg border border-cream-300 px-3 py-1.5 text-xs text-fairway-500 transition hover:border-red-400 hover:text-red-500"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
     </div>
   )
 }
