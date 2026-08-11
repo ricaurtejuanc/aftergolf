@@ -1,24 +1,64 @@
-import { useState } from 'react'
+import type { SVGProps } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Logo } from './Logo'
 import { useCart } from '../context/CartContext'
 
+function FlagIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M6 21V4" />
+      <path d="M6 4l12 3.5L6 11" />
+    </svg>
+  )
+}
+
+function ScoreIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>
+  )
+}
+
+function HistoryIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  )
+}
+
+function ShopIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M6 8h12l-1 12H7L6 8Z" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+    </svg>
+  )
+}
+
 const NAV_ITEMS = [
-  { to: '/antes-de-jugar', label: 'Antes de Jugar' },
-  { to: '/despues-de-jugar', label: 'Después de Jugar' },
-  { to: '/historial', label: 'Historial de Rondas' },
-  { to: '/shop', label: 'Shop' },
+  { to: '/antes-de-jugar', label: 'Antes de Jugar', shortLabel: 'Antes', icon: FlagIcon },
+  { to: '/despues-de-jugar', label: 'Después de Jugar', shortLabel: 'Después', icon: ScoreIcon },
+  { to: '/historial', label: 'Historial de Rondas', shortLabel: 'Historial', icon: HistoryIcon },
+  { to: '/shop', label: 'Shop', shortLabel: 'Shop', icon: ShopIcon },
 ]
 
 export function Sidebar() {
-  const [open, setOpen] = useState(false)
   const { totalCount } = useCart()
 
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
+  const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
       isActive
         ? 'bg-fairway-800 text-cream-50'
         : 'text-fairway-800 hover:bg-cream-200'
+    }`
+
+  const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition ${
+      isActive ? 'text-fairway-900' : 'text-fairway-500'
     }`
 
   return (
@@ -28,33 +68,40 @@ export function Sidebar() {
           <Logo className="h-8 w-8" />
           <span className="font-serif text-lg font-bold text-fairway-900">AfterGolf</span>
         </NavLink>
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="rounded-md border border-cream-300 px-3 py-1.5 text-sm text-fairway-800"
-          aria-label="Abrir menú"
+        <NavLink
+          to="/handicap-federado"
+          className="rounded-lg border border-gold-400 bg-gold-400/10 px-2.5 py-1.5 text-xs font-medium text-fairway-800"
         >
-          {open ? '✕' : '☰'}
-        </button>
+          ¿No sabes tu handicap?
+        </NavLink>
       </header>
 
-      <aside
-        className={`w-64 shrink-0 border-r border-cream-300 bg-cream-100 md:sticky md:top-0 md:block md:h-screen md:overflow-y-auto ${
-          open ? 'block' : 'hidden'
-        }`}
-      >
-        <div className="hidden items-center gap-2 px-5 py-6 md:flex">
+      <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-cream-300 bg-cream-50/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        {NAV_ITEMS.map((item) => (
+          <NavLink key={item.to} to={item.to} className={mobileLinkClass}>
+            <span className="relative">
+              <item.icon className="h-5 w-5" />
+              {item.to === '/shop' && totalCount > 0 && (
+                <span className="absolute -right-2 -top-1.5 rounded-full bg-gold-500 px-1 text-[9px] font-semibold text-white">
+                  {totalCount}
+                </span>
+              )}
+            </span>
+            {item.shortLabel}
+          </NavLink>
+        ))}
+      </nav>
+
+      <aside className="hidden w-64 shrink-0 border-r border-cream-300 bg-cream-100 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:overflow-y-auto">
+        <div className="flex items-center gap-2 px-5 py-6">
           <Logo className="h-10 w-10" />
           <span className="font-serif text-xl font-bold text-fairway-900">AfterGolf</span>
         </div>
 
         <nav className="flex flex-col gap-1 p-3">
           {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={linkClass}
-              onClick={() => setOpen(false)}
-            >
+            <NavLink key={item.to} to={item.to} className={desktopLinkClass}>
+              <item.icon className="h-4 w-4" />
               <span>{item.label}</span>
               {item.to === '/shop' && totalCount > 0 && (
                 <span className="ml-auto rounded-full bg-gold-500 px-2 py-0.5 text-xs font-semibold text-white">
@@ -65,18 +112,13 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className="px-3">
+        <div className="mt-auto p-3">
           <NavLink
             to="/handicap-federado"
-            onClick={() => setOpen(false)}
             className="block rounded-lg border border-gold-400 bg-gold-400/10 px-3 py-2 text-xs font-medium text-fairway-800 transition hover:border-gold-500"
           >
             ¿No sabes tu handicap? <span className="font-semibold">Consúltalo aquí</span>
           </NavLink>
-        </div>
-
-        <div className="mt-auto p-4 text-xs text-fairway-600">
-          WHS / RFEG · datos guardados en tu navegador
         </div>
       </aside>
     </>
