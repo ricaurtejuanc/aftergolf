@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react'
 import { CourseTeeSelect } from '../components/CourseTeeSelect'
+import { InfoTooltip } from '../components/InfoTooltip'
 import { StatCard } from '../components/StatCard'
 import type { CourseTee } from '../data/courses'
-import { calculateCourseHandicap, calculateRoundResult, HANDICAP_ALLOWANCES } from '../lib/handicap'
+import {
+  calculateCourseHandicap,
+  calculateRoundResult,
+  GROSS_STABLEFORD_EXPLANATION,
+  HANDICAP_ALLOWANCES,
+} from '../lib/handicap'
 import { loadHandicapIndex, saveHandicapIndex } from '../lib/storage'
 
 export function AntesDeJugarPage() {
@@ -15,7 +21,8 @@ export function AntesDeJugarPage() {
   const [tee, setTee] = useState<CourseTee | null>(null)
   const [allowance, setAllowance] = useState(1)
   const [showRoundCalc, setShowRoundCalc] = useState(false)
-  const [grossScore, setGrossScore] = useState<number>(90)
+  const [grossScoreInput, setGrossScoreInput] = useState('90')
+  const grossScore = Number(grossScoreInput) || 0
 
   useEffect(() => {
     saveHandicapIndex(handicapIndex)
@@ -126,13 +133,14 @@ export function AntesDeJugarPage() {
             roundResult && (
               <div className="space-y-4 border-t border-cream-300 pt-6">
                 <div className="rounded-2xl border border-cream-300 bg-white p-5 shadow-sm">
-                  <label className="block text-sm font-medium text-fairway-800 mb-1">
-                    Resultado bruto (golpes totales)
+                  <label className="mb-1 flex items-center text-sm font-medium text-fairway-800">
+                    Resultado Bruto Stableford
+                    <InfoTooltip text={GROSS_STABLEFORD_EXPLANATION} />
                   </label>
                   <input
                     type="number"
-                    value={grossScore}
-                    onChange={(e) => setGrossScore(Number(e.target.value))}
+                    value={grossScoreInput}
+                    onChange={(e) => setGrossScoreInput(e.target.value)}
                     className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
                   />
                 </div>
