@@ -2,15 +2,14 @@ import { useEffect, useState } from 'react'
 import { CourseTeeSelect } from '../components/CourseTeeSelect'
 import { StatCard } from '../components/StatCard'
 import type { CourseTee } from '../data/courses'
-import { COURSES } from '../data/courses'
 import { calculateCourseHandicap, calculateRoundResult, HANDICAP_ALLOWANCES } from '../lib/handicap'
 import { loadHandicapIndex, saveHandicapIndex } from '../lib/storage'
 
 export function AntesDeJugarPage() {
   const [handicapIndex, setHandicapIndex] = useState<number>(() => loadHandicapIndex() ?? 12.0)
-  const [courseId, setCourseId] = useState(COURSES[0].id)
+  const [courseId, setCourseId] = useState('')
   const [teeIndex, setTeeIndex] = useState(0)
-  const [tee, setTee] = useState<CourseTee>(COURSES[0].tees[0])
+  const [tee, setTee] = useState<CourseTee | null>(null)
   const [allowance, setAllowance] = useState(1)
   const [showRoundCalc, setShowRoundCalc] = useState(false)
   const [grossScore, setGrossScore] = useState<number>(90)
@@ -19,21 +18,25 @@ export function AntesDeJugarPage() {
     saveHandicapIndex(handicapIndex)
   }, [handicapIndex])
 
-  const { exact, courseHandicap } = calculateCourseHandicap({
-    handicapIndex,
-    slopeRating: tee.slope,
-    courseRating: tee.cr,
-    par: tee.par,
-    allowance,
-  })
+  const { exact, courseHandicap } = tee
+    ? calculateCourseHandicap({
+        handicapIndex,
+        slopeRating: tee.slope,
+        courseRating: tee.cr,
+        par: tee.par,
+        allowance,
+      })
+    : { exact: 0, courseHandicap: 0 }
 
-  const roundResult = calculateRoundResult({
-    courseHandicap,
-    grossScore,
-    slopeRating: tee.slope,
-    courseRating: tee.cr,
-    par: tee.par,
-  })
+  const roundResult = tee
+    ? calculateRoundResult({
+        courseHandicap,
+        grossScore,
+        slopeRating: tee.slope,
+        courseRating: tee.cr,
+        par: tee.par,
+      })
+    : null
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -66,6 +69,7 @@ export function AntesDeJugarPage() {
             setCourseId(cId)
             setTeeIndex(tIdx)
             setTee(t)
+            setShowRoundCalc(false)
           }}
         />
 
@@ -87,53 +91,63 @@ export function AntesDeJugarPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <StatCard label="Handicap de juego" value={courseHandicap} accent />
-        <StatCard label="Valor exacto" value={exact.toFixed(2)} />
-      </div>
-
-      <div className="rounded-xl border border-cream-300 bg-cream-100 p-4 text-sm text-fairway-700">
-        <p className="font-mono text-xs text-fairway-500">
-          HC = HI x (Slope / 113) + (CR - Par)
-        </p>
-        <p className="mt-1">
-          {handicapIndex} x ({tee.slope} / 113) + ({tee.cr} - {tee.par})
-          {allowance !== 1 ? ` x ${allowance}` : ''} = {exact.toFixed(2)} → {courseHandicap}
-        </p>
-      </div>
-
-      {!showRoundCalc ? (
-        <button
-          onClick={() => setShowRoundCalc(true)}
-          className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800"
-        >
-          Calcular handicap jugado y puntos Stableford
-        </button>
-      ) : (
-        <div className="space-y-4 border-t border-cream-300 pt-6">
-          <div className="rounded-2xl border border-cream-300 bg-white p-5 shadow-sm">
-            <label className="block text-sm font-medium text-fairway-800 mb-1">
-              Resultado bruto (golpes totales)
-            </label>
-            <input
-              type="number"
-              value={grossScore}
-              onChange={(e) => setGrossScore(Number(e.target.value))}
-              className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <StatCard label="Golpes recibidos" value={roundResult.strokesReceived} />
-            <StatCard label="Resultado neto" value={roundResult.netScore} accent />
-            <StatCard label="Puntos Stableford" value={roundResult.stablefordPoints} />
-            <StatCard
-              label="Handicap jugado"
-              value={roundResult.differential.toFixed(1)}
-              accent
-            />
-          </div>
+      {!tee ? (
+        <div className="rounded-xl border border-cream-300 bg-white p-8 text-center text-fairway-500">
+          Selecciona un campo y tee para calcular tu handicap de juego.
         </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <StatCard label="Handicap de juego" value={courseHandicap} accent />
+            <StatCard label="Valor exacto" value={exact.toFixed(2)} />
+          </div>
+
+          <div className="rounded-xl border border-cream-300 bg-cream-100 p-4 text-sm text-fairway-700">
+            <p className="font-mono text-xs text-fairway-500">
+              HC = HI x (Slope / 113) + (CR - Par)
+            </p>
+            <p className="mt-1">
+              {handicapIndex} x ({tee.slope} / 113) + ({tee.cr} - {tee.par})
+              {allowance !== 1 ? ` x ${allowance}` : ''} = {exact.toFixed(2)} → {courseHandicap}
+            </p>
+          </div>
+
+          {!showRoundCalc ? (
+            <button
+              onClick={() => setShowRoundCalc(true)}
+              className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800"
+            >
+              Calcular handicap jugado y puntos Stableford
+            </button>
+          ) : (
+            roundResult && (
+              <div className="space-y-4 border-t border-cream-300 pt-6">
+                <div className="rounded-2xl border border-cream-300 bg-white p-5 shadow-sm">
+                  <label className="block text-sm font-medium text-fairway-800 mb-1">
+                    Resultado bruto (golpes totales)
+                  </label>
+                  <input
+                    type="number"
+                    value={grossScore}
+                    onChange={(e) => setGrossScore(Number(e.target.value))}
+                    className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <StatCard label="Golpes recibidos" value={roundResult.strokesReceived} />
+                  <StatCard label="Resultado neto" value={roundResult.netScore} accent />
+                  <StatCard label="Puntos Stableford" value={roundResult.stablefordPoints} />
+                  <StatCard
+                    label="Handicap jugado"
+                    value={roundResult.differential.toFixed(1)}
+                    accent
+                  />
+                </div>
+              </div>
+            )
+          )}
+        </>
       )}
     </div>
   )

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { CourseTeeSelect, TEE_LABEL } from '../components/CourseTeeSelect'
 import { StatCard } from '../components/StatCard'
 import type { CourseTee } from '../data/courses'
-import { COURSES } from '../data/courses'
 import { calculateCourseHandicap, calculateRoundResult } from '../lib/handicap'
 import { deleteRound, loadHandicapIndex, loadRounds, saveRound, type SavedRound } from '../lib/storage'
 
@@ -12,32 +11,37 @@ function today() {
 
 export function DespuesDeJugarPage() {
   const [handicapIndex, setHandicapIndex] = useState<number>(() => loadHandicapIndex() ?? 12.0)
-  const [courseId, setCourseId] = useState(COURSES[0].id)
+  const [courseId, setCourseId] = useState('')
   const [teeIndex, setTeeIndex] = useState(0)
-  const [tee, setTee] = useState<CourseTee>(COURSES[0].tees[0])
-  const [courseName, setCourseName] = useState(COURSES[0].name)
-  const [courseLocation, setCourseLocation] = useState(COURSES[0].location)
+  const [tee, setTee] = useState<CourseTee | null>(null)
+  const [courseName, setCourseName] = useState('')
+  const [courseLocation, setCourseLocation] = useState('')
   const [grossScore, setGrossScore] = useState<number>(90)
   const [datePlayed, setDatePlayed] = useState(today())
   const [saved, setSaved] = useState(false)
   const [rounds, setRounds] = useState<SavedRound[]>(() => loadRounds())
 
-  const { courseHandicap } = calculateCourseHandicap({
-    handicapIndex,
-    slopeRating: tee.slope,
-    courseRating: tee.cr,
-    par: tee.par,
-  })
+  const { courseHandicap } = tee
+    ? calculateCourseHandicap({
+        handicapIndex,
+        slopeRating: tee.slope,
+        courseRating: tee.cr,
+        par: tee.par,
+      })
+    : { courseHandicap: 0 }
 
-  const result = calculateRoundResult({
-    courseHandicap,
-    grossScore,
-    slopeRating: tee.slope,
-    courseRating: tee.cr,
-    par: tee.par,
-  })
+  const result = tee
+    ? calculateRoundResult({
+        courseHandicap,
+        grossScore,
+        slopeRating: tee.slope,
+        courseRating: tee.cr,
+        par: tee.par,
+      })
+    : null
 
   function handleSave() {
+    if (!tee) return
     const round: SavedRound = {
       id: crypto.randomUUID(),
       courseName,
@@ -50,10 +54,10 @@ export function DespuesDeJugarPage() {
       handicapIndex,
       courseHandicap,
       grossScore,
-      strokesReceived: result.strokesReceived,
-      netScore: result.netScore,
-      stablefordPoints: result.stablefordPoints,
-      differential: result.differential,
+      strokesReceived: result!.strokesReceived,
+      netScore: result!.netScore,
+      stablefordPoints: result!.stablefordPoints,
+      differential: result!.differential,
       datePlayed,
     }
     setRounds(saveRound(round))
@@ -132,26 +136,34 @@ export function DespuesDeJugarPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Hcp de juego" value={courseHandicap} />
-        <StatCard label="Golpes recibidos" value={result.strokesReceived} />
-        <StatCard label="Resultado neto" value={result.netScore} accent />
-        <StatCard label="Puntos Stableford" value={result.stablefordPoints} />
-      </div>
+      {!tee || !result ? (
+        <div className="rounded-xl border border-cream-300 bg-white p-8 text-center text-fairway-500">
+          Selecciona un campo y tee para ver tu resultado.
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <StatCard label="Hcp de juego" value={courseHandicap} />
+            <StatCard label="Golpes recibidos" value={result.strokesReceived} />
+            <StatCard label="Resultado neto" value={result.netScore} accent />
+            <StatCard label="Puntos Stableford" value={result.stablefordPoints} />
+          </div>
 
-      <StatCard
-        label="Score Differential (handicap jugado)"
-        value={result.differential.toFixed(1)}
-        hint="(113 / Slope) x (Bruto - Course Rating)"
-        accent
-      />
+          <StatCard
+            label="Score Differential (handicap jugado)"
+            value={result.differential.toFixed(1)}
+            hint="(113 / Slope) x (Bruto - Course Rating)"
+            accent
+          />
 
-      <button
-        onClick={handleSave}
-        className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800"
-      >
-        {saved ? 'Ronda guardada ✓' : 'Guardar ronda en mi historial'}
-      </button>
+          <button
+            onClick={handleSave}
+            className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800"
+          >
+            {saved ? 'Ronda guardada ✓' : 'Guardar ronda en mi historial'}
+          </button>
+        </>
+      )}
 
       <div className="space-y-3 border-t border-cream-300 pt-6">
         <h2 className="text-lg font-semibold text-fairway-900">Historial de rondas</h2>
