@@ -5,27 +5,31 @@ proyecto independiente, sin depender de un backend.
 
 ## Qué hace
 
-- **Handicap de Juego** (pre-ronda): calcula tu Course Handicap para un tee
-  concreto a partir de tu Handicap Index, usando la fórmula del World
-  Handicap System (WHS), el sistema adoptado por la RFEG.
+El menú principal tiene 3 secciones:
+
+- **Antes de Jugar**: busca tu Handicap Index oficial en el buscador
+  federado embebido y, con ese valor, calcula tu Course Handicap para el
+  campo y tee que vas a jugar, usando la fórmula del World Handicap System
+  (WHS), el sistema adoptado por la RFEG.
 
   ```
   Course Handicap = HI x (Slope / 113) + (Course Rating - Par)
   ```
 
-- **Handicap Jugado (Post-Ronda)**: a partir del resultado bruto de una
-  ronda, calcula golpes recibidos, resultado neto, puntos Stableford
-  aproximados y el Score Differential de la ronda.
+- **Después de Jugar**: a partir del resultado bruto de una ronda, calcula
+  golpes recibidos, resultado neto, puntos Stableford aproximados y el
+  Score Differential de la ronda. Incluye el historial de rondas guardadas
+  (en `localStorage`, sin necesidad de cuenta ni servidor).
 
   ```
   Score Differential = (113 / Slope) x (Resultado bruto - Course Rating)
   ```
 
-- **Campos**: base de datos local con 55 campos de golf españoles reales
-  (nombre, ubicación, y Course Rating / Slope / Par por cada tee).
+- **Shop**: merchandising AfterGolf.
 
-- **Historial**: las rondas que guardes se almacenan en `localStorage`, sin
-  necesidad de cuenta ni servidor.
+Además, `/admin` (protegido por PIN, no aparece en el menú) da acceso a
+**Campos**: la base de datos local con 55 campos de golf españoles reales
+(nombre, ubicación, y Course Rating / Slope / Par por cada tee).
 
 Las fórmulas y el redondeo se validaron contra una ronda real exportada de la
 app original en Base44 (Aloha Golf Club, HI 6.1 → Handicap de juego 6, bruto

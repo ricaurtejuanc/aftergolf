@@ -4,12 +4,8 @@ import { Logo } from './Logo'
 import { useCart } from '../context/CartContext'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Inicio', end: true },
-  { to: '/handicap-de-juego', label: 'Handicap de Juego' },
-  { to: '/post-ronda', label: 'Post-Ronda' },
-  { to: '/historial', label: 'Historial' },
-  { to: '/campos', label: 'Campos' },
-  { to: '/handicap-federado', label: 'Handicap Federado' },
+  { to: '/antes-de-jugar', label: 'Antes de Jugar' },
+  { to: '/despues-de-jugar', label: 'Después de Jugar' },
   { to: '/shop', label: 'Shop' },
 ]
 
@@ -55,7 +51,6 @@ export function Sidebar() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.end}
               className={linkClass}
               onClick={() => setOpen(false)}
             >
