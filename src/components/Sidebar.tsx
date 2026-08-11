@@ -77,6 +77,10 @@ export function Sidebar() {
       </header>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-cream-300 bg-cream-50/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        <NavLink to="/" end className={mobileLinkClass}>
+          <Logo className="h-5 w-5" />
+          Inicio
+        </NavLink>
         {NAV_ITEMS.map((item) => (
           <NavLink key={item.to} to={item.to} className={mobileLinkClass}>
             <span className="relative">
