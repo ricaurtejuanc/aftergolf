@@ -5,6 +5,7 @@ import { AntesDeJugarPage } from './pages/AntesDeJugarPage'
 import { DespuesDeJugarPage } from './pages/DespuesDeJugarPage'
 import { ShopPage } from './pages/ShopPage'
 import { AdminPage } from './pages/AdminPage'
+import { FederatedHandicapPage } from './pages/FederatedHandicapPage'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="/despues-de-jugar" element={<DespuesDeJugarPage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/handicap-federado" element={<FederatedHandicapPage />} />
           </Routes>
         </main>
 
