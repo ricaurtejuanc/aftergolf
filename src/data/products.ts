@@ -11,6 +11,8 @@ export interface Product {
   category: string
   /** Product photos, imported as Vite asset URLs. First image is the default. */
   images?: string[]
+  /** Emoji shown as a placeholder while there are no product photos yet. */
+  placeholderEmoji?: string
 }
 
 export const PRODUCTS: Product[] = [
@@ -22,5 +24,32 @@ export const PRODUCTS: Product[] = [
     price: 44.99,
     category: 'Equipación',
     images: [viceGolf1, viceGolf2, viceGolf3, viceGolf4],
+  },
+  {
+    id: 'polo-aftergolf',
+    name: 'Polo AfterGolf',
+    description:
+      'Polo técnico transpirable con el escudo AfterGolf bordado en el pecho. Fabricado bajo demanda (Printful), disponible en varias tallas.',
+    price: 39.99,
+    category: 'Ropa',
+    placeholderEmoji: '👕',
+  },
+  {
+    id: 'camiseta-aftergolf',
+    name: 'Camiseta AfterGolf',
+    description:
+      'Camiseta de algodón suave con el logo AfterGolf estampado. Fabricada bajo demanda (Printful), disponible en varias tallas.',
+    price: 24.99,
+    category: 'Ropa',
+    placeholderEmoji: '👕',
+  },
+  {
+    id: 'gorro-aftergolf',
+    name: 'Gorro AfterGolf',
+    description:
+      'Gorra ajustable bordada con el escudo AfterGolf. Fabricada bajo demanda (Printful).',
+    price: 19.99,
+    category: 'Ropa',
+    placeholderEmoji: '🧢',
   },
 ]

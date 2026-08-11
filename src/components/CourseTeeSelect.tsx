@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { COURSES, type CourseTee } from '../data/courses'
+import type { CourseTee } from '../data/courses'
+import { loadCourses } from '../lib/courseStore'
 
 const TEE_LABEL: Record<CourseTee['color'], string> = {
   blanco: 'Blanco',
@@ -33,16 +34,17 @@ interface Props {
 
 export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
   const [query, setQuery] = useState('')
+  const courses = useMemo(() => loadCourses(), [])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return []
-    return COURSES.filter(
+    return courses.filter(
       (c) => c.name.toLowerCase().includes(q) || c.location.toLowerCase().includes(q),
     ).slice(0, 8)
-  }, [query])
+  }, [query, courses])
 
-  const course = COURSES.find((c) => c.id === courseId)
+  const course = courses.find((c) => c.id === courseId)
 
   if (!course) {
     return (
