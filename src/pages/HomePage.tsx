@@ -5,7 +5,7 @@ export function HomePage() {
   return (
     <div className="mx-auto max-w-3xl space-y-10">
       <div className="flex flex-col items-center gap-4 py-8 text-center">
-        <Logo variant="full" className="h-56 w-56" />
+        <Logo className="h-56 w-56" />
         <p className="max-w-md text-fairway-700">
           Calcula tu handicap de juego antes de salir y tu handicap jugado al
           terminar la ronda, con las fórmulas oficiales del World Handicap
