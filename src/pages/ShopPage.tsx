@@ -1,10 +1,54 @@
-import { PRODUCTS } from '../data/products'
+import { useState } from 'react'
+import { PRODUCTS, type Product } from '../data/products'
 import { useCart } from '../context/CartContext'
 
 const STORE_EMAIL = 'ricaurtejuanc@gmail.com'
 
 function formatPrice(value: number) {
   return value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
+}
+
+function ProductGallery({ product }: { product: Product }) {
+  const images = product.images ?? []
+  const [active, setActive] = useState(0)
+
+  if (images.length === 0) {
+    return (
+      <div className="flex aspect-square items-center justify-center rounded-xl bg-cream-100">
+        <span className="text-5xl" aria-hidden>
+          🏌️
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="aspect-square overflow-hidden rounded-xl bg-cream-100">
+        <img
+          src={images[active]}
+          alt={product.name}
+          className="h-full w-full object-cover"
+        />
+      </div>
+      {images.length > 1 && (
+        <div className="mt-2 flex gap-2">
+          {images.map((src, idx) => (
+            <button
+              key={src}
+              onClick={() => setActive(idx)}
+              className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                idx === active ? 'border-fairway-600' : 'border-transparent opacity-70 hover:opacity-100'
+              }`}
+              aria-label={`Foto ${idx + 1} de ${product.name}`}
+            >
+              <img src={src} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function ShopPage() {
@@ -47,18 +91,8 @@ export function ShopPage() {
               key={product.id}
               className="flex flex-col rounded-2xl border border-cream-300 bg-white p-5 shadow-sm"
             >
-              <div className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-cream-100">
-                {product.image ? (
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-5xl" aria-hidden>
-                    🏌️
-                  </span>
-                )}
+              <div className="mb-3">
+                <ProductGallery product={product} />
               </div>
               <div className="text-xs font-semibold uppercase tracking-wide text-gold-600">
                 {product.category}
