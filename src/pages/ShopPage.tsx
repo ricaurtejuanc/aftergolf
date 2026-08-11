@@ -16,7 +16,7 @@ function ProductGallery({ product }: { product: Product }) {
     return (
       <div className="flex aspect-square items-center justify-center rounded-xl bg-cream-100">
         <span className="text-5xl" aria-hidden>
-          🏌️
+          {product.placeholderEmoji ?? '🏌️'}
         </span>
       </div>
     )
