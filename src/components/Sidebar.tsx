@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext'
 const NAV_ITEMS = [
   { to: '/antes-de-jugar', label: 'Antes de Jugar' },
   { to: '/despues-de-jugar', label: 'Después de Jugar' },
+  { to: '/historial', label: 'Historial de Rondas' },
   { to: '/shop', label: 'Shop' },
 ]
 
@@ -63,6 +64,16 @@ export function Sidebar() {
             </NavLink>
           ))}
         </nav>
+
+        <div className="px-3">
+          <NavLink
+            to="/handicap-federado"
+            onClick={() => setOpen(false)}
+            className="block rounded-lg border border-gold-400 bg-gold-400/10 px-3 py-2 text-xs font-medium text-fairway-800 transition hover:border-gold-500"
+          >
+            ¿No sabes tu handicap? <span className="font-semibold">Consúltalo aquí</span>
+          </NavLink>
+        </div>
 
         <div className="mt-auto p-4 text-xs text-fairway-600">
           WHS / RFEG · datos guardados en tu navegador

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { PRODUCTS, type Product } from '../data/products'
-import { useCart } from '../context/CartContext'
+import { FREE_SHIPPING_THRESHOLD, useCart } from '../context/CartContext'
 
 const STORE_EMAIL = 'ricaurtejuanc@gmail.com'
 
@@ -52,7 +52,17 @@ function ProductGallery({ product }: { product: Product }) {
 }
 
 export function ShopPage() {
-  const { items, addItem, removeItem, setQuantity, totalCount, totalPrice, clear } = useCart()
+  const {
+    items,
+    addItem,
+    removeItem,
+    setQuantity,
+    totalCount,
+    totalPrice,
+    shippingCost,
+    orderTotal,
+    clear,
+  } = useCart()
 
   function checkoutMailto() {
     const lines = items.map((item) => {
@@ -65,7 +75,9 @@ export function ShopPage() {
       '',
       ...lines,
       '',
-      `Total: ${formatPrice(totalPrice)}`,
+      `Subtotal: ${formatPrice(totalPrice)}`,
+      `Envío: ${shippingCost === 0 ? 'Gratis' : formatPrice(shippingCost)}`,
+      `Total: ${formatPrice(orderTotal)}`,
       '',
       '(Nombre, dirección de envío y teléfono:)',
     ].join('\n')
@@ -152,9 +164,24 @@ export function ShopPage() {
                 )
               })}
 
-              <div className="flex items-center justify-between border-t border-cream-200 pt-3 font-semibold text-fairway-900">
-                <span>Total</span>
-                <span>{formatPrice(totalPrice)}</span>
+              <div className="space-y-1.5 border-t border-cream-200 pt-3 text-sm">
+                <div className="flex items-center justify-between text-fairway-700">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(totalPrice)}</span>
+                </div>
+                <div className="flex items-center justify-between text-fairway-700">
+                  <span>Envío</span>
+                  <span>{shippingCost === 0 ? 'Gratis' : formatPrice(shippingCost)}</span>
+                </div>
+                {shippingCost > 0 && (
+                  <p className="text-xs text-fairway-500">
+                    Envío gratis en pedidos superiores a {formatPrice(FREE_SHIPPING_THRESHOLD)}.
+                  </p>
+                )}
+                <div className="flex items-center justify-between pt-1 font-semibold text-fairway-900">
+                  <span>Total</span>
+                  <span>{formatPrice(orderTotal)}</span>
+                </div>
               </div>
 
               <button

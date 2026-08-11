@@ -6,7 +6,10 @@ import { calculateCourseHandicap, calculateRoundResult, HANDICAP_ALLOWANCES } fr
 import { loadHandicapIndex, saveHandicapIndex } from '../lib/storage'
 
 export function AntesDeJugarPage() {
-  const [handicapIndex, setHandicapIndex] = useState<number>(() => loadHandicapIndex() ?? 12.0)
+  const [handicapIndexInput, setHandicapIndexInput] = useState<string>(() =>
+    String(loadHandicapIndex() ?? 12.0),
+  )
+  const handicapIndex = Number(handicapIndexInput) || 0
   const [courseId, setCourseId] = useState('')
   const [teeIndex, setTeeIndex] = useState(0)
   const [tee, setTee] = useState<CourseTee | null>(null)
@@ -56,8 +59,8 @@ export function AntesDeJugarPage() {
           <input
             type="number"
             step="0.1"
-            value={handicapIndex}
-            onChange={(e) => setHandicapIndex(Number(e.target.value))}
+            value={handicapIndexInput}
+            onChange={(e) => setHandicapIndexInput(e.target.value)}
             className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
           />
         </div>
