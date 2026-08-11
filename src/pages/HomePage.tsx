@@ -21,10 +21,10 @@ export function HomePage() {
           <div className="text-sm font-semibold uppercase tracking-wide text-gold-600">
             Antes de jugar
           </div>
-          <h2 className="mt-1 text-xl font-semibold text-fairway-900">Antes de Jugar</h2>
+          <h2 className="mt-1 text-xl font-semibold text-fairway-900">Handicap de Juego</h2>
           <p className="mt-2 text-sm text-fairway-600">
-            Busca tu Handicap Index oficial y calcula cuántos golpes de
-            ventaja tienes en el campo y tee que vas a jugar.
+            Introduce tu Handicap Index y el tee que vas a jugar para saber
+            cuántos golpes de ventaja tienes en ese campo.
           </p>
         </Link>
 
