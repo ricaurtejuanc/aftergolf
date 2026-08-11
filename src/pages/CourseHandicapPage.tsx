@@ -28,16 +28,16 @@ export function CourseHandicapPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Handicap de Juego</h1>
-        <p className="mt-1 text-sm text-fairway-300">
+        <h1 className="text-2xl font-semibold text-fairway-900">Handicap de Juego</h1>
+        <p className="mt-1 text-sm text-fairway-600">
           Calcula tu Course Handicap para el tee que vas a jugar, a partir de tu
           Handicap Index (WHS/RFEG).
         </p>
       </div>
 
-      <div className="rounded-2xl border border-fairway-800 bg-fairway-900/40 p-5 space-y-5">
+      <div className="rounded-2xl border border-cream-300 bg-white p-5 space-y-5 shadow-sm">
         <div>
-          <label className="block text-sm font-medium text-fairway-100 mb-1">
+          <label className="block text-sm font-medium text-fairway-800 mb-1">
             Tu Handicap Index (HI)
           </label>
           <input
@@ -45,7 +45,7 @@ export function CourseHandicapPage() {
             step="0.1"
             value={handicapIndex}
             onChange={(e) => setHandicapIndex(Number(e.target.value))}
-            className="w-full rounded-lg border border-fairway-700 bg-fairway-900/60 px-3 py-2 text-sm text-white focus:border-fairway-400 focus:outline-none"
+            className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
           />
         </div>
 
@@ -60,13 +60,13 @@ export function CourseHandicapPage() {
         />
 
         <div>
-          <label className="block text-sm font-medium text-fairway-100 mb-1">
+          <label className="block text-sm font-medium text-fairway-800 mb-1">
             Modalidad / % de handicap
           </label>
           <select
             value={allowance}
             onChange={(e) => setAllowance(Number(e.target.value))}
-            className="w-full rounded-lg border border-fairway-700 bg-fairway-900/60 px-3 py-2 text-sm text-white focus:border-fairway-400 focus:outline-none"
+            className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
           >
             {HANDICAP_ALLOWANCES.map((a) => (
               <option key={a.value} value={a.value}>
@@ -82,8 +82,8 @@ export function CourseHandicapPage() {
         <StatCard label="Valor exacto" value={exact.toFixed(2)} />
       </div>
 
-      <div className="rounded-xl border border-fairway-800 bg-fairway-900/20 p-4 text-sm text-fairway-300">
-        <p className="font-mono text-xs text-fairway-400">
+      <div className="rounded-xl border border-cream-300 bg-cream-100 p-4 text-sm text-fairway-700">
+        <p className="font-mono text-xs text-fairway-500">
           HC = HI x (Slope / 113) + (CR - Par)
         </p>
         <p className="mt-1">

@@ -33,7 +33,7 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-sm font-medium text-fairway-100 mb-1">
+        <label className="block text-sm font-medium text-fairway-800 mb-1">
           Campo de golf
         </label>
         <input
@@ -41,7 +41,7 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar campo o ubicación..."
-          className="w-full rounded-lg border border-fairway-700 bg-fairway-900/60 px-3 py-2 text-sm text-white placeholder-fairway-400 focus:border-fairway-400 focus:outline-none"
+          className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 placeholder-fairway-400 focus:border-fairway-500 focus:outline-none"
         />
         <select
           value={courseId}
@@ -50,7 +50,7 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
             if (!c) return
             onChange(c.id, 0, c.tees[0], c.name, c.location)
           }}
-          className="mt-2 w-full rounded-lg border border-fairway-700 bg-fairway-900/60 px-3 py-2 text-sm text-white focus:border-fairway-400 focus:outline-none"
+          className="mt-2 w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
         >
           <option value="" disabled>
             Selecciona un campo
@@ -65,7 +65,7 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
 
       {course && (
         <div>
-          <label className="block text-sm font-medium text-fairway-100 mb-1">
+          <label className="block text-sm font-medium text-fairway-800 mb-1">
             Tee de salida
           </label>
           <select
@@ -74,7 +74,7 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
               const idx = Number(e.target.value)
               onChange(course.id, idx, course.tees[idx], course.name, course.location)
             }}
-            className="w-full rounded-lg border border-fairway-700 bg-fairway-900/60 px-3 py-2 text-sm text-white focus:border-fairway-400 focus:outline-none"
+            className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
           >
             {course.tees.map((t, idx) => (
               <option key={idx} value={idx}>

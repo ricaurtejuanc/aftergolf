@@ -63,17 +63,17 @@ export function PostRoundPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Handicap Jugado (Post-Ronda)</h1>
-        <p className="mt-1 text-sm text-fairway-300">
+        <h1 className="text-2xl font-semibold text-fairway-900">Handicap Jugado (Post-Ronda)</h1>
+        <p className="mt-1 text-sm text-fairway-600">
           Introduce tu resultado bruto para obtener strokes recibidos, resultado
           neto, puntos Stableford y el Score Differential de la ronda.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-fairway-800 bg-fairway-900/40 p-5 space-y-5">
+      <div className="rounded-2xl border border-cream-300 bg-white p-5 space-y-5 shadow-sm">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-fairway-100 mb-1">
+            <label className="block text-sm font-medium text-fairway-800 mb-1">
               Handicap Index (HI)
             </label>
             <input
@@ -81,18 +81,18 @@ export function PostRoundPage() {
               step="0.1"
               value={handicapIndex}
               onChange={(e) => setHandicapIndex(Number(e.target.value))}
-              className="w-full rounded-lg border border-fairway-700 bg-fairway-900/60 px-3 py-2 text-sm text-white focus:border-fairway-400 focus:outline-none"
+              className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-fairway-100 mb-1">
+            <label className="block text-sm font-medium text-fairway-800 mb-1">
               Fecha
             </label>
             <input
               type="date"
               value={datePlayed}
               onChange={(e) => setDatePlayed(e.target.value)}
-              className="w-full rounded-lg border border-fairway-700 bg-fairway-900/60 px-3 py-2 text-sm text-white focus:border-fairway-400 focus:outline-none"
+              className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
             />
           </div>
         </div>
@@ -110,14 +110,14 @@ export function PostRoundPage() {
         />
 
         <div>
-          <label className="block text-sm font-medium text-fairway-100 mb-1">
+          <label className="block text-sm font-medium text-fairway-800 mb-1">
             Resultado bruto (golpes totales)
           </label>
           <input
             type="number"
             value={grossScore}
             onChange={(e) => setGrossScore(Number(e.target.value))}
-            className="w-full rounded-lg border border-fairway-700 bg-fairway-900/60 px-3 py-2 text-sm text-white focus:border-fairway-400 focus:outline-none"
+            className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
           />
         </div>
       </div>
@@ -138,7 +138,7 @@ export function PostRoundPage() {
 
       <button
         onClick={handleSave}
-        className="w-full rounded-lg bg-fairway-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-400"
+        className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800"
       >
         {saved ? 'Ronda guardada ✓' : 'Guardar ronda en mi historial'}
       </button>

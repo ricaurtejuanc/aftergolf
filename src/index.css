@@ -13,12 +13,19 @@
   --color-fairway-900: #164026;
   --color-fairway-950: #0a2415;
 
-  --color-sand-50: #fdfbf4;
-  --color-sand-100: #faf3e0;
-  --color-sand-200: #f2e3bc;
-  --color-sand-300: #e7cd8c;
+  --color-cream-50: #fdfbf4;
+  --color-cream-100: #f6f1e3;
+  --color-cream-200: #efe6cf;
+  --color-cream-300: #e2d3ac;
+  --color-cream-400: #d3bd85;
+
+  --color-gold-400: #c9a35f;
+  --color-gold-500: #b3894a;
+  --color-gold-600: #9a733a;
+  --color-gold-700: #7e5d2e;
 
   --font-display: 'system-ui', 'Segoe UI', sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
 }
 
 html {
@@ -27,7 +34,7 @@ html {
 
 body {
   margin: 0;
-  background: var(--color-fairway-950);
+  background: var(--color-cream-50);
   font-family: var(--font-display);
 }
 

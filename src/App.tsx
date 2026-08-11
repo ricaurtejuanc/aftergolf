@@ -1,59 +1,34 @@
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import { Sidebar } from './components/Sidebar'
+import { HomePage } from './pages/HomePage'
 import { CourseHandicapPage } from './pages/CourseHandicapPage'
 import { PostRoundPage } from './pages/PostRoundPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { CoursesPage } from './pages/CoursesPage'
-
-const NAV_ITEMS = [
-  { to: '/', label: 'Handicap de Juego', end: true },
-  { to: '/post-ronda', label: 'Post-Ronda' },
-  { to: '/historial', label: 'Historial' },
-  { to: '/campos', label: 'Campos' },
-]
+import { ShopPage } from './pages/ShopPage'
 
 function App() {
   return (
-    <div className="min-h-screen bg-fairway-950">
-      <header className="border-b border-fairway-800">
-        <div className="mx-auto max-w-4xl px-4 py-4">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">⛳</span>
-            <span className="text-xl font-semibold text-white">AfterGolf</span>
-          </div>
-          <nav className="mt-4 flex gap-1 overflow-x-auto">
-            {NAV_ITEMS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                    isActive
-                      ? 'bg-fairway-500 text-white'
-                      : 'text-fairway-300 hover:bg-fairway-900 hover:text-white'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-      </header>
+    <div className="flex min-h-screen flex-col bg-cream-50 md:flex-row">
+      <Sidebar />
 
-      <main className="mx-auto max-w-4xl px-4 py-8">
-        <Routes>
-          <Route path="/" element={<CourseHandicapPage />} />
-          <Route path="/post-ronda" element={<PostRoundPage />} />
-          <Route path="/historial" element={<HistoryPage />} />
-          <Route path="/campos" element={<CoursesPage />} />
-        </Routes>
-      </main>
+      <div className="flex-1">
+        <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/handicap-de-juego" element={<CourseHandicapPage />} />
+            <Route path="/post-ronda" element={<PostRoundPage />} />
+            <Route path="/historial" element={<HistoryPage />} />
+            <Route path="/campos" element={<CoursesPage />} />
+            <Route path="/shop" element={<ShopPage />} />
+          </Routes>
+        </main>
 
-      <footer className="mx-auto max-w-4xl px-4 py-8 text-center text-xs text-fairway-500">
-        Cálculos basados en el World Handicap System (WHS) / RFEG. Todos los
-        datos se guardan solo en tu navegador.
-      </footer>
+        <footer className="mx-auto max-w-5xl px-6 py-8 text-center text-xs text-fairway-500">
+          Cálculos basados en el World Handicap System (WHS) / RFEG. Todos los
+          datos se guardan solo en tu navegador.
+        </footer>
+      </div>
     </div>
   )
 }
