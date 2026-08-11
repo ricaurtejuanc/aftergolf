@@ -47,6 +47,19 @@ export function ShopPage() {
               key={product.id}
               className="flex flex-col rounded-2xl border border-cream-300 bg-white p-5 shadow-sm"
             >
+              <div className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-cream-100">
+                {product.image ? (
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-5xl" aria-hidden>
+                    🏌️
+                  </span>
+                )}
+              </div>
               <div className="text-xs font-semibold uppercase tracking-wide text-gold-600">
                 {product.category}
               </div>
