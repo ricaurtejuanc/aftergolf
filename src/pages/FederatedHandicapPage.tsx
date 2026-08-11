@@ -1,3 +1,4 @@
+const HANDICAP_LOOKUP_EMBED_URL = 'https://www.golfdirecto.com/embed/handicap/search'
 const HANDICAP_LOOKUP_URL = 'https://www.golfdirecto.com/handicap/search'
 
 export function FederatedHandicapPage() {
@@ -22,7 +23,7 @@ export function FederatedHandicapPage() {
 
       <div className="overflow-hidden rounded-2xl border border-cream-300 bg-white shadow-sm">
         <iframe
-          src={HANDICAP_LOOKUP_URL}
+          src={HANDICAP_LOOKUP_EMBED_URL}
           title="Consulta de Handicap Federado"
           className="h-[720px] w-full"
         />
