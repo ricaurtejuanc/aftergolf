@@ -39,11 +39,21 @@ function ShopIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+function MailIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M4 7l8 6 8-6" />
+    </svg>
+  )
+}
+
 const NAV_ITEMS = [
   { to: '/antes-de-jugar', label: 'Antes de Jugar', shortLabel: 'Antes', icon: FlagIcon },
   { to: '/despues-de-jugar', label: 'Después de Jugar', shortLabel: 'Después', icon: ScoreIcon },
   { to: '/historial', label: 'Historial de Rondas', shortLabel: 'Historial', icon: HistoryIcon },
   { to: '/shop', label: 'Shop', shortLabel: 'Shop', icon: ShopIcon },
+  { to: '/contacto', label: 'Contacto', shortLabel: 'Contacto', icon: MailIcon },
 ]
 
 export function Sidebar() {

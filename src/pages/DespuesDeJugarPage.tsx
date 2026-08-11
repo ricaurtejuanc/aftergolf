@@ -79,30 +79,26 @@ export function DespuesDeJugarPage() {
       </div>
 
       <div className="rounded-2xl border border-cream-300 bg-white p-5 space-y-5 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="min-w-0">
-            <label className="block text-sm font-medium text-fairway-800 mb-1">
-              Handicap Index (HI)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              value={handicapIndexInput}
-              onChange={(e) => setHandicapIndexInput(e.target.value)}
-              className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
-            />
-          </div>
-          <div className="min-w-0">
-            <label className="block text-sm font-medium text-fairway-800 mb-1">
-              Fecha
-            </label>
-            <input
-              type="date"
-              value={datePlayed}
-              onChange={(e) => setDatePlayed(e.target.value)}
-              className="w-full min-w-0 rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-fairway-800 mb-1">
+            Handicap Index (HI)
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            value={handicapIndexInput}
+            onChange={(e) => setHandicapIndexInput(e.target.value)}
+            className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-fairway-800 mb-1">Fecha</label>
+          <input
+            type="date"
+            value={datePlayed}
+            onChange={(e) => setDatePlayed(e.target.value)}
+            className="w-full max-w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+          />
         </div>
 
         <CourseTeeSelect
