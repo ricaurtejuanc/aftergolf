@@ -1,12 +1,10 @@
 import { Route, Routes } from 'react-router-dom'
 import { Sidebar } from './components/Sidebar'
 import { HomePage } from './pages/HomePage'
-import { CourseHandicapPage } from './pages/CourseHandicapPage'
-import { PostRoundPage } from './pages/PostRoundPage'
-import { HistoryPage } from './pages/HistoryPage'
-import { CoursesPage } from './pages/CoursesPage'
+import { AntesDeJugarPage } from './pages/AntesDeJugarPage'
+import { DespuesDeJugarPage } from './pages/DespuesDeJugarPage'
 import { ShopPage } from './pages/ShopPage'
-import { FederatedHandicapPage } from './pages/FederatedHandicapPage'
+import { AdminPage } from './pages/AdminPage'
 
 function App() {
   return (
@@ -17,12 +15,10 @@ function App() {
         <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/handicap-de-juego" element={<CourseHandicapPage />} />
-            <Route path="/post-ronda" element={<PostRoundPage />} />
-            <Route path="/historial" element={<HistoryPage />} />
-            <Route path="/campos" element={<CoursesPage />} />
-            <Route path="/handicap-federado" element={<FederatedHandicapPage />} />
+            <Route path="/antes-de-jugar" element={<AntesDeJugarPage />} />
+            <Route path="/despues-de-jugar" element={<DespuesDeJugarPage />} />
             <Route path="/shop" element={<ShopPage />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>
 

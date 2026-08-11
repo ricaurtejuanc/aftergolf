@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import { CourseTeeSelect } from '../components/CourseTeeSelect'
+import { CourseTeeSelect, TEE_LABEL } from '../components/CourseTeeSelect'
 import { StatCard } from '../components/StatCard'
 import type { CourseTee } from '../data/courses'
 import { COURSES } from '../data/courses'
 import { calculateCourseHandicap, calculateRoundResult } from '../lib/handicap'
-import { loadHandicapIndex, saveRound, type SavedRound } from '../lib/storage'
+import { deleteRound, loadHandicapIndex, loadRounds, saveRound, type SavedRound } from '../lib/storage'
 
 function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
-export function PostRoundPage() {
+export function DespuesDeJugarPage() {
   const [handicapIndex, setHandicapIndex] = useState<number>(() => loadHandicapIndex() ?? 12.0)
   const [courseId, setCourseId] = useState(COURSES[0].id)
   const [teeIndex, setTeeIndex] = useState(0)
@@ -20,6 +20,7 @@ export function PostRoundPage() {
   const [grossScore, setGrossScore] = useState<number>(90)
   const [datePlayed, setDatePlayed] = useState(today())
   const [saved, setSaved] = useState(false)
+  const [rounds, setRounds] = useState<SavedRound[]>(() => loadRounds())
 
   const { courseHandicap } = calculateCourseHandicap({
     handicapIndex,
@@ -55,15 +56,24 @@ export function PostRoundPage() {
       differential: result.differential,
       datePlayed,
     }
-    saveRound(round)
+    setRounds(saveRound(round))
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
+  function handleDelete(id: string) {
+    setRounds(deleteRound(id))
+  }
+
+  const avgDifferential =
+    rounds.length > 0
+      ? (rounds.reduce((sum, r) => sum + r.differential, 0) / rounds.length).toFixed(1)
+      : null
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-fairway-900">Handicap Jugado (Post-Ronda)</h1>
+        <h1 className="text-2xl font-semibold text-fairway-900">Después de Jugar</h1>
         <p className="mt-1 text-sm text-fairway-600">
           Introduce tu resultado bruto para obtener strokes recibidos, resultado
           neto, puntos Stableford y el Score Differential de la ronda.
@@ -142,6 +152,51 @@ export function PostRoundPage() {
       >
         {saved ? 'Ronda guardada ✓' : 'Guardar ronda en mi historial'}
       </button>
+
+      <div className="space-y-3 border-t border-cream-300 pt-6">
+        <h2 className="text-lg font-semibold text-fairway-900">Historial de rondas</h2>
+
+        {rounds.length === 0 ? (
+          <div className="rounded-xl border border-cream-300 bg-white p-8 text-center text-fairway-500">
+            Aún no has guardado ninguna ronda.
+          </div>
+        ) : (
+          <>
+            {avgDifferential && (
+              <div className="rounded-xl border border-gold-400 bg-gold-400/10 p-4 text-fairway-800">
+                Differential medio de las últimas {rounds.length} rondas:{' '}
+                <span className="font-semibold text-fairway-900">{avgDifferential}</span>
+              </div>
+            )}
+            <div className="space-y-3">
+              {rounds.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between rounded-xl border border-cream-300 bg-white p-4 shadow-sm"
+                >
+                  <div>
+                    <div className="font-medium text-fairway-900">{r.courseName}</div>
+                    <div className="text-xs text-fairway-500">
+                      {r.datePlayed} · Tee {TEE_LABEL[r.teeColor]} · CR {r.courseRating} / Slope{' '}
+                      {r.slopeRating}
+                    </div>
+                    <div className="mt-1 text-sm text-fairway-700">
+                      Bruto {r.grossScore} · Neto {r.netScore} · Stableford{' '}
+                      {r.stablefordPoints} pts · Diff {r.differential.toFixed(1)}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(r.id)}
+                    className="rounded-lg border border-cream-300 px-3 py-1.5 text-xs text-fairway-500 transition hover:border-red-400 hover:text-red-500"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
