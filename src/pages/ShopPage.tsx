@@ -158,9 +158,7 @@ export function ShopPage() {
       <div>
         <h1 className="text-2xl font-semibold text-fairway-900">Shop</h1>
         <p className="mt-1 text-sm text-fairway-600">
-          Merchandising AfterGolf. El pago con tarjeta todavía no está
-          conectado — al finalizar el pedido se prepara un email con el
-          detalle para confirmarlo manualmente.
+          Aquí puedes ver el catálogo de merchandising de AfterGolf.
         </p>
       </div>
 
