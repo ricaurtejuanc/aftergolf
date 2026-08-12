@@ -3,8 +3,6 @@ import type { Product } from '../data/products'
 import { loadProducts } from '../lib/productStore'
 import { FREE_SHIPPING_THRESHOLD, useCart } from '../context/CartContext'
 
-const STORE_EMAIL = 'ricaurtejuanc@gmail.com'
-
 function formatPrice(value: number) {
   return value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
 }
@@ -155,28 +153,6 @@ export function ShopPage() {
     clear,
   } = useCart()
 
-  function checkoutMailto() {
-    const lines = items.map((item) => {
-      const product = products.find((p) => p.id === item.productId)
-      if (!product) return null
-      const sizeLabel = item.size ? ` (Talla ${item.size})` : ''
-      return `- ${product.name}${sizeLabel} x${item.quantity} — ${formatPrice(product.price * item.quantity)}`
-    })
-    const body = [
-      'Quiero hacer este pedido en AfterGolf Shop:',
-      '',
-      ...lines,
-      '',
-      `Subtotal: ${formatPrice(totalPrice)}`,
-      `Envío: ${shippingCost === 0 ? 'Gratis' : formatPrice(shippingCost)}`,
-      `Total: ${formatPrice(orderTotal)}`,
-      '',
-      '(Nombre, dirección de envío y teléfono:)',
-    ].join('\n')
-    const url = `mailto:${STORE_EMAIL}?subject=${encodeURIComponent('Pedido AfterGolf Shop')}&body=${encodeURIComponent(body)}`
-    window.location.href = url
-  }
-
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
@@ -270,10 +246,11 @@ export function ShopPage() {
               </div>
 
               <button
-                onClick={checkoutMailto}
-                className="w-full rounded-lg bg-gold-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gold-600"
+                disabled
+                title="El pago online todavía no está disponible."
+                className="w-full cursor-not-allowed rounded-lg bg-gold-300 px-4 py-2.5 text-sm font-semibold text-white opacity-70"
               >
-                Finalizar pedido
+                Finalizar pedido (próximamente)
               </button>
               <button
                 onClick={clear}
