@@ -45,6 +45,20 @@ export function DespuesDeJugarPage() {
   const [saving, setSaving] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
 
+  function handleReset() {
+    setNumPlayers(1)
+    setPlayers([{ hi: String(loadHandicapIndex() ?? 12.0), gross: '90' }])
+    setCourseId('')
+    setTeeIndex(0)
+    setTee(null)
+    setCourseName('')
+    setCourseLocation('')
+    setDatePlayed(today())
+    setSaved(false)
+    setSaving(false)
+    setShowRegister(false)
+  }
+
   function handleNumPlayersChange(n: number) {
     setNumPlayers(n)
     setPlayers((prev) => {
@@ -295,6 +309,13 @@ export function DespuesDeJugarPage() {
           >
             Ver historial de rondas →
           </Link>
+
+          <button
+            onClick={handleReset}
+            className="w-full rounded-lg border border-cream-300 px-4 py-2.5 text-sm font-medium text-fairway-700 transition hover:border-fairway-400"
+          >
+            Nuevo cálculo
+          </button>
         </>
       )}
     </div>
