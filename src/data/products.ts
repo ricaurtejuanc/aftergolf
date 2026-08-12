@@ -19,7 +19,11 @@ export interface Product {
   placeholderEmoji?: string
   /** Bullet-point spec list shown below the description. */
   specs?: string[]
+  /** Available sizes; when set, a size must be picked before adding to cart. */
+  sizes?: string[]
 }
+
+export const CLOTHING_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL']
 
 export const PRODUCTS: Product[] = [
   {
@@ -48,6 +52,7 @@ export const PRODUCTS: Product[] = [
     price: 39.99,
     category: 'Ropa',
     images: [poloFront, poloBack, poloModel1, poloModel2],
+    sizes: CLOTHING_SIZES,
   },
   {
     id: 'camiseta-aftergolf',
@@ -57,6 +62,7 @@ export const PRODUCTS: Product[] = [
     price: 24.99,
     category: 'Ropa',
     placeholderEmoji: '👕',
+    sizes: CLOTHING_SIZES,
   },
   {
     id: 'gorro-aftergolf',
