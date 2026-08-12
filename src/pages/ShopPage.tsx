@@ -110,7 +110,21 @@ export function ShopPage() {
                 {product.category}
               </div>
               <h2 className="mt-1 font-semibold text-fairway-900">{product.name}</h2>
-              <p className="mt-1 flex-1 text-sm text-fairway-600">{product.description}</p>
+              <div className="mt-1 flex-1">
+                <p className="text-sm text-fairway-600">{product.description}</p>
+                {product.specs && (
+                  <ul className="mt-2 space-y-1 text-xs text-fairway-600">
+                    {product.specs.map((spec) => (
+                      <li key={spec} className="flex gap-1.5">
+                        <span className="text-gold-600" aria-hidden>
+                          •
+                        </span>
+                        {spec}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <div className="mt-3 flex items-center justify-between">
                 <span className="text-lg font-semibold text-fairway-900">
                   {formatPrice(product.price)}
