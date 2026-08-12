@@ -87,11 +87,20 @@ function restorePendingRedirect() {
   window.location.hash = hash
 }
 
+// With the PKCE flow, `onAuthStateChange` doesn't reliably fire a distinct
+// `PASSWORD_RECOVERY` event (it can come through as a plain `SIGNED_IN`
+// instead) — but Supabase still tags the redirect URL with `type=recovery`
+// alongside the `?code=`, so check that directly rather than trusting the
+// event name.
+function isRecoveryRedirect(): boolean {
+  return new URLSearchParams(window.location.search).get('type') === 'recovery'
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [passwordRecovery, setPasswordRecovery] = useState(false)
+  const [passwordRecovery, setPasswordRecovery] = useState(isRecoveryRedirect)
 
   useEffect(() => {
     async function syncUser(sessionUser: User | null) {
