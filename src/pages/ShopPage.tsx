@@ -7,9 +7,79 @@ function formatPrice(value: number) {
   return value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
 }
 
+function ProductLightbox({
+  product,
+  images,
+  active,
+  onClose,
+  onNavigate,
+}: {
+  product: Product
+  images: string[]
+  active: number
+  onClose: () => void
+  onNavigate: (idx: number) => void
+}) {
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft') onNavigate((active - 1 + images.length) % images.length)
+      if (e.key === 'ArrowRight') onNavigate((active + 1) % images.length)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [active, images.length, onClose, onNavigate])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute right-4 top-4 text-3xl leading-none text-white/80 transition hover:text-white"
+        aria-label="Cerrar"
+      >
+        ✕
+      </button>
+      <img
+        src={images[active]}
+        alt={product.name}
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-full max-w-full rounded-lg object-contain"
+      />
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onNavigate((active - 1 + images.length) % images.length)
+            }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-4xl leading-none text-white/80 transition hover:text-white"
+            aria-label="Foto anterior"
+          >
+            ‹
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onNavigate((active + 1) % images.length)
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-4xl leading-none text-white/80 transition hover:text-white"
+            aria-label="Foto siguiente"
+          >
+            ›
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
 function ProductGallery({ product }: { product: Product }) {
   const images = product.images ?? []
   const [active, setActive] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   if (images.length === 0) {
     return (
@@ -23,13 +93,18 @@ function ProductGallery({ product }: { product: Product }) {
 
   return (
     <div>
-      <div className="aspect-square overflow-hidden rounded-xl bg-cream-100">
+      <button
+        type="button"
+        onClick={() => setLightboxOpen(true)}
+        className="block aspect-square w-full cursor-zoom-in overflow-hidden rounded-xl bg-cream-100"
+        aria-label={`Ampliar foto de ${product.name}`}
+      >
         <img
           src={images[active]}
           alt={product.name}
           className="h-full w-full object-cover"
         />
-      </div>
+      </button>
       {images.length > 1 && (
         <div className="mt-2 flex gap-2">
           {images.map((src, idx) => (
@@ -45,6 +120,16 @@ function ProductGallery({ product }: { product: Product }) {
             </button>
           ))}
         </div>
+      )}
+
+      {lightboxOpen && (
+        <ProductLightbox
+          product={product}
+          images={images}
+          active={active}
+          onClose={() => setLightboxOpen(false)}
+          onNavigate={setActive}
+        />
       )}
     </div>
   )
