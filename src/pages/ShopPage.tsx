@@ -96,14 +96,16 @@ function ProductGallery({ product }: { product: Product }) {
       <button
         type="button"
         onClick={() => setLightboxOpen(true)}
-        className="block aspect-square w-full cursor-zoom-in overflow-hidden rounded-xl bg-cream-100"
+        className="block w-full cursor-zoom-in"
         aria-label={`Ampliar foto de ${product.name}`}
       >
-        <img
-          src={images[active]}
-          alt={product.name}
-          className="h-full w-full object-cover"
-        />
+        <div className="aspect-square w-full overflow-hidden rounded-xl bg-cream-100">
+          <img
+            src={images[active]}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
+        </div>
       </button>
       {images.length > 1 && (
         <div className="mt-2 flex gap-2">
