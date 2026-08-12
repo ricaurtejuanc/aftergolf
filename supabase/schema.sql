@@ -111,6 +111,7 @@ create table if not exists public.products (
   images text[],
   specs text[],
   sizes text[],
+  position integer not null default 0,
   created_at timestamptz not null default now()
 );
 
