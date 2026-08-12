@@ -32,6 +32,18 @@ export function AntesDeJugarPage() {
     saveHandicapIndex(handicapIndex)
   }, [handicapIndex])
 
+  function handleReset() {
+    setNumPlayers(1)
+    setPlayerInputs([String(loadHandicapIndex() ?? 12.0)])
+    setCourseId('')
+    setTeeIndex(0)
+    setTee(null)
+    setAllowance(1)
+    setShowRoundCalc(false)
+    setShowDistribution(false)
+    setGrossScoreInputs(['90'])
+  }
+
   function handleNumPlayersChange(n: number) {
     setNumPlayers(n)
     setPlayerInputs((prev) => {
@@ -297,6 +309,15 @@ export function AntesDeJugarPage() {
             </div>
           )}
         </>
+      )}
+
+      {tee && (
+        <button
+          onClick={handleReset}
+          className="w-full rounded-lg border border-cream-300 px-4 py-2.5 text-sm font-medium text-fairway-700 transition hover:border-fairway-400"
+        >
+          Nuevo cálculo
+        </button>
       )}
     </div>
   )
