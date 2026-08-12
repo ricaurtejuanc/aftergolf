@@ -2,7 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { takePendingRounds } from '../lib/pendingRounds'
 import { saveRound } from '../lib/storage'
-import { isPasswordRecoveryRedirect, supabase } from '../lib/supabaseClient'
+import { supabase } from '../lib/supabaseClient'
 
 export interface Profile {
   firstName: string
@@ -32,6 +32,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 const PENDING_PROFILE_KEY = 'aftergolf.pendingProfile'
 const PENDING_REDIRECT_KEY = 'aftergolf.pendingRedirect'
+const PENDING_RECOVERY_KEY = 'aftergolf.pendingRecovery'
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data } = await supabase
@@ -91,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [passwordRecovery, setPasswordRecovery] = useState(isPasswordRecoveryRedirect)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   useEffect(() => {
     async function syncUser(sessionUser: User | null) {
@@ -99,6 +100,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!sessionUser) {
         setProfile(null)
         return
+      }
+      // Supabase doesn't reliably preserve any marker we put in the
+      // redirectTo URL (it can rebuild the redirect with just its own
+      // `?code=`, dropping ours) and doesn't reliably fire a distinct
+      // PASSWORD_RECOVERY event either — so the one thing we can trust is
+      // a flag we stashed in this browser right before requesting the
+      // recovery email, checked as soon as a session shows up.
+      if (localStorage.getItem(PENDING_RECOVERY_KEY) === '1') {
+        localStorage.removeItem(PENDING_RECOVERY_KEY)
+        setPasswordRecovery(true)
       }
       await completePendingProfile(sessionUser.id, sessionUser.email ?? '')
       await flushPendingRounds(sessionUser.id)
@@ -152,11 +163,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function requestPasswordReset(email: string) {
     stashPendingRedirect()
+    localStorage.setItem(PENDING_RECOVERY_KEY, '1')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + window.location.pathname + '?recovery=1',
+      redirectTo: window.location.origin + window.location.pathname,
     })
     if (error) {
       localStorage.removeItem(PENDING_REDIRECT_KEY)
+      localStorage.removeItem(PENDING_RECOVERY_KEY)
       throw error
     }
   }
