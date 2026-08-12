@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../lib/supabaseClient'
 
 const CONTACT_EMAIL = 'info@aftergolf.es'
 
@@ -7,15 +8,29 @@ export function ContactPage() {
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState(false)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const body = [message, '', `De: ${name} (${email})`].join('\n')
-    const url = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
-      `Contacto AfterGolf — ${name}`,
-    )}&body=${encodeURIComponent(body)}`
-    window.location.href = url
-    setSent(true)
+    setSending(true)
+    setError(false)
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ name, email, message }),
+      })
+      if (!response.ok) throw new Error('request failed')
+      setSent(true)
+    } catch {
+      setError(true)
+    } finally {
+      setSending(false)
+    }
   }
 
   function handleReset() {
@@ -23,6 +38,7 @@ export function ContactPage() {
     setEmail('')
     setMessage('')
     setSent(false)
+    setError(false)
   }
 
   return (
@@ -30,9 +46,8 @@ export function ContactPage() {
       <div>
         <h1 className="text-2xl font-semibold text-fairway-900">Contacto</h1>
         <p className="mt-1 text-sm text-fairway-600">
-          ¿Alguna duda, sugerencia o incidencia? Escríbenos y se abrirá tu
-          aplicación de correo con el mensaje listo para enviar a{' '}
-          {CONTACT_EMAIL}.
+          ¿Alguna duda, sugerencia o incidencia? Escríbenos y te responderemos
+          a {CONTACT_EMAIL}.
         </p>
       </div>
 
@@ -42,8 +57,7 @@ export function ContactPage() {
             Tu consulta ha sido enviada correctamente.
           </p>
           <p className="mt-1 text-sm text-fairway-600">
-            Se ha abierto tu aplicación de correo con el mensaje listo — solo
-            falta que le des a enviar.
+            Te responderemos lo antes posible al email que nos has indicado.
           </p>
           <button
             type="button"
@@ -97,11 +111,18 @@ export function ContactPage() {
             />
           </div>
 
+          {error && (
+            <p className="text-sm text-red-500">
+              No se pudo enviar el mensaje. Inténtalo de nuevo en un momento.
+            </p>
+          )}
+
           <button
             type="submit"
-            className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800"
+            disabled={sending}
+            className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
           >
-            Enviar mensaje
+            {sending ? 'Enviando...' : 'Enviar mensaje'}
           </button>
         </form>
       )}
