@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import type { Product } from '../data/products'
 import { loadProducts } from '../lib/productStore'
 import { loadCart, saveCart, type CartItem } from '../lib/cart'
 
@@ -21,10 +22,15 @@ const CartContext = createContext<CartContextValue | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => loadCart())
+  const [products, setProducts] = useState<Product[]>([])
 
   useEffect(() => {
     saveCart(items)
   }, [items])
+
+  useEffect(() => {
+    loadProducts().then(setProducts)
+  }, [])
 
   function addItem(productId: string, size?: string) {
     setItems((prev) => {
@@ -57,7 +63,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const { totalCount, totalPrice } = useMemo(() => {
-    const products = loadProducts()
     let count = 0
     let price = 0
     for (const item of items) {
@@ -67,7 +72,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       price += product.price * item.quantity
     }
     return { totalCount: count, totalPrice: price }
-  }, [items])
+  }, [items, products])
 
   const shippingCost = totalCount === 0 || totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
   const orderTotal = totalPrice + shippingCost

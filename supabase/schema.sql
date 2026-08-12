@@ -54,3 +54,71 @@ create policy "rounds_delete_own" on public.rounds
   for delete using (auth.uid() = user_id);
 
 create index if not exists rounds_user_id_idx on public.rounds (user_id);
+
+-- Campos de golf y tees: lectura pública, escritura solo para el admin
+-- (identificado por email, ver ADMIN_EMAIL en src/lib/admin.ts).
+
+create table if not exists public.courses (
+  id text primary key,
+  name text not null,
+  location text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.courses enable row level security;
+
+create policy "courses_select_all" on public.courses
+  for select using (true);
+
+create policy "courses_write_admin" on public.courses
+  for all using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
+
+create table if not exists public.tees (
+  id uuid primary key default gen_random_uuid(),
+  course_id text not null references public.courses (id) on delete cascade,
+  color text not null,
+  gender text not null,
+  cr numeric not null,
+  slope numeric not null,
+  par integer not null,
+  position integer not null default 0
+);
+
+alter table public.tees enable row level security;
+
+create policy "tees_select_all" on public.tees
+  for select using (true);
+
+create policy "tees_write_admin" on public.tees
+  for all using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
+
+create index if not exists tees_course_id_idx on public.tees (course_id);
+
+-- Productos del Shop: misma idea, lectura pública / escritura solo admin.
+-- "images" se deja vacío por ahora (no hay subida de fotos todavía); los
+-- productos con fotos ya subidas (bolas, polo) las siguen sirviendo desde
+-- src/assets vía un mapa local, ver src/data/productImages.ts.
+
+create table if not exists public.products (
+  id text primary key,
+  name text not null,
+  description text not null,
+  price numeric not null,
+  category text not null,
+  placeholder_emoji text,
+  images text[],
+  specs text[],
+  sizes text[],
+  created_at timestamptz not null default now()
+);
+
+alter table public.products enable row level security;
+
+create policy "products_select_all" on public.products
+  for select using (true);
+
+create policy "products_write_admin" on public.products
+  for all using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');

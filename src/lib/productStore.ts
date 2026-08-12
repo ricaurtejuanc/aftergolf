@@ -1,20 +1,39 @@
-import { PRODUCTS as SEED_PRODUCTS, type Product } from '../data/products'
+import type { Product } from '../data/products'
+import { LOCAL_PRODUCT_IMAGES } from '../data/productImages'
+import { supabase } from './supabaseClient'
 
-const PRODUCTS_KEY = 'aftergolf.products'
-
-export function loadProducts(): Product[] {
-  try {
-    const raw = localStorage.getItem(PRODUCTS_KEY)
-    if (raw) return JSON.parse(raw) as Product[]
-  } catch {
-    // fall through to seed
-  }
-  saveProducts(SEED_PRODUCTS)
-  return SEED_PRODUCTS
+interface ProductRow {
+  id: string
+  name: string
+  description: string
+  price: number
+  category: string
+  placeholder_emoji: string | null
+  images: string[] | null
+  specs: string[] | null
+  sizes: string[] | null
 }
 
-export function saveProducts(products: Product[]): void {
-  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products))
+function fromRow(row: ProductRow): Product {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    price: row.price,
+    category: row.category,
+    placeholderEmoji: row.placeholder_emoji ?? undefined,
+    // Photos already committed as local assets take priority over the DB
+    // column (which is empty until Supabase Storage is wired up).
+    images: LOCAL_PRODUCT_IMAGES[row.id] ?? row.images ?? undefined,
+    specs: row.specs ?? undefined,
+    sizes: row.sizes ?? undefined,
+  }
+}
+
+export async function loadProducts(): Promise<Product[]> {
+  const { data, error } = await supabase.from('products').select('*').order('created_at')
+  if (error || !data) return []
+  return (data as ProductRow[]).map(fromRow)
 }
 
 function slugify(name: string): string {
@@ -28,27 +47,52 @@ function slugify(name: string): string {
   )
 }
 
-export function addProduct(input: Omit<Product, 'id'>): Product[] {
-  const products = loadProducts()
-  const baseId = slugify(input.name)
+async function uniqueProductId(name: string): Promise<string> {
+  const baseId = slugify(name)
   let id = baseId
   let n = 2
-  while (products.some((p) => p.id === id)) {
+  for (;;) {
+    const { data } = await supabase.from('products').select('id').eq('id', id).maybeSingle()
+    if (!data) return id
     id = `${baseId}-${n++}`
   }
-  const updated = [...products, { ...input, id }]
-  saveProducts(updated)
-  return updated
 }
 
-export function updateProduct(id: string, patch: Omit<Product, 'id'>): Product[] {
-  const updated = loadProducts().map((p) => (p.id === id ? { ...patch, id } : p))
-  saveProducts(updated)
-  return updated
+export async function addProduct(input: Omit<Product, 'id'>): Promise<Product[]> {
+  const id = await uniqueProductId(input.name)
+  const { error } = await supabase.from('products').insert({
+    id,
+    name: input.name,
+    description: input.description,
+    price: input.price,
+    category: input.category,
+    placeholder_emoji: input.placeholderEmoji ?? null,
+    specs: input.specs ?? null,
+    sizes: input.sizes ?? null,
+  })
+  if (error) throw error
+  return loadProducts()
 }
 
-export function deleteProduct(id: string): Product[] {
-  const updated = loadProducts().filter((p) => p.id !== id)
-  saveProducts(updated)
-  return updated
+export async function updateProduct(id: string, patch: Omit<Product, 'id'>): Promise<Product[]> {
+  const { error } = await supabase
+    .from('products')
+    .update({
+      name: patch.name,
+      description: patch.description,
+      price: patch.price,
+      category: patch.category,
+      placeholder_emoji: patch.placeholderEmoji ?? null,
+      specs: patch.specs ?? null,
+      sizes: patch.sizes ?? null,
+    })
+    .eq('id', id)
+  if (error) throw error
+  return loadProducts()
+}
+
+export async function deleteProduct(id: string): Promise<Product[]> {
+  const { error } = await supabase.from('products').delete().eq('id', id)
+  if (error) throw error
+  return loadProducts()
 }

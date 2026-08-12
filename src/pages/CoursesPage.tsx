@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { TEE_LABEL } from '../components/CourseTeeSelect'
 import type { CourseTee, GolfCourse, TeeColor, TeeGender } from '../data/courses'
 import {
@@ -284,11 +284,18 @@ function CourseRow({
 }
 
 export function CoursesPage() {
-  const [courses, setCourses] = useState<GolfCourse[]>(() => loadCourses())
+  const [courses, setCourses] = useState<GolfCourse[]>([])
+  const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [addingCourse, setAddingCourse] = useState(false)
   const [newName, setNewName] = useState('')
   const [newLocation, setNewLocation] = useState('')
+
+  useEffect(() => {
+    loadCourses()
+      .then(setCourses)
+      .finally(() => setLoading(false))
+  }, [])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -298,9 +305,9 @@ export function CoursesPage() {
     )
   }, [courses, query])
 
-  function handleAddCourse() {
+  async function handleAddCourse() {
     if (!newName.trim()) return
-    setCourses(addCourse({ name: newName.trim(), location: newLocation.trim() }))
+    setCourses(await addCourse({ name: newName.trim(), location: newLocation.trim() }))
     setNewName('')
     setNewLocation('')
     setAddingCourse(false)
@@ -311,8 +318,8 @@ export function CoursesPage() {
       <div>
         <h1 className="text-2xl font-semibold text-fairway-900">Campos de golf</h1>
         <p className="mt-1 text-sm text-fairway-600">
-          {courses.length} campos con sus tees, Course Rating y Slope. Los cambios se
-          guardan en este navegador.
+          {loading ? 'Cargando...' : `${courses.length} campos con sus tees, Course Rating y Slope.`}{' '}
+          Visible para todos; solo tú puedes editarlos.
         </p>
       </div>
 
@@ -373,11 +380,11 @@ export function CoursesPage() {
           <CourseRow
             key={course.id}
             course={course}
-            onUpdate={(patch) => setCourses(updateCourse(course.id, patch))}
-            onDelete={() => setCourses(deleteCourse(course.id))}
-            onAddTee={(tee) => setCourses(addTee(course.id, tee))}
-            onUpdateTee={(idx, tee) => setCourses(updateTee(course.id, idx, tee))}
-            onDeleteTee={(idx) => setCourses(deleteTee(course.id, idx))}
+            onUpdate={async (patch) => setCourses(await updateCourse(course.id, patch))}
+            onDelete={async () => setCourses(await deleteCourse(course.id))}
+            onAddTee={async (tee) => setCourses(await addTee(course.id, tee))}
+            onUpdateTee={async (idx, tee) => setCourses(await updateTee(course.id, idx, tee))}
+            onDeleteTee={async (idx) => setCourses(await deleteTee(course.id, idx))}
           />
         ))}
       </div>

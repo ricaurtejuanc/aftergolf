@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Product } from '../data/products'
 import { loadProducts } from '../lib/productStore'
 import { FREE_SHIPPING_THRESHOLD, useCart } from '../context/CartContext'
@@ -138,7 +138,11 @@ function ProductCard({
 }
 
 export function ShopPage() {
-  const [products] = useState<Product[]>(() => loadProducts())
+  const [products, setProducts] = useState<Product[]>([])
+
+  useEffect(() => {
+    loadProducts().then(setProducts)
+  }, [])
   const {
     items,
     addItem,

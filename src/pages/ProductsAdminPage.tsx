@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CLOTHING_SIZES, type Product } from '../data/products'
 import { addProduct, deleteProduct, loadProducts, updateProduct } from '../lib/productStore'
 
@@ -126,10 +126,9 @@ function ProductForm({
       </div>
 
       <div className="rounded-lg border border-gold-400 bg-gold-400/10 p-3 text-xs text-fairway-700">
-        Este producto es un borrador: solo se guarda en este navegador y no
-        tiene fotos (se muestra con un emoji). Para publicarlo de verdad
-        —visible para tus clientes, con fotos reales— pásame estos datos y
-        las imágenes por chat.
+        Esto se guarda de verdad y ya lo ven tus clientes en la Shop. Lo único
+        que no puedes hacer aquí todavía es subir fotos (se muestra con un
+        emoji) — para eso, pásame las imágenes por chat.
       </div>
 
       <div className="flex gap-2">
@@ -151,19 +150,24 @@ function ProductForm({
 }
 
 export function ProductsAdminPage() {
-  const [products, setProducts] = useState<Product[]>(() => loadProducts())
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    loadProducts()
+      .then(setProducts)
+      .finally(() => setLoading(false))
+  }, [])
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-fairway-900">Productos del Shop</h1>
         <p className="mt-1 text-sm text-fairway-600">
-          Borrador de catálogo: estos cambios solo se guardan en este
-          navegador, no se publican en la web para tus clientes. Úsalo para
-          preparar productos y luego pásame los datos y fotos por chat para
-          publicarlos de verdad.
+          {loading ? 'Cargando...' : `${products.length} productos.`} Visibles
+          para todos tus clientes; solo tú puedes editarlos.
         </p>
       </div>
 
@@ -176,8 +180,8 @@ export function ProductsAdminPage() {
 
       {adding && (
         <ProductForm
-          onSave={(p) => {
-            setProducts(addProduct(p))
+          onSave={async (p) => {
+            setProducts(await addProduct(p))
             setAdding(false)
           }}
           onCancel={() => setAdding(false)}
@@ -190,8 +194,8 @@ export function ProductsAdminPage() {
             <ProductForm
               key={product.id}
               initial={product}
-              onSave={(p) => {
-                setProducts(updateProduct(product.id, p))
+              onSave={async (p) => {
+                setProducts(await updateProduct(product.id, p))
                 setEditingId(null)
               }}
               onCancel={() => setEditingId(null)}
@@ -216,7 +220,7 @@ export function ProductsAdminPage() {
                   Editar
                 </button>
                 <button
-                  onClick={() => setProducts(deleteProduct(product.id))}
+                  onClick={async () => setProducts(await deleteProduct(product.id))}
                   className="rounded-md border border-cream-300 px-2.5 py-1 text-xs text-fairway-500 transition hover:border-red-400 hover:text-red-500"
                 >
                   Eliminar
