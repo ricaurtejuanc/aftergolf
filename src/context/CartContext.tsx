@@ -7,9 +7,9 @@ export const FREE_SHIPPING_THRESHOLD = 100
 
 interface CartContextValue {
   items: CartItem[]
-  addItem: (productId: string) => void
-  removeItem: (productId: string) => void
-  setQuantity: (productId: string, quantity: number) => void
+  addItem: (productId: string, size?: string) => void
+  removeItem: (productId: string, size?: string) => void
+  setQuantity: (productId: string, quantity: number, size?: string) => void
   clear: () => void
   totalCount: number
   totalPrice: number
@@ -26,28 +26,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
     saveCart(items)
   }, [items])
 
-  function addItem(productId: string) {
+  function addItem(productId: string, size?: string) {
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === productId)
+      const existing = prev.find((i) => i.productId === productId && i.size === size)
       if (existing) {
         return prev.map((i) =>
-          i.productId === productId ? { ...i, quantity: i.quantity + 1 } : i,
+          i.productId === productId && i.size === size ? { ...i, quantity: i.quantity + 1 } : i,
         )
       }
-      return [...prev, { productId, quantity: 1 }]
+      return [...prev, { productId, quantity: 1, size }]
     })
   }
 
-  function removeItem(productId: string) {
-    setItems((prev) => prev.filter((i) => i.productId !== productId))
+  function removeItem(productId: string, size?: string) {
+    setItems((prev) => prev.filter((i) => !(i.productId === productId && i.size === size)))
   }
 
-  function setQuantity(productId: string, quantity: number) {
+  function setQuantity(productId: string, quantity: number, size?: string) {
     if (quantity <= 0) {
-      removeItem(productId)
+      removeItem(productId, size)
       return
     }
-    setItems((prev) => prev.map((i) => (i.productId === productId ? { ...i, quantity } : i)))
+    setItems((prev) =>
+      prev.map((i) => (i.productId === productId && i.size === size ? { ...i, quantity } : i)),
+    )
   }
 
   function clear() {

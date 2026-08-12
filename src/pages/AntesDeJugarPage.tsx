@@ -24,8 +24,7 @@ export function AntesDeJugarPage() {
   const [allowance, setAllowance] = useState(1)
   const [showRoundCalc, setShowRoundCalc] = useState(false)
   const [showDistribution, setShowDistribution] = useState(false)
-  const [grossScoreInput, setGrossScoreInput] = useState('90')
-  const grossScore = Number(grossScoreInput) || 0
+  const [grossScoreInputs, setGrossScoreInputs] = useState<string[]>(['90'])
 
   const handicapIndex = Number(playerInputs[0]) || 0
 
@@ -40,12 +39,21 @@ export function AntesDeJugarPage() {
       if (n > prev.length) return [...prev, ...Array(n - prev.length).fill('12')]
       return prev.slice(0, n)
     })
+    setGrossScoreInputs((prev) => {
+      if (n === prev.length) return prev
+      if (n > prev.length) return [...prev, ...Array(n - prev.length).fill('90')]
+      return prev.slice(0, n)
+    })
     setShowDistribution(false)
   }
 
   function updatePlayerInput(idx: number, value: string) {
     setPlayerInputs((prev) => prev.map((v, i) => (i === idx ? value : v)))
     setShowDistribution(false)
+  }
+
+  function updateGrossScoreInput(idx: number, value: string) {
+    setGrossScoreInputs((prev) => prev.map((v, i) => (i === idx ? value : v)))
   }
 
   const playerResults = playerInputs.map((input) => {
@@ -66,15 +74,20 @@ export function AntesDeJugarPage() {
   const minCourseHandicap = Math.min(...playerResults.map((r) => r.courseHandicap))
   const strokesGiven = playerResults.map((r) => r.courseHandicap - minCourseHandicap)
 
-  const roundResult = tee
-    ? calculateRoundResult({
-        courseHandicap,
-        grossScore,
-        slopeRating: tee.slope,
-        courseRating: tee.cr,
-        par: tee.par,
-      })
-    : null
+  const roundResults = playerResults.map((r, idx) => {
+    const grossScore = Number(grossScoreInputs[idx]) || 0
+    return tee
+      ? calculateRoundResult({
+          courseHandicap: r.courseHandicap,
+          grossScore,
+          slopeRating: tee.slope,
+          courseRating: tee.cr,
+          par: tee.par,
+        })
+      : null
+  })
+
+  const roundResult = roundResults[0]
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -222,7 +235,7 @@ export function AntesDeJugarPage() {
             >
               Calcular handicap jugado y puntos Stableford
             </button>
-          ) : (
+          ) : numPlayers === 1 ? (
             roundResult && (
               <div className="space-y-4 border-t border-cream-300 pt-6">
                 <div className="rounded-2xl border border-cream-300 bg-white p-5 shadow-sm">
@@ -232,8 +245,8 @@ export function AntesDeJugarPage() {
                   </label>
                   <input
                     type="number"
-                    value={grossScoreInput}
-                    onChange={(e) => setGrossScoreInput(e.target.value)}
+                    value={grossScoreInputs[0]}
+                    onChange={(e) => updateGrossScoreInput(0, e.target.value)}
                     className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
                   />
                 </div>
@@ -250,6 +263,38 @@ export function AntesDeJugarPage() {
                 </div>
               </div>
             )
+          ) : (
+            <div className="space-y-3 border-t border-cream-300 pt-6">
+              {playerInputs.map((_, idx) => {
+                const r = roundResults[idx]
+                return (
+                  <div
+                    key={idx}
+                    className="space-y-3 rounded-2xl border border-cream-300 bg-white p-4 shadow-sm"
+                  >
+                    <div className="text-sm font-semibold text-fairway-900">Jugador {idx + 1}</div>
+                    <div>
+                      <label className="mb-1 flex items-center text-xs font-medium text-fairway-700">
+                        Resultado Bruto Stableford
+                        <InfoTooltip text={GROSS_STABLEFORD_EXPLANATION} />
+                      </label>
+                      <input
+                        type="number"
+                        value={grossScoreInputs[idx]}
+                        onChange={(e) => updateGrossScoreInput(idx, e.target.value)}
+                        className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+                      />
+                    </div>
+                    {r && (
+                      <div className="text-sm text-fairway-700">
+                        Golpes recibidos {r.strokesReceived} · Neto {r.netScore} · Stableford{' '}
+                        {r.stablefordPoints} pts · Handicap jugado {r.differential.toFixed(1)}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           )}
         </>
       )}

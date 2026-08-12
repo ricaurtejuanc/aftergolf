@@ -51,8 +51,16 @@ function ProductGallery({ product }: { product: Product }) {
   )
 }
 
-function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
+function ProductCard({
+  product,
+  onAdd,
+}: {
+  product: Product
+  onAdd: (size?: string) => void
+}) {
   const [expanded, setExpanded] = useState(false)
+  const [size, setSize] = useState('')
+  const needsSize = Boolean(product.sizes)
 
   return (
     <div className="flex flex-col rounded-2xl border border-cream-300 bg-white p-5 shadow-sm">
@@ -92,13 +100,34 @@ function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }
         )}
       </div>
 
+      {needsSize && (
+        <div className="mt-3">
+          <label className="block text-xs font-medium text-fairway-700 mb-1">Talla</label>
+          <select
+            value={size}
+            onChange={(e) => setSize(e.target.value)}
+            className="w-full rounded-lg border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+          >
+            <option value="" disabled>
+              Selecciona talla
+            </option>
+            {product.sizes!.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="mt-3 flex items-center justify-between">
         <span className="text-lg font-semibold text-fairway-900">
           {formatPrice(product.price)}
         </span>
         <button
-          onClick={onAdd}
-          className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800"
+          onClick={() => onAdd(needsSize ? size : undefined)}
+          disabled={needsSize && !size}
+          className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Añadir
         </button>
@@ -124,7 +153,8 @@ export function ShopPage() {
     const lines = items.map((item) => {
       const product = PRODUCTS.find((p) => p.id === item.productId)
       if (!product) return null
-      return `- ${product.name} x${item.quantity} — ${formatPrice(product.price * item.quantity)}`
+      const sizeLabel = item.size ? ` (Talla ${item.size})` : ''
+      return `- ${product.name}${sizeLabel} x${item.quantity} — ${formatPrice(product.price * item.quantity)}`
     })
     const body = [
       'Quiero hacer este pedido en AfterGolf Shop:',
@@ -152,13 +182,19 @@ export function ShopPage() {
         </p>
       </div>
 
+      <div className="rounded-xl border border-gold-400 bg-gold-400/10 p-4 text-sm text-fairway-800">
+        <span className="font-semibold">En breve podrás realizar tus pedidos.</span>{' '}
+        Estamos terminando de configurar el pago online — mientras tanto puedes
+        explorar el catálogo y guardar productos en el carrito.
+      </div>
+
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="grid gap-4 sm:grid-cols-2">
           {PRODUCTS.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
-              onAdd={() => addItem(product.id)}
+              onAdd={(size) => addItem(product.id, size)}
             />
           ))}
         </div>
@@ -176,10 +212,14 @@ export function ShopPage() {
                 const product = PRODUCTS.find((p) => p.id === item.productId)
                 if (!product) return null
                 return (
-                  <div key={item.productId} className="flex items-center gap-2 text-sm">
+                  <div
+                    key={`${item.productId}-${item.size ?? ''}`}
+                    className="flex items-center gap-2 text-sm"
+                  >
                     <div className="flex-1">
                       <div className="text-fairway-900">{product.name}</div>
                       <div className="text-xs text-fairway-500">
+                        {item.size && <>Talla {item.size} · </>}
                         {formatPrice(product.price)} c/u
                       </div>
                     </div>
@@ -187,11 +227,13 @@ export function ShopPage() {
                       type="number"
                       min={1}
                       value={item.quantity}
-                      onChange={(e) => setQuantity(item.productId, Number(e.target.value))}
+                      onChange={(e) =>
+                        setQuantity(item.productId, Number(e.target.value), item.size)
+                      }
                       className="w-14 rounded-md border border-cream-300 px-1.5 py-1 text-center"
                     />
                     <button
-                      onClick={() => removeItem(item.productId)}
+                      onClick={() => removeItem(item.productId, item.size)}
                       className="text-xs text-fairway-400 hover:text-red-500"
                       aria-label={`Quitar ${product.name}`}
                     >
