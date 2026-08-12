@@ -2,13 +2,16 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CourseTeeSelect } from '../components/CourseTeeSelect'
 import { InfoTooltip } from '../components/InfoTooltip'
+import { RegisterGate } from '../components/RegisterGate'
 import { StatCard } from '../components/StatCard'
+import { useAuth } from '../context/AuthContext'
 import type { CourseTee } from '../data/courses'
 import {
   calculateCourseHandicap,
   calculateRoundResult,
   GROSS_STABLEFORD_EXPLANATION,
 } from '../lib/handicap'
+import { stashPendingRounds } from '../lib/pendingRounds'
 import { loadHandicapIndex, saveRound, type SavedRound } from '../lib/storage'
 
 const MAX_PLAYERS = 4
@@ -27,6 +30,7 @@ function blankPlayer(): PlayerInput {
 }
 
 export function DespuesDeJugarPage() {
+  const { user } = useAuth()
   const [numPlayers, setNumPlayers] = useState(1)
   const [players, setPlayers] = useState<PlayerInput[]>(() => [
     { hi: String(loadHandicapIndex() ?? 12.0), gross: '90' },
@@ -38,6 +42,8 @@ export function DespuesDeJugarPage() {
   const [courseLocation, setCourseLocation] = useState('')
   const [datePlayed, setDatePlayed] = useState(today())
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [showRegister, setShowRegister] = useState(false)
 
   function handleNumPlayersChange(n: number) {
     setNumPlayers(n)
@@ -74,34 +80,55 @@ export function DespuesDeJugarPage() {
     return { courseHandicap, ...result }
   })
 
-  function handleSave() {
-    if (!tee) return
-    players.forEach((p, idx) => {
-      const r = results[idx]
-      if (!r) return
-      const round: SavedRound = {
-        id: crypto.randomUUID(),
-        courseName,
-        courseLocation,
-        teeColor: tee.color,
-        teeGender: tee.gender,
-        courseRating: tee.cr,
-        slopeRating: tee.slope,
-        par: tee.par,
-        handicapIndex: Number(p.hi) || 0,
-        courseHandicap: r.courseHandicap,
-        grossScore: Number(p.gross) || 0,
-        strokesReceived: r.strokesReceived,
-        netScore: r.netScore,
-        stablefordPoints: r.stablefordPoints,
-        differential: r.differential,
-        datePlayed,
-        playerLabel: numPlayers > 1 ? `Jugador ${idx + 1}` : undefined,
+  function buildRoundsToSave(): Omit<SavedRound, 'id'>[] {
+    if (!tee) return []
+    return players
+      .map((p, idx): Omit<SavedRound, 'id'> | null => {
+        const r = results[idx]
+        if (!r) return null
+        const round: Omit<SavedRound, 'id'> = {
+          courseName,
+          courseLocation,
+          teeColor: tee.color,
+          teeGender: tee.gender,
+          courseRating: tee.cr,
+          slopeRating: tee.slope,
+          par: tee.par,
+          handicapIndex: Number(p.hi) || 0,
+          courseHandicap: r.courseHandicap,
+          grossScore: Number(p.gross) || 0,
+          strokesReceived: r.strokesReceived,
+          netScore: r.netScore,
+          stablefordPoints: r.stablefordPoints,
+          differential: r.differential,
+          datePlayed,
+        }
+        if (numPlayers > 1) round.playerLabel = `Jugador ${idx + 1}`
+        return round
+      })
+      .filter((r): r is Omit<SavedRound, 'id'> => r !== null)
+  }
+
+  async function handleSave() {
+    const roundsToSave = buildRoundsToSave()
+    if (roundsToSave.length === 0) return
+
+    if (!user) {
+      stashPendingRounds(roundsToSave)
+      setShowRegister(true)
+      return
+    }
+
+    setSaving(true)
+    try {
+      for (const round of roundsToSave) {
+        await saveRound(round, user.id)
       }
-      saveRound(round)
-    })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const result = results[0]
@@ -244,16 +271,23 @@ export function DespuesDeJugarPage() {
 
       {tee && result && (
         <>
-          <button
-            onClick={handleSave}
-            className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800"
-          >
-            {saved
-              ? 'Ronda guardada ✓'
-              : numPlayers > 1
-                ? 'Guardar rondas en el historial'
-                : 'Guardar ronda en mi historial'}
-          </button>
+          {showRegister ? (
+            <RegisterGate onCancel={() => setShowRegister(false)} />
+          ) : (
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
+            >
+              {saved
+                ? 'Ronda guardada ✓'
+                : saving
+                  ? 'Guardando...'
+                  : numPlayers > 1
+                    ? 'Guardar rondas en el historial'
+                    : 'Guardar ronda en mi historial'}
+            </button>
+          )}
 
           <Link
             to="/historial"
