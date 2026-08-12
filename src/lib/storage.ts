@@ -17,6 +17,8 @@ export interface SavedRound {
   stablefordPoints: number
   differential: number
   datePlayed: string
+  /** Set when the round was saved as part of a multi-player group (e.g. "Jugador 2"). */
+  playerLabel?: string
 }
 
 const ROUNDS_KEY = 'aftergolf.rounds'

@@ -43,7 +43,14 @@ export function HistoryPage() {
                 className="flex items-center justify-between rounded-xl border border-cream-300 bg-white p-4 shadow-sm"
               >
                 <div>
-                  <div className="font-medium text-fairway-900">{r.courseName}</div>
+                  <div className="font-medium text-fairway-900">
+                    {r.courseName}
+                    {r.playerLabel && (
+                      <span className="ml-2 text-xs font-normal text-gold-600">
+                        {r.playerLabel}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-fairway-500">
                     {r.datePlayed} · Tee {TEE_LABEL[r.teeColor]} · CR {r.courseRating} / Slope{' '}
                     {r.slopeRating}
