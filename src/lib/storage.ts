@@ -17,6 +17,8 @@ export interface SavedRound {
   netScore: number
   stablefordPoints: number
   differential: number
+  /** PCC adjustment applied by the course committee, if any. Defaults to 0. */
+  pcc?: number
   datePlayed: string
   /** Set when the round was saved as part of a multi-player group (e.g. "Jugador 2"). */
   playerLabel?: string
@@ -38,6 +40,7 @@ interface RoundRow {
   net_score: number
   stableford_points: number
   differential: number
+  pcc: number | null
   date_played: string
   player_label: string | null
 }
@@ -59,6 +62,7 @@ function fromRow(row: RoundRow): SavedRound {
     netScore: row.net_score,
     stablefordPoints: row.stableford_points,
     differential: row.differential,
+    pcc: row.pcc ?? 0,
     datePlayed: row.date_played,
     playerLabel: row.player_label ?? undefined,
   }
@@ -90,6 +94,7 @@ export async function saveRound(round: Omit<SavedRound, 'id'>, userId: string): 
     net_score: round.netScore,
     stableford_points: round.stablefordPoints,
     differential: round.differential,
+    pcc: round.pcc ?? 0,
     date_played: round.datePlayed,
     player_label: round.playerLabel ?? null,
   })

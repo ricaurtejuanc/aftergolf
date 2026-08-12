@@ -47,6 +47,8 @@ export interface RoundResultInput {
   slopeRating: number
   courseRating: number
   par: number
+  /** PCC adjustment the course committee can apply for unusual playing conditions, typically -1 to +3. Defaults to 0. */
+  pcc?: number
 }
 
 export interface RoundResult {
@@ -59,7 +61,7 @@ export interface RoundResult {
 }
 
 /**
- * Score Differential = (113 / Slope Rating) x (Gross Score - Course Rating)
+ * Score Differential = (113 / Slope Rating) x (Gross Score - Course Rating - PCC)
  * Stableford points are approximated from the round total (2 pts/hole at net
  * par, +/-1 per stroke away) since only the 18-hole aggregate is captured.
  */
@@ -69,12 +71,13 @@ export function calculateRoundResult({
   slopeRating,
   courseRating,
   par,
+  pcc = 0,
 }: RoundResultInput): RoundResult {
   const strokesReceived = courseHandicap
   const netScore = grossScore - strokesReceived
   const stablefordPoints = 36 - (netScore - par)
   const differential =
-    Math.round((113 / slopeRating) * (grossScore - courseRating) * 10) / 10
+    Math.round((113 / slopeRating) * (grossScore - courseRating - pcc) * 10) / 10
 
   return {
     strokesReceived,
@@ -90,6 +93,14 @@ export const HANDICAP_ALLOWANCES = [
   { value: 0.9, label: 'Four-ball stroke play (90%)' },
   { value: 0.85, label: 'Four-ball match play (85%)' },
 ] as const
+
+export const PCC_EXPLANATION =
+  'El PCC (Playing Conditions Calculation) es un ajuste que puede aplicar el ' +
+  'comité del campo cuando las condiciones del día (viento fuerte, lluvia, ' +
+  'campo muy rápido o muy lento...) hacen que jugar sea más difícil o más ' +
+  'fácil de lo normal para todos los jugadores. Puede ser positivo o ' +
+  'negativo, normalmente entre -1 y +3. Por defecto es 0 — solo cámbialo si ' +
+  'el club te lo ha comunicado tras la ronda.'
 
 export const GROSS_STABLEFORD_EXPLANATION =
   'El resultado Bruto Stableford es el número total de golpes Stableford donde ' +

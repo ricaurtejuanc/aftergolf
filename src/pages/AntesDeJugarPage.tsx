@@ -8,6 +8,7 @@ import {
   calculateRoundResult,
   GROSS_STABLEFORD_EXPLANATION,
   HANDICAP_ALLOWANCES,
+  PCC_EXPLANATION,
 } from '../lib/handicap'
 import { loadHandicapIndex, saveHandicapIndex } from '../lib/storage'
 
@@ -25,6 +26,7 @@ export function AntesDeJugarPage() {
   const [showRoundCalc, setShowRoundCalc] = useState(false)
   const [showDistribution, setShowDistribution] = useState(false)
   const [grossScoreInputs, setGrossScoreInputs] = useState<string[]>(['90'])
+  const [pccInputs, setPccInputs] = useState<string[]>(['0'])
 
   const handicapIndex = Number(playerInputs[0]) || 0
 
@@ -42,6 +44,7 @@ export function AntesDeJugarPage() {
     setShowRoundCalc(false)
     setShowDistribution(false)
     setGrossScoreInputs(['90'])
+    setPccInputs(['0'])
   }
 
   function handleNumPlayersChange(n: number) {
@@ -56,6 +59,11 @@ export function AntesDeJugarPage() {
       if (n > prev.length) return [...prev, ...Array(n - prev.length).fill('90')]
       return prev.slice(0, n)
     })
+    setPccInputs((prev) => {
+      if (n === prev.length) return prev
+      if (n > prev.length) return [...prev, ...Array(n - prev.length).fill('0')]
+      return prev.slice(0, n)
+    })
     setShowDistribution(false)
   }
 
@@ -66,6 +74,10 @@ export function AntesDeJugarPage() {
 
   function updateGrossScoreInput(idx: number, value: string) {
     setGrossScoreInputs((prev) => prev.map((v, i) => (i === idx ? value : v)))
+  }
+
+  function updatePccInput(idx: number, value: string) {
+    setPccInputs((prev) => prev.map((v, i) => (i === idx ? value : v)))
   }
 
   const playerResults = playerInputs.map((input) => {
@@ -88,6 +100,7 @@ export function AntesDeJugarPage() {
 
   const roundResults = playerResults.map((r, idx) => {
     const grossScore = Number(grossScoreInputs[idx]) || 0
+    const pcc = Number(pccInputs[idx]) || 0
     return tee
       ? calculateRoundResult({
           courseHandicap: r.courseHandicap,
@@ -95,6 +108,7 @@ export function AntesDeJugarPage() {
           slopeRating: tee.slope,
           courseRating: tee.cr,
           par: tee.par,
+          pcc,
         })
       : null
   })
@@ -261,6 +275,17 @@ export function AntesDeJugarPage() {
                     onChange={(e) => updateGrossScoreInput(0, e.target.value)}
                     className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
                   />
+                  <label className="mb-1 mt-3 flex items-center text-sm font-medium text-fairway-800">
+                    Ajuste PCC
+                    <InfoTooltip text={PCC_EXPLANATION} />
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    value={pccInputs[0]}
+                    onChange={(e) => updatePccInput(0, e.target.value)}
+                    className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -294,6 +319,19 @@ export function AntesDeJugarPage() {
                         type="number"
                         value={grossScoreInputs[idx]}
                         onChange={(e) => updateGrossScoreInput(idx, e.target.value)}
+                        className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 flex items-center text-xs font-medium text-fairway-700">
+                        Ajuste PCC
+                        <InfoTooltip text={PCC_EXPLANATION} />
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={pccInputs[idx]}
+                        onChange={(e) => updatePccInput(idx, e.target.value)}
                         className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
                       />
                     </div>

@@ -10,6 +10,7 @@ import {
   calculateCourseHandicap,
   calculateRoundResult,
   GROSS_STABLEFORD_EXPLANATION,
+  PCC_EXPLANATION,
 } from '../lib/handicap'
 import { stashPendingRounds } from '../lib/pendingRounds'
 import { loadHandicapIndex, saveRound, type SavedRound } from '../lib/storage'
@@ -23,17 +24,18 @@ function today() {
 interface PlayerInput {
   hi: string
   gross: string
+  pcc: string
 }
 
 function blankPlayer(): PlayerInput {
-  return { hi: '12', gross: '90' }
+  return { hi: '12', gross: '90', pcc: '0' }
 }
 
 export function DespuesDeJugarPage() {
   const { user } = useAuth()
   const [numPlayers, setNumPlayers] = useState(1)
   const [players, setPlayers] = useState<PlayerInput[]>(() => [
-    { hi: String(loadHandicapIndex() ?? 12.0), gross: '90' },
+    { hi: String(loadHandicapIndex() ?? 12.0), gross: '90', pcc: '0' },
   ])
   const [courseId, setCourseId] = useState('')
   const [teeIndex, setTeeIndex] = useState(0)
@@ -47,7 +49,7 @@ export function DespuesDeJugarPage() {
 
   function handleReset() {
     setNumPlayers(1)
-    setPlayers([{ hi: String(loadHandicapIndex() ?? 12.0), gross: '90' }])
+    setPlayers([{ hi: String(loadHandicapIndex() ?? 12.0), gross: '90', pcc: '0' }])
     setCourseId('')
     setTeeIndex(0)
     setTee(null)
@@ -90,6 +92,7 @@ export function DespuesDeJugarPage() {
       slopeRating: tee.slope,
       courseRating: tee.cr,
       par: tee.par,
+      pcc: Number(p.pcc) || 0,
     })
     return { courseHandicap, ...result }
   })
@@ -115,6 +118,7 @@ export function DespuesDeJugarPage() {
           netScore: r.netScore,
           stablefordPoints: r.stablefordPoints,
           differential: r.differential,
+          pcc: Number(p.pcc) || 0,
           datePlayed,
         }
         if (numPlayers > 1) round.playerLabel = `Jugador ${idx + 1}`
@@ -214,6 +218,19 @@ export function DespuesDeJugarPage() {
                   className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
                 />
               </div>
+              <div>
+                <label className="mb-1 flex items-center text-sm font-medium text-fairway-800">
+                  Ajuste PCC
+                  <InfoTooltip text={PCC_EXPLANATION} />
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  value={p.pcc}
+                  onChange={(e) => updatePlayer(idx, { pcc: e.target.value })}
+                  className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -258,7 +275,7 @@ export function DespuesDeJugarPage() {
           <StatCard
             label="Score Differential (handicap jugado)"
             value={result.differential.toFixed(1)}
-            hint="(113 / Slope) x (Bruto - Course Rating)"
+            hint="(113 / Slope) x (Bruto - Course Rating - PCC)"
             accent
           />
         </>
