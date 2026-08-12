@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { PRODUCTS, type Product } from '../data/products'
+import { useEffect, useState } from 'react'
+import type { Product } from '../data/products'
+import { loadProducts } from '../lib/productStore'
 import { FREE_SHIPPING_THRESHOLD, useCart } from '../context/CartContext'
 
 const STORE_EMAIL = 'ricaurtejuanc@gmail.com'
@@ -127,9 +128,9 @@ function ProductCard({
         <button
           onClick={() => onAdd(needsSize ? size : undefined)}
           disabled={needsSize && !size}
-          className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:bg-fairway-300"
         >
-          Añadir
+          {needsSize && !size ? 'Selecciona talla' : 'Añadir'}
         </button>
       </div>
     </div>
@@ -137,6 +138,11 @@ function ProductCard({
 }
 
 export function ShopPage() {
+  const [products, setProducts] = useState<Product[]>([])
+
+  useEffect(() => {
+    loadProducts().then(setProducts)
+  }, [])
   const {
     items,
     addItem,
@@ -151,7 +157,7 @@ export function ShopPage() {
 
   function checkoutMailto() {
     const lines = items.map((item) => {
-      const product = PRODUCTS.find((p) => p.id === item.productId)
+      const product = products.find((p) => p.id === item.productId)
       if (!product) return null
       const sizeLabel = item.size ? ` (Talla ${item.size})` : ''
       return `- ${product.name}${sizeLabel} x${item.quantity} — ${formatPrice(product.price * item.quantity)}`
@@ -190,7 +196,7 @@ export function ShopPage() {
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="grid gap-4 sm:grid-cols-2">
-          {PRODUCTS.map((product) => (
+          {products.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -199,7 +205,7 @@ export function ShopPage() {
           ))}
         </div>
 
-        <div className="h-fit rounded-2xl border border-cream-300 bg-white p-5 shadow-sm lg:sticky lg:top-6">
+        <div className="order-first h-fit rounded-2xl border border-cream-300 bg-white p-5 shadow-sm lg:order-none lg:sticky lg:top-6">
           <h2 className="font-semibold text-fairway-900">
             Carrito {totalCount > 0 && `(${totalCount})`}
           </h2>
@@ -209,7 +215,7 @@ export function ShopPage() {
           ) : (
             <div className="mt-3 space-y-3">
               {items.map((item) => {
-                const product = PRODUCTS.find((p) => p.id === item.productId)
+                const product = products.find((p) => p.id === item.productId)
                 if (!product) return null
                 return (
                   <div

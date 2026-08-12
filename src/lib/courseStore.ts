@@ -1,20 +1,21 @@
-import { COURSES as SEED_COURSES, type CourseTee, type GolfCourse } from '../data/courses'
+import type { CourseTee, GolfCourse } from '../data/courses'
+import { supabase } from './supabaseClient'
 
-const COURSES_KEY = 'aftergolf.courses'
-
-export function loadCourses(): GolfCourse[] {
-  try {
-    const raw = localStorage.getItem(COURSES_KEY)
-    if (raw) return JSON.parse(raw) as GolfCourse[]
-  } catch {
-    // fall through to seed
-  }
-  saveCourses(SEED_COURSES)
-  return SEED_COURSES
+interface CourseRow {
+  id: string
+  name: string
+  location: string
 }
 
-export function saveCourses(courses: GolfCourse[]): void {
-  localStorage.setItem(COURSES_KEY, JSON.stringify(courses))
+interface TeeRow {
+  id: string
+  course_id: string
+  color: string
+  gender: string
+  cr: number
+  slope: number
+  par: number
+  position: number
 }
 
 function slugify(name: string): string {
@@ -28,56 +29,117 @@ function slugify(name: string): string {
   )
 }
 
-export function addCourse(input: { name: string; location: string }): GolfCourse[] {
-  const courses = loadCourses()
-  const baseId = slugify(input.name)
+export async function loadCourses(): Promise<GolfCourse[]> {
+  const [{ data: courseRows }, { data: teeRows }] = await Promise.all([
+    supabase.from('courses').select('*').order('name'),
+    supabase.from('tees').select('*').order('position'),
+  ])
+  const courses = (courseRows ?? []) as CourseRow[]
+  const tees = (teeRows ?? []) as TeeRow[]
+
+  return courses.map((c) => ({
+    id: c.id,
+    name: c.name,
+    location: c.location,
+    tees: tees
+      .filter((t) => t.course_id === c.id)
+      .map((t) => ({
+        color: t.color as CourseTee['color'],
+        gender: t.gender as CourseTee['gender'],
+        cr: t.cr,
+        slope: t.slope,
+        par: t.par,
+      })),
+  }))
+}
+
+async function uniqueCourseId(name: string): Promise<string> {
+  const baseId = slugify(name)
   let id = baseId
   let n = 2
-  while (courses.some((c) => c.id === id)) {
+  for (;;) {
+    const { data } = await supabase.from('courses').select('id').eq('id', id).maybeSingle()
+    if (!data) return id
     id = `${baseId}-${n++}`
   }
-  const updated = [...courses, { id, name: input.name, location: input.location, tees: [] }]
-  saveCourses(updated)
-  return updated
 }
 
-export function updateCourse(
+export async function addCourse(input: { name: string; location: string }): Promise<GolfCourse[]> {
+  const id = await uniqueCourseId(input.name)
+  const { error } = await supabase
+    .from('courses')
+    .insert({ id, name: input.name, location: input.location })
+  if (error) throw error
+  return loadCourses()
+}
+
+export async function updateCourse(
   id: string,
   patch: { name: string; location: string },
-): GolfCourse[] {
-  const updated = loadCourses().map((c) => (c.id === id ? { ...c, ...patch } : c))
-  saveCourses(updated)
-  return updated
+): Promise<GolfCourse[]> {
+  const { error } = await supabase
+    .from('courses')
+    .update({ name: patch.name, location: patch.location })
+    .eq('id', id)
+  if (error) throw error
+  return loadCourses()
 }
 
-export function deleteCourse(id: string): GolfCourse[] {
-  const updated = loadCourses().filter((c) => c.id !== id)
-  saveCourses(updated)
-  return updated
+export async function deleteCourse(id: string): Promise<GolfCourse[]> {
+  const { error } = await supabase.from('courses').delete().eq('id', id)
+  if (error) throw error
+  return loadCourses()
 }
 
-export function addTee(courseId: string, tee: CourseTee): GolfCourse[] {
-  const updated = loadCourses().map((c) =>
-    c.id === courseId ? { ...c, tees: [...c.tees, tee] } : c,
-  )
-  saveCourses(updated)
-  return updated
+async function teeIdAtPosition(courseId: string, index: number): Promise<string | null> {
+  const { data } = await supabase
+    .from('tees')
+    .select('id')
+    .eq('course_id', courseId)
+    .order('position')
+    .range(index, index)
+  return data?.[0]?.id ?? null
 }
 
-export function updateTee(courseId: string, teeIndex: number, tee: CourseTee): GolfCourse[] {
-  const updated = loadCourses().map((c) =>
-    c.id === courseId
-      ? { ...c, tees: c.tees.map((t, idx) => (idx === teeIndex ? tee : t)) }
-      : c,
-  )
-  saveCourses(updated)
-  return updated
+export async function addTee(courseId: string, tee: CourseTee): Promise<GolfCourse[]> {
+  const { count } = await supabase
+    .from('tees')
+    .select('id', { count: 'exact', head: true })
+    .eq('course_id', courseId)
+  const { error } = await supabase.from('tees').insert({
+    course_id: courseId,
+    color: tee.color,
+    gender: tee.gender,
+    cr: tee.cr,
+    slope: tee.slope,
+    par: tee.par,
+    position: count ?? 0,
+  })
+  if (error) throw error
+  return loadCourses()
 }
 
-export function deleteTee(courseId: string, teeIndex: number): GolfCourse[] {
-  const updated = loadCourses().map((c) =>
-    c.id === courseId ? { ...c, tees: c.tees.filter((_, idx) => idx !== teeIndex) } : c,
-  )
-  saveCourses(updated)
-  return updated
+export async function updateTee(
+  courseId: string,
+  teeIndex: number,
+  tee: CourseTee,
+): Promise<GolfCourse[]> {
+  const teeId = await teeIdAtPosition(courseId, teeIndex)
+  if (teeId) {
+    const { error } = await supabase
+      .from('tees')
+      .update({ color: tee.color, gender: tee.gender, cr: tee.cr, slope: tee.slope, par: tee.par })
+      .eq('id', teeId)
+    if (error) throw error
+  }
+  return loadCourses()
+}
+
+export async function deleteTee(courseId: string, teeIndex: number): Promise<GolfCourse[]> {
+  const teeId = await teeIdAtPosition(courseId, teeIndex)
+  if (teeId) {
+    const { error } = await supabase.from('tees').delete().eq('id', teeId)
+    if (error) throw error
+  }
+  return loadCourses()
 }

@@ -1,0 +1,125 @@
+import type { User } from '@supabase/supabase-js'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { takePendingRounds } from '../lib/pendingRounds'
+import { saveRound } from '../lib/storage'
+import { supabase } from '../lib/supabaseClient'
+
+export interface Profile {
+  firstName: string
+  lastName: string
+  email: string
+}
+
+interface RegisterInput {
+  firstName: string
+  lastName: string
+  email: string
+}
+
+interface AuthContextValue {
+  user: User | null
+  profile: Profile | null
+  loading: boolean
+  requestMagicLink: (input: RegisterInput) => Promise<void>
+  signOut: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null)
+const PENDING_PROFILE_KEY = 'aftergolf.pendingProfile'
+
+async function fetchProfile(userId: string): Promise<Profile | null> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('first_name, last_name, email')
+    .eq('id', userId)
+    .maybeSingle()
+  if (!data) return null
+  return { firstName: data.first_name, lastName: data.last_name, email: data.email }
+}
+
+async function completePendingProfile(userId: string, fallbackEmail: string) {
+  const raw = localStorage.getItem(PENDING_PROFILE_KEY)
+  if (!raw) return
+  localStorage.removeItem(PENDING_PROFILE_KEY)
+  try {
+    const pending = JSON.parse(raw) as RegisterInput
+    await supabase.from('profiles').upsert({
+      id: userId,
+      first_name: pending.firstName,
+      last_name: pending.lastName,
+      email: pending.email || fallbackEmail,
+    })
+  } catch {
+    // malformed pending data — nothing to recover
+  }
+}
+
+async function flushPendingRounds(userId: string) {
+  const pending = takePendingRounds()
+  for (const round of pending) {
+    try {
+      await saveRound(round, userId)
+    } catch {
+      // best-effort: skip a round that fails rather than lose the rest
+    }
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function syncUser(sessionUser: User | null) {
+      setUser(sessionUser)
+      if (!sessionUser) {
+        setProfile(null)
+        return
+      }
+      await completePendingProfile(sessionUser.id, sessionUser.email ?? '')
+      await flushPendingRounds(sessionUser.id)
+      setProfile(await fetchProfile(sessionUser.id))
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      syncUser(data.session?.user ?? null).finally(() => setLoading(false))
+    })
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncUser(session?.user ?? null)
+    })
+
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
+  async function requestMagicLink(input: RegisterInput) {
+    localStorage.setItem(PENDING_PROFILE_KEY, JSON.stringify(input))
+    const { error } = await supabase.auth.signInWithOtp({
+      email: input.email,
+      options: {
+        emailRedirectTo: window.location.origin + window.location.pathname,
+      },
+    })
+    if (error) {
+      localStorage.removeItem(PENDING_PROFILE_KEY)
+      throw error
+    }
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut()
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, profile, loading, requestMagicLink, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider')
+  return ctx
+}

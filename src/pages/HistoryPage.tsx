@@ -1,12 +1,29 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TEE_LABEL } from '../components/CourseTeeSelect'
+import { RegisterGate } from '../components/RegisterGate'
+import { useAuth } from '../context/AuthContext'
 import { deleteRound, loadRounds, type SavedRound } from '../lib/storage'
 
 export function HistoryPage() {
-  const [rounds, setRounds] = useState<SavedRound[]>(() => loadRounds())
+  const { user, profile, loading: authLoading, signOut } = useAuth()
+  const [rounds, setRounds] = useState<SavedRound[]>([])
+  const [loading, setLoading] = useState(true)
 
-  function handleDelete(id: string) {
-    setRounds(deleteRound(id))
+  useEffect(() => {
+    if (!user) {
+      setRounds([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    loadRounds()
+      .then(setRounds)
+      .finally(() => setLoading(false))
+  }, [user])
+
+  async function handleDelete(id: string) {
+    await deleteRound(id)
+    setRounds((prev) => prev.filter((r) => r.id !== id))
   }
 
   const avgDifferential =
@@ -16,14 +33,33 @@ export function HistoryPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-fairway-900">Historial de rondas</h1>
-        <p className="mt-1 text-sm text-fairway-600">
-          Rondas guardadas localmente en este dispositivo.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-fairway-900">Historial de rondas</h1>
+          <p className="mt-1 text-sm text-fairway-600">
+            Tu historial está ligado a tu cuenta, así lo ves igual desde
+            cualquier dispositivo.
+          </p>
+        </div>
+        {user && profile && (
+          <div className="text-right text-xs text-fairway-500">
+            <div>
+              Hola, <span className="font-medium text-fairway-700">{profile.firstName}</span>
+            </div>
+            <button onClick={signOut} className="underline-offset-2 hover:underline">
+              Cerrar sesión
+            </button>
+          </div>
+        )}
       </div>
 
-      {rounds.length === 0 ? (
+      {authLoading ? null : !user ? (
+        <RegisterGate />
+      ) : loading ? (
+        <div className="rounded-xl border border-cream-300 bg-white p-8 text-center text-fairway-500">
+          Cargando historial...
+        </div>
+      ) : rounds.length === 0 ? (
         <div className="rounded-xl border border-cream-300 bg-white p-8 text-center text-fairway-500">
           Aún no has guardado ninguna ronda. Calcula tu handicap jugado y pulsa
           "Guardar ronda".

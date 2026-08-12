@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { PRODUCTS } from '../data/products'
+import type { Product } from '../data/products'
+import { loadProducts } from '../lib/productStore'
 import { loadCart, saveCart, type CartItem } from '../lib/cart'
 
 export const SHIPPING_COST = 4.99
@@ -21,10 +22,15 @@ const CartContext = createContext<CartContextValue | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => loadCart())
+  const [products, setProducts] = useState<Product[]>([])
 
   useEffect(() => {
     saveCart(items)
   }, [items])
+
+  useEffect(() => {
+    loadProducts().then(setProducts)
+  }, [])
 
   function addItem(productId: string, size?: string) {
     setItems((prev) => {
@@ -60,13 +66,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     let count = 0
     let price = 0
     for (const item of items) {
-      const product = PRODUCTS.find((p) => p.id === item.productId)
+      const product = products.find((p) => p.id === item.productId)
       if (!product) continue
       count += item.quantity
       price += product.price * item.quantity
     }
     return { totalCount: count, totalPrice: price }
-  }, [items])
+  }, [items, products])
 
   const shippingCost = totalCount === 0 || totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
   const orderTotal = totalPrice + shippingCost

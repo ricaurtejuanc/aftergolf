@@ -1,4 +1,5 @@
 import type { TeeColor, TeeGender } from '../data/courses'
+import { supabase } from './supabaseClient'
 
 export interface SavedRound {
   id: string
@@ -21,29 +22,86 @@ export interface SavedRound {
   playerLabel?: string
 }
 
-const ROUNDS_KEY = 'aftergolf.rounds'
-const HANDICAP_KEY = 'aftergolf.handicapIndex'
+interface RoundRow {
+  id: string
+  course_name: string
+  course_location: string
+  tee_color: TeeColor
+  tee_gender: TeeGender
+  course_rating: number
+  slope_rating: number
+  par: number
+  handicap_index: number
+  course_handicap: number
+  gross_score: number
+  strokes_received: number
+  net_score: number
+  stableford_points: number
+  differential: number
+  date_played: string
+  player_label: string | null
+}
 
-export function loadRounds(): SavedRound[] {
-  try {
-    const raw = localStorage.getItem(ROUNDS_KEY)
-    return raw ? (JSON.parse(raw) as SavedRound[]) : []
-  } catch {
-    return []
+function fromRow(row: RoundRow): SavedRound {
+  return {
+    id: row.id,
+    courseName: row.course_name,
+    courseLocation: row.course_location,
+    teeColor: row.tee_color,
+    teeGender: row.tee_gender,
+    courseRating: row.course_rating,
+    slopeRating: row.slope_rating,
+    par: row.par,
+    handicapIndex: row.handicap_index,
+    courseHandicap: row.course_handicap,
+    grossScore: row.gross_score,
+    strokesReceived: row.strokes_received,
+    netScore: row.net_score,
+    stablefordPoints: row.stableford_points,
+    differential: row.differential,
+    datePlayed: row.date_played,
+    playerLabel: row.player_label ?? undefined,
   }
 }
 
-export function saveRound(round: SavedRound): SavedRound[] {
-  const rounds = [round, ...loadRounds()]
-  localStorage.setItem(ROUNDS_KEY, JSON.stringify(rounds))
-  return rounds
+export async function loadRounds(): Promise<SavedRound[]> {
+  const { data, error } = await supabase
+    .from('rounds')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return (data as RoundRow[]).map(fromRow)
 }
 
-export function deleteRound(id: string): SavedRound[] {
-  const rounds = loadRounds().filter((r) => r.id !== id)
-  localStorage.setItem(ROUNDS_KEY, JSON.stringify(rounds))
-  return rounds
+export async function saveRound(round: Omit<SavedRound, 'id'>, userId: string): Promise<void> {
+  const { error } = await supabase.from('rounds').insert({
+    user_id: userId,
+    course_name: round.courseName,
+    course_location: round.courseLocation,
+    tee_color: round.teeColor,
+    tee_gender: round.teeGender,
+    course_rating: round.courseRating,
+    slope_rating: round.slopeRating,
+    par: round.par,
+    handicap_index: round.handicapIndex,
+    course_handicap: round.courseHandicap,
+    gross_score: round.grossScore,
+    strokes_received: round.strokesReceived,
+    net_score: round.netScore,
+    stableford_points: round.stablefordPoints,
+    differential: round.differential,
+    date_played: round.datePlayed,
+    player_label: round.playerLabel ?? null,
+  })
+  if (error) throw error
 }
+
+export async function deleteRound(id: string): Promise<void> {
+  const { error } = await supabase.from('rounds').delete().eq('id', id)
+  if (error) throw error
+}
+
+const HANDICAP_KEY = 'aftergolf.handicapIndex'
 
 export function loadHandicapIndex(): number | null {
   const raw = localStorage.getItem(HANDICAP_KEY)
