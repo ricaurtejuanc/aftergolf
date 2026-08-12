@@ -10,17 +10,22 @@ export interface Profile {
   email: string
 }
 
-interface RegisterInput {
+interface SignUpInput {
   firstName: string
   lastName: string
   email: string
+  password: string
 }
 
 interface AuthContextValue {
   user: User | null
   profile: Profile | null
   loading: boolean
-  requestMagicLink: (input: RegisterInput) => Promise<void>
+  passwordRecovery: boolean
+  signUp: (input: SignUpInput) => Promise<{ needsConfirmation: boolean }>
+  signIn: (email: string, password: string) => Promise<void>
+  requestPasswordReset: (email: string) => Promise<void>
+  completePasswordRecovery: (password: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -43,7 +48,7 @@ async function completePendingProfile(userId: string, fallbackEmail: string) {
   if (!raw) return
   localStorage.removeItem(PENDING_PROFILE_KEY)
   try {
-    const pending = JSON.parse(raw) as RegisterInput
+    const pending = JSON.parse(raw) as Omit<SignUpInput, 'password'>
     await supabase.from('profiles').upsert({
       id: userId,
       first_name: pending.firstName,
@@ -66,11 +71,15 @@ async function flushPendingRounds(userId: string) {
   }
 }
 
-// The magic-link redirect target can't include the HashRouter route (the
-// PKCE `?code=` param has to land in the real query string, not inside the
-// `#...` fragment), so it always comes back to the site root. Stash which
-// in-app route the user was on before requesting the link and restore it
-// once the session is established.
+// Redirect targets (signup confirmation, password reset) can't include the
+// HashRouter route — the PKCE `?code=` param has to land in the real query
+// string, not inside the `#...` fragment — so they always come back to the
+// site root. Stash which in-app route the user was on before triggering the
+// email and restore it once the session is established.
+function stashPendingRedirect() {
+  localStorage.setItem(PENDING_REDIRECT_KEY, window.location.hash)
+}
+
 function restorePendingRedirect() {
   const hash = localStorage.getItem(PENDING_REDIRECT_KEY)
   if (hash === null) return
@@ -82,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   useEffect(() => {
     async function syncUser(sessionUser: User | null) {
@@ -100,27 +110,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       syncUser(data.session?.user ?? null).finally(() => setLoading(false))
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
       syncUser(session?.user ?? null)
     })
 
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  async function requestMagicLink(input: RegisterInput) {
-    localStorage.setItem(PENDING_PROFILE_KEY, JSON.stringify(input))
-    localStorage.setItem(PENDING_REDIRECT_KEY, window.location.hash)
-    const { error } = await supabase.auth.signInWithOtp({
-      email: input.email,
-      options: {
-        emailRedirectTo: window.location.origin + window.location.pathname,
-      },
+  async function signUp({ firstName, lastName, email, password }: SignUpInput) {
+    localStorage.setItem(
+      PENDING_PROFILE_KEY,
+      JSON.stringify({ firstName, lastName, email }),
+    )
+    stashPendingRedirect()
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin + window.location.pathname },
     })
     if (error) {
       localStorage.removeItem(PENDING_PROFILE_KEY)
       localStorage.removeItem(PENDING_REDIRECT_KEY)
       throw error
     }
+    // Supabase returns success with no identities when the email is already
+    // registered (to avoid leaking which emails exist) — surface it as an
+    // error instead of a fake "check your email" confirmation.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      localStorage.removeItem(PENDING_PROFILE_KEY)
+      localStorage.removeItem(PENDING_REDIRECT_KEY)
+      throw new Error('User already registered')
+    }
+    return { needsConfirmation: !data.session }
+  }
+
+  async function signIn(email: string, password: string) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+  }
+
+  async function requestPasswordReset(email: string) {
+    stashPendingRedirect()
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname,
+    })
+    if (error) {
+      localStorage.removeItem(PENDING_REDIRECT_KEY)
+      throw error
+    }
+  }
+
+  async function completePasswordRecovery(password: string) {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) throw error
+    setPasswordRecovery(false)
   }
 
   async function signOut() {
@@ -128,7 +172,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, requestMagicLink, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        passwordRecovery,
+        signUp,
+        signIn,
+        requestPasswordReset,
+        completePasswordRecovery,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

@@ -1,55 +1,81 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { translateAuthError } from '../lib/authErrors'
 import { ADMIN_EMAIL, isAdminUnlocked, lockAdmin, unlockAdmin } from '../lib/admin'
 import { CoursesPage } from './CoursesPage'
 import { ProductsAdminPage } from './ProductsAdminPage'
 
 function AdminSignIn() {
-  const { requestMagicLink } = useAuth()
-  const [sent, setSent] = useState(false)
+  const { signIn, requestPasswordReset } = useAuth()
+  const [password, setPassword] = useState('')
   const [sending, setSending] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
 
-  async function handleSignIn() {
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
     setSending(true)
-    setError(false)
+    setError(null)
+    setInfo(null)
     try {
-      await requestMagicLink({ firstName: 'Admin', lastName: '', email: ADMIN_EMAIL })
-      setSent(true)
-    } catch {
-      setError(true)
+      await signIn(ADMIN_EMAIL, password)
+    } catch (err) {
+      setError(translateAuthError(err))
     } finally {
       setSending(false)
     }
   }
 
-  if (sent) {
-    return (
-      <div className="mx-auto max-w-sm space-y-2 py-12 text-center">
-        <h1 className="text-xl font-semibold text-fairway-900">Revisa tu correo</h1>
-        <p className="text-sm text-fairway-600">
-          Te hemos enviado un enlace mágico a {ADMIN_EMAIL}. Ábrelo para entrar como
-          administrador.
-        </p>
-      </div>
-    )
+  async function handleForgotPassword() {
+    setSending(true)
+    setError(null)
+    setInfo(null)
+    try {
+      await requestPasswordReset(ADMIN_EMAIL)
+      setInfo('Te hemos enviado un correo para restablecer tu contraseña.')
+    } catch (err) {
+      setError(translateAuthError(err))
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
-    <div className="mx-auto max-w-sm space-y-4 py-12 text-center">
-      <h1 className="text-xl font-semibold text-fairway-900">Confirma que eres el administrador</h1>
-      <p className="text-sm text-fairway-600">
-        Para guardar cambios de verdad necesitas iniciar sesión como {ADMIN_EMAIL}. Te
-        enviaremos un enlace mágico.
-      </p>
-      {error && <p className="text-sm text-red-500">No se pudo enviar el enlace. Inténtalo de nuevo.</p>}
-      <button
-        onClick={handleSignIn}
-        disabled={sending}
-        className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
-      >
-        {sending ? 'Enviando...' : 'Enviar enlace mágico'}
-      </button>
+    <div className="mx-auto max-w-sm space-y-4 py-12">
+      <div className="text-center">
+        <h1 className="text-xl font-semibold text-fairway-900">Confirma que eres el administrador</h1>
+        <p className="mt-1 text-sm text-fairway-600">
+          Para guardar cambios de verdad necesitas iniciar sesión como {ADMIN_EMAIL}.
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <input
+          type="password"
+          required
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Contraseña"
+          className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+        />
+        {error && <p className="text-sm text-red-500">{error}</p>}
+        {info && <p className="text-sm text-fairway-700">{info}</p>}
+        <button
+          type="submit"
+          disabled={sending}
+          className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
+        >
+          {sending ? 'Entrando...' : 'Entrar'}
+        </button>
+        <button
+          type="button"
+          onClick={handleForgotPassword}
+          disabled={sending}
+          className="w-full text-center text-xs text-fairway-600 underline-offset-2 hover:underline"
+        >
+          ¿Olvidaste tu contraseña?
+        </button>
+      </form>
     </div>
   )
 }
