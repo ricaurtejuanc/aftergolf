@@ -2,7 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { takePendingRounds } from '../lib/pendingRounds'
 import { saveRound } from '../lib/storage'
-import { supabase } from '../lib/supabaseClient'
+import { isPasswordRecoveryRedirect, supabase } from '../lib/supabaseClient'
 
 export interface Profile {
   firstName: string
@@ -87,20 +87,11 @@ function restorePendingRedirect() {
   window.location.hash = hash
 }
 
-// With the PKCE flow, `onAuthStateChange` doesn't reliably fire a distinct
-// `PASSWORD_RECOVERY` event (it can come through as a plain `SIGNED_IN`
-// instead) — but Supabase still tags the redirect URL with `type=recovery`
-// alongside the `?code=`, so check that directly rather than trusting the
-// event name.
-function isRecoveryRedirect(): boolean {
-  return new URLSearchParams(window.location.search).get('type') === 'recovery'
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [passwordRecovery, setPasswordRecovery] = useState(isRecoveryRedirect)
+  const [passwordRecovery, setPasswordRecovery] = useState(isPasswordRecoveryRedirect)
 
   useEffect(() => {
     async function syncUser(sessionUser: User | null) {
@@ -162,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function requestPasswordReset(email: string) {
     stashPendingRedirect()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + window.location.pathname,
+      redirectTo: window.location.origin + window.location.pathname + '?recovery=1',
     })
     if (error) {
       localStorage.removeItem(PENDING_REDIRECT_KEY)
