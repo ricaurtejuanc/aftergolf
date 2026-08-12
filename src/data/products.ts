@@ -2,10 +2,10 @@ import viceGolf1 from '../assets/ViceGolf1.jpg'
 import viceGolf2 from '../assets/ViceGolf2.webp'
 import viceGolf3 from '../assets/ViceGolf3.webp'
 import viceGolf4 from '../assets/ViceGolf4.webp'
-import poloFront from '../assets/camiseta/polo-front.webp'
-import poloBack from '../assets/camiseta/polo-back.webp'
-import poloModel1 from '../assets/camiseta/polo-model-1.webp'
-import poloModel2 from '../assets/camiseta/polo-model-2.webp'
+import poloFront from '../assets/polo/polo-front.webp'
+import poloBack from '../assets/polo/polo-back.webp'
+import poloModel1 from '../assets/polo/polo-model-1.webp'
+import poloModel2 from '../assets/polo/polo-model-2.webp'
 
 export interface Product {
   id: string
