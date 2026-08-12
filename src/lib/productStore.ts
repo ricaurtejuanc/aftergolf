@@ -1,5 +1,5 @@
 import type { Product } from '../data/products'
-import { LOCAL_PRODUCT_IMAGES } from '../data/productImages'
+import { localImagesFor } from '../data/productImages'
 import { supabase } from './supabaseClient'
 
 interface ProductRow {
@@ -24,7 +24,7 @@ function fromRow(row: ProductRow): Product {
     placeholderEmoji: row.placeholder_emoji ?? undefined,
     // Photos already committed as local assets take priority over the DB
     // column (which is empty until Supabase Storage is wired up).
-    images: LOCAL_PRODUCT_IMAGES[row.id] ?? row.images ?? undefined,
+    images: localImagesFor(row.id, row.name) ?? row.images ?? undefined,
     specs: row.specs ?? undefined,
     sizes: row.sizes ?? undefined,
   }
