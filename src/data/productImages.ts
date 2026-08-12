@@ -16,9 +16,9 @@ import gorroInviernoModel1 from '../assets/gorro-invierno/gorro-invierno-model-1
 import gorroInviernoModel2 from '../assets/gorro-invierno/gorro-invierno-model-2.webp'
 import gorroInviernoDetail from '../assets/gorro-invierno/gorro-invierno-detail.webp'
 import gorroPescadorFlat from '../assets/gorro-pescador/gorro-pescador-flat.webp'
-import gorroPescadorModel from '../assets/gorro-pescador/gorro-pescador-model.webp'
+import gorroPescadorModel1 from '../assets/gorro-pescador/gorro-pescador-model-1.webp'
+import gorroPescadorModel2 from '../assets/gorro-pescador/gorro-pescador-model-2.webp'
 import gorroPescadorAngle from '../assets/gorro-pescador/gorro-pescador-angle.webp'
-import gorroPescadorInside from '../assets/gorro-pescador/gorro-pescador-inside.webp'
 
 /**
  * Photos for products that already have them, keyed by product id.
@@ -37,7 +37,7 @@ export const LOCAL_PRODUCT_IMAGES: Record<string, string[]> = {
 // match by a keyword in the name instead of relying on the exact id.
 const LOCAL_PRODUCT_IMAGES_BY_KEYWORD: { keyword: string; images: string[] }[] = [
   { keyword: 'invierno', images: [gorroInviernoFlat, gorroInviernoModel1, gorroInviernoModel2, gorroInviernoDetail] },
-  { keyword: 'pescador', images: [gorroPescadorFlat, gorroPescadorModel, gorroPescadorAngle, gorroPescadorInside] },
+  { keyword: 'pescador', images: [gorroPescadorFlat, gorroPescadorModel1, gorroPescadorModel2, gorroPescadorAngle] },
 ]
 
 export function localImagesFor(id: string, name: string): string[] | undefined {
