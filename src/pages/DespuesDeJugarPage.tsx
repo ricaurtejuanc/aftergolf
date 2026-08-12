@@ -11,68 +11,101 @@ import {
 } from '../lib/handicap'
 import { loadHandicapIndex, saveRound, type SavedRound } from '../lib/storage'
 
+const MAX_PLAYERS = 4
+
 function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
+interface PlayerInput {
+  hi: string
+  gross: string
+}
+
+function blankPlayer(): PlayerInput {
+  return { hi: '12', gross: '90' }
+}
+
 export function DespuesDeJugarPage() {
-  const [handicapIndexInput, setHandicapIndexInput] = useState<string>(() =>
-    String(loadHandicapIndex() ?? 12.0),
-  )
-  const handicapIndex = Number(handicapIndexInput) || 0
+  const [numPlayers, setNumPlayers] = useState(1)
+  const [players, setPlayers] = useState<PlayerInput[]>(() => [
+    { hi: String(loadHandicapIndex() ?? 12.0), gross: '90' },
+  ])
   const [courseId, setCourseId] = useState('')
   const [teeIndex, setTeeIndex] = useState(0)
   const [tee, setTee] = useState<CourseTee | null>(null)
   const [courseName, setCourseName] = useState('')
   const [courseLocation, setCourseLocation] = useState('')
-  const [grossScoreInput, setGrossScoreInput] = useState('90')
-  const grossScore = Number(grossScoreInput) || 0
   const [datePlayed, setDatePlayed] = useState(today())
   const [saved, setSaved] = useState(false)
 
-  const { courseHandicap } = tee
-    ? calculateCourseHandicap({
-        handicapIndex,
-        slopeRating: tee.slope,
-        courseRating: tee.cr,
-        par: tee.par,
-      })
-    : { courseHandicap: 0 }
+  function handleNumPlayersChange(n: number) {
+    setNumPlayers(n)
+    setPlayers((prev) => {
+      if (n === prev.length) return prev
+      if (n > prev.length) {
+        return [...prev, ...Array.from({ length: n - prev.length }, blankPlayer)]
+      }
+      return prev.slice(0, n)
+    })
+    setSaved(false)
+  }
 
-  const result = tee
-    ? calculateRoundResult({
-        courseHandicap,
-        grossScore,
-        slopeRating: tee.slope,
-        courseRating: tee.cr,
-        par: tee.par,
-      })
-    : null
+  function updatePlayer(idx: number, patch: Partial<PlayerInput>) {
+    setPlayers((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)))
+    setSaved(false)
+  }
+
+  const results = players.map((p) => {
+    if (!tee) return null
+    const { courseHandicap } = calculateCourseHandicap({
+      handicapIndex: Number(p.hi) || 0,
+      slopeRating: tee.slope,
+      courseRating: tee.cr,
+      par: tee.par,
+    })
+    const result = calculateRoundResult({
+      courseHandicap,
+      grossScore: Number(p.gross) || 0,
+      slopeRating: tee.slope,
+      courseRating: tee.cr,
+      par: tee.par,
+    })
+    return { courseHandicap, ...result }
+  })
 
   function handleSave() {
     if (!tee) return
-    const round: SavedRound = {
-      id: crypto.randomUUID(),
-      courseName,
-      courseLocation,
-      teeColor: tee.color,
-      teeGender: tee.gender,
-      courseRating: tee.cr,
-      slopeRating: tee.slope,
-      par: tee.par,
-      handicapIndex,
-      courseHandicap,
-      grossScore,
-      strokesReceived: result!.strokesReceived,
-      netScore: result!.netScore,
-      stablefordPoints: result!.stablefordPoints,
-      differential: result!.differential,
-      datePlayed,
-    }
-    saveRound(round)
+    players.forEach((p, idx) => {
+      const r = results[idx]
+      if (!r) return
+      const round: SavedRound = {
+        id: crypto.randomUUID(),
+        courseName,
+        courseLocation,
+        teeColor: tee.color,
+        teeGender: tee.gender,
+        courseRating: tee.cr,
+        slopeRating: tee.slope,
+        par: tee.par,
+        handicapIndex: Number(p.hi) || 0,
+        courseHandicap: r.courseHandicap,
+        grossScore: Number(p.gross) || 0,
+        strokesReceived: r.strokesReceived,
+        netScore: r.netScore,
+        stablefordPoints: r.stablefordPoints,
+        differential: r.differential,
+        datePlayed,
+        playerLabel: numPlayers > 1 ? `Jugador ${idx + 1}` : undefined,
+      }
+      saveRound(round)
+    })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
+
+  const result = results[0]
+  const courseHandicap = result?.courseHandicap ?? 0
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -87,16 +120,63 @@ export function DespuesDeJugarPage() {
       <div className="rounded-2xl border border-cream-300 bg-white p-5 space-y-5 shadow-sm">
         <div>
           <label className="block text-sm font-medium text-fairway-800 mb-1">
-            Handicap Index (HI)
+            Número de jugadores
           </label>
-          <input
-            type="number"
-            step="0.1"
-            value={handicapIndexInput}
-            onChange={(e) => setHandicapIndexInput(e.target.value)}
-            className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
-          />
+          <div className="grid grid-cols-4 gap-2">
+            {Array.from({ length: MAX_PLAYERS }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => handleNumPlayersChange(n)}
+                className={`rounded-lg border py-2 text-sm font-medium transition ${
+                  numPlayers === n
+                    ? 'border-fairway-700 bg-fairway-800 text-cream-50'
+                    : 'border-cream-300 bg-white text-fairway-800 hover:border-fairway-400'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
+
+        <div className="space-y-4">
+          {players.map((p, idx) => (
+            <div
+              key={idx}
+              className={numPlayers > 1 ? 'space-y-3 rounded-lg border border-cream-200 p-3' : 'space-y-3'}
+            >
+              {numPlayers > 1 && (
+                <div className="text-sm font-semibold text-fairway-900">Jugador {idx + 1}</div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-fairway-800 mb-1">
+                  Handicap Index (HI)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={p.hi}
+                  onChange={(e) => updatePlayer(idx, { hi: e.target.value })}
+                  className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 flex items-center text-sm font-medium text-fairway-800">
+                  Resultado Bruto Stableford
+                  <InfoTooltip text={GROSS_STABLEFORD_EXPLANATION} />
+                </label>
+                <input
+                  type="number"
+                  value={p.gross}
+                  onChange={(e) => updatePlayer(idx, { gross: e.target.value })}
+                  className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-fairway-800 mb-1">Fecha</label>
           <input
@@ -116,28 +196,16 @@ export function DespuesDeJugarPage() {
             setTee(t)
             setCourseName(name)
             setCourseLocation(location)
+            setSaved(false)
           }}
         />
-
-        <div>
-          <label className="mb-1 flex items-center text-sm font-medium text-fairway-800">
-            Resultado Bruto Stableford
-            <InfoTooltip text={GROSS_STABLEFORD_EXPLANATION} />
-          </label>
-          <input
-            type="number"
-            value={grossScoreInput}
-            onChange={(e) => setGrossScoreInput(e.target.value)}
-            className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
-          />
-        </div>
       </div>
 
       {!tee || !result ? (
         <div className="rounded-xl border border-cream-300 bg-white p-8 text-center text-fairway-500">
           Selecciona un campo y tee para ver tu resultado.
         </div>
-      ) : (
+      ) : numPlayers === 1 ? (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <StatCard label="Hcp de juego" value={courseHandicap} />
@@ -152,12 +220,39 @@ export function DespuesDeJugarPage() {
             hint="(113 / Slope) x (Bruto - Course Rating)"
             accent
           />
+        </>
+      ) : (
+        <div className="space-y-3">
+          {results.map(
+            (r, idx) =>
+              r && (
+                <div
+                  key={idx}
+                  className="rounded-xl border border-cream-300 bg-white p-4 shadow-sm"
+                >
+                  <div className="font-medium text-fairway-900">Jugador {idx + 1}</div>
+                  <div className="mt-1 text-sm text-fairway-700">
+                    Hcp {r.courseHandicap} · Golpes recibidos {r.strokesReceived} · Neto{' '}
+                    {r.netScore} · Stableford {r.stablefordPoints} pts · Diff{' '}
+                    {r.differential.toFixed(1)}
+                  </div>
+                </div>
+              ),
+          )}
+        </div>
+      )}
 
+      {tee && result && (
+        <>
           <button
             onClick={handleSave}
             className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800"
           >
-            {saved ? 'Ronda guardada ✓' : 'Guardar ronda en mi historial'}
+            {saved
+              ? 'Ronda guardada ✓'
+              : numPlayers > 1
+                ? 'Guardar rondas en el historial'
+                : 'Guardar ronda en mi historial'}
           </button>
 
           <Link
