@@ -14,7 +14,7 @@ export function FederatedHandicapPage() {
         </p>
       </div>
 
-      <div className="h-[330px] overflow-hidden rounded-2xl border border-cream-300 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-cream-300 bg-white shadow-sm">
         <iframe
           key={resetKey}
           src={HANDICAP_LOOKUP_EMBED_URL}
