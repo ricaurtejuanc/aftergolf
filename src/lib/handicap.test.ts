@@ -51,4 +51,23 @@ describe('calculateRoundResult', () => {
     expect(result.netScore).toBe(72)
     expect(result.stablefordPoints).toBe(36)
   })
+
+  it('applies a positive PCC adjustment to lower the differential', () => {
+    const withoutPcc = calculateRoundResult({
+      courseHandicap: 10,
+      grossScore: 82,
+      slopeRating: 113,
+      courseRating: 72,
+      par: 72,
+    })
+    const withPcc = calculateRoundResult({
+      courseHandicap: 10,
+      grossScore: 82,
+      slopeRating: 113,
+      courseRating: 72,
+      par: 72,
+      pcc: 2,
+    })
+    expect(withPcc.differential).toBeCloseTo(withoutPcc.differential - 2, 5)
+  })
 })

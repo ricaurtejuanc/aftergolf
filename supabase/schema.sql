@@ -37,6 +37,7 @@ create table if not exists public.rounds (
   net_score integer not null,
   stableford_points integer not null,
   differential numeric not null,
+  pcc numeric not null default 0,
   date_played date not null,
   player_label text,
   created_at timestamptz not null default now()

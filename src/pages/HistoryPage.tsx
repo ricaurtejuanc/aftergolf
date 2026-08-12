@@ -94,6 +94,7 @@ export function HistoryPage() {
                   <div className="mt-1 text-sm text-fairway-700">
                     Bruto {r.grossScore} · Neto {r.netScore} · Stableford{' '}
                     {r.stablefordPoints} pts · Diff {r.differential.toFixed(1)}
+                    {r.pcc ? ` (PCC ${r.pcc > 0 ? '+' : ''}${r.pcc})` : ''}
                   </div>
                 </div>
                 <button
