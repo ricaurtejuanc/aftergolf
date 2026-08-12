@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { PRODUCTS, type Product } from '../data/products'
+import type { Product } from '../data/products'
+import { loadProducts } from '../lib/productStore'
 import { FREE_SHIPPING_THRESHOLD, useCart } from '../context/CartContext'
 
 const STORE_EMAIL = 'ricaurtejuanc@gmail.com'
@@ -137,6 +138,7 @@ function ProductCard({
 }
 
 export function ShopPage() {
+  const [products] = useState<Product[]>(() => loadProducts())
   const {
     items,
     addItem,
@@ -151,7 +153,7 @@ export function ShopPage() {
 
   function checkoutMailto() {
     const lines = items.map((item) => {
-      const product = PRODUCTS.find((p) => p.id === item.productId)
+      const product = products.find((p) => p.id === item.productId)
       if (!product) return null
       const sizeLabel = item.size ? ` (Talla ${item.size})` : ''
       return `- ${product.name}${sizeLabel} x${item.quantity} — ${formatPrice(product.price * item.quantity)}`
@@ -190,7 +192,7 @@ export function ShopPage() {
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="grid gap-4 sm:grid-cols-2">
-          {PRODUCTS.map((product) => (
+          {products.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -209,7 +211,7 @@ export function ShopPage() {
           ) : (
             <div className="mt-3 space-y-3">
               {items.map((item) => {
-                const product = PRODUCTS.find((p) => p.id === item.productId)
+                const product = products.find((p) => p.id === item.productId)
                 if (!product) return null
                 return (
                   <div

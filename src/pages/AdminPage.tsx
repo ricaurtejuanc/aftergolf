@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { isAdminUnlocked, lockAdmin, unlockAdmin } from '../lib/admin'
 import { CoursesPage } from './CoursesPage'
+import { ProductsAdminPage } from './ProductsAdminPage'
 
 export function AdminPage() {
   const [unlocked, setUnlocked] = useState(() => isAdminUnlocked())
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
+  const [tab, setTab] = useState<'campos' | 'productos'>('campos')
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -50,9 +52,24 @@ export function AdminPage() {
     )
   }
 
+  const tabClass = (t: typeof tab) =>
+    `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+      tab === t
+        ? 'bg-fairway-800 text-cream-50'
+        : 'border border-cream-300 text-fairway-800 hover:border-fairway-400'
+    }`
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-2">
+          <button onClick={() => setTab('campos')} className={tabClass('campos')}>
+            Campos
+          </button>
+          <button onClick={() => setTab('productos')} className={tabClass('productos')}>
+            Productos
+          </button>
+        </div>
         <button
           onClick={handleLogout}
           className="rounded-lg border border-cream-300 px-3 py-1.5 text-xs text-fairway-600 transition hover:border-fairway-400"
@@ -60,7 +77,7 @@ export function AdminPage() {
           Cerrar sesión de admin
         </button>
       </div>
-      <CoursesPage />
+      {tab === 'campos' ? <CoursesPage /> : <ProductsAdminPage />}
     </div>
   )
 }

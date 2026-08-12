@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { PRODUCTS } from '../data/products'
+import { loadProducts } from '../lib/productStore'
 import { loadCart, saveCart, type CartItem } from '../lib/cart'
 
 export const SHIPPING_COST = 4.99
@@ -57,10 +57,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const { totalCount, totalPrice } = useMemo(() => {
+    const products = loadProducts()
     let count = 0
     let price = 0
     for (const item of items) {
-      const product = PRODUCTS.find((p) => p.id === item.productId)
+      const product = products.find((p) => p.id === item.productId)
       if (!product) continue
       count += item.quantity
       price += product.price * item.quantity
