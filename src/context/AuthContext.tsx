@@ -26,6 +26,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 const PENDING_PROFILE_KEY = 'aftergolf.pendingProfile'
+const PENDING_REDIRECT_KEY = 'aftergolf.pendingRedirect'
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data } = await supabase
@@ -65,6 +66,18 @@ async function flushPendingRounds(userId: string) {
   }
 }
 
+// The magic-link redirect target can't include the HashRouter route (the
+// PKCE `?code=` param has to land in the real query string, not inside the
+// `#...` fragment), so it always comes back to the site root. Stash which
+// in-app route the user was on before requesting the link and restore it
+// once the session is established.
+function restorePendingRedirect() {
+  const hash = localStorage.getItem(PENDING_REDIRECT_KEY)
+  if (hash === null) return
+  localStorage.removeItem(PENDING_REDIRECT_KEY)
+  window.location.hash = hash
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -80,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await completePendingProfile(sessionUser.id, sessionUser.email ?? '')
       await flushPendingRounds(sessionUser.id)
       setProfile(await fetchProfile(sessionUser.id))
+      restorePendingRedirect()
     }
 
     supabase.auth.getSession().then(({ data }) => {
@@ -95,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function requestMagicLink(input: RegisterInput) {
     localStorage.setItem(PENDING_PROFILE_KEY, JSON.stringify(input))
+    localStorage.setItem(PENDING_REDIRECT_KEY, window.location.hash)
     const { error } = await supabase.auth.signInWithOtp({
       email: input.email,
       options: {
@@ -103,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     if (error) {
       localStorage.removeItem(PENDING_PROFILE_KEY)
+      localStorage.removeItem(PENDING_REDIRECT_KEY)
       throw error
     }
   }
