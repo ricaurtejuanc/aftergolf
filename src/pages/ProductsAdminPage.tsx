@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CLOTHING_SIZES, type Product } from '../data/products'
-import { addProduct, deleteProduct, loadProducts, updateProduct } from '../lib/productStore'
+import { addProduct, deleteProduct, loadProducts, reorderProduct, updateProduct } from '../lib/productStore'
 
 interface ProductDraft {
   name: string
@@ -167,7 +167,8 @@ export function ProductsAdminPage() {
         <h1 className="text-2xl font-semibold text-fairway-900">Productos del Shop</h1>
         <p className="mt-1 text-sm text-fairway-600">
           {loading ? 'Cargando...' : `${products.length} productos.`} Visibles
-          para todos tus clientes; solo tú puedes editarlos.
+          para todos tus clientes; solo tú puedes editarlos. Usa las flechas ▲▼
+          para cambiar el orden en el que aparecen en la Shop.
         </p>
       </div>
 
@@ -189,7 +190,7 @@ export function ProductsAdminPage() {
       )}
 
       <div className="space-y-3">
-        {products.map((product) =>
+        {products.map((product, idx) =>
           editingId === product.id ? (
             <ProductForm
               key={product.id}
@@ -205,11 +206,47 @@ export function ProductsAdminPage() {
               key={product.id}
               className="flex items-center justify-between rounded-xl border border-cream-300 bg-white p-4 shadow-sm"
             >
-              <div>
-                <div className="font-medium text-fairway-900">{product.name}</div>
-                <div className="text-xs text-fairway-500">
-                  {product.category} · {product.price.toFixed(2)}€
-                  {product.sizes ? ` · Tallas: ${product.sizes.join(', ')}` : ''}
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    onClick={async () =>
+                      setProducts(
+                        await reorderProduct(
+                          products.map((p) => p.id),
+                          product.id,
+                          'up',
+                        ),
+                      )
+                    }
+                    disabled={idx === 0}
+                    aria-label={`Subir ${product.name}`}
+                    className="rounded border border-cream-300 px-1.5 text-xs text-fairway-600 transition hover:border-fairway-400 disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={async () =>
+                      setProducts(
+                        await reorderProduct(
+                          products.map((p) => p.id),
+                          product.id,
+                          'down',
+                        ),
+                      )
+                    }
+                    disabled={idx === products.length - 1}
+                    aria-label={`Bajar ${product.name}`}
+                    className="rounded border border-cream-300 px-1.5 text-xs text-fairway-600 transition hover:border-fairway-400 disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    ▼
+                  </button>
+                </div>
+                <div>
+                  <div className="font-medium text-fairway-900">{product.name}</div>
+                  <div className="text-xs text-fairway-500">
+                    {product.category} · {product.price.toFixed(2)}€
+                    {product.sizes ? ` · Tallas: ${product.sizes.join(', ')}` : ''}
+                  </div>
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">

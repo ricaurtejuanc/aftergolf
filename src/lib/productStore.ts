@@ -31,7 +31,7 @@ function fromRow(row: ProductRow): Product {
 }
 
 export async function loadProducts(): Promise<Product[]> {
-  const { data, error } = await supabase.from('products').select('*').order('created_at')
+  const { data, error } = await supabase.from('products').select('*').order('position')
   if (error || !data) return []
   return (data as ProductRow[]).map(fromRow)
 }
@@ -60,6 +60,7 @@ async function uniqueProductId(name: string): Promise<string> {
 
 export async function addProduct(input: Omit<Product, 'id'>): Promise<Product[]> {
   const id = await uniqueProductId(input.name)
+  const { count } = await supabase.from('products').select('id', { count: 'exact', head: true })
   const { error } = await supabase.from('products').insert({
     id,
     name: input.name,
@@ -69,6 +70,7 @@ export async function addProduct(input: Omit<Product, 'id'>): Promise<Product[]>
     placeholder_emoji: input.placeholderEmoji ?? null,
     specs: input.specs ?? null,
     sizes: input.sizes ?? null,
+    position: count ?? 0,
   })
   if (error) throw error
   return loadProducts()
@@ -94,5 +96,25 @@ export async function updateProduct(id: string, patch: Omit<Product, 'id'>): Pro
 export async function deleteProduct(id: string): Promise<Product[]> {
   const { error } = await supabase.from('products').delete().eq('id', id)
   if (error) throw error
+  return loadProducts()
+}
+
+export async function reorderProduct(
+  orderedIds: string[],
+  id: string,
+  direction: 'up' | 'down',
+): Promise<Product[]> {
+  const idx = orderedIds.indexOf(id)
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+  if (idx === -1 || swapIdx < 0 || swapIdx >= orderedIds.length) return loadProducts()
+
+  const newOrder = [...orderedIds]
+  ;[newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]]
+
+  await Promise.all(
+    newOrder.map((productId, position) =>
+      supabase.from('products').update({ position }).eq('id', productId),
+    ),
+  )
   return loadProducts()
 }
