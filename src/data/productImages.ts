@@ -30,6 +30,21 @@ export const LOCAL_PRODUCT_IMAGES: Record<string, string[]> = {
   'vice-pro-docena': [viceGolf1, viceGolf2, viceGolf3, viceGolf4],
   'polo-aftergolf': [poloFront, poloBack, poloModel1, poloModel2],
   'camiseta-aftergolf': [camisetaFlat, camisetaModel1, camisetaModel2, camisetaModel3, camisetaDetail],
-  'gorro-invierno-aftergolf': [gorroInviernoFlat, gorroInviernoModel1, gorroInviernoModel2, gorroInviernoDetail],
-  'gorro-pescador-aftergolf': [gorroPescadorFlat, gorroPescadorModel, gorroPescadorAngle, gorroPescadorInside],
+}
+
+// Products created later from the admin panel get an id auto-generated from
+// whatever the admin typed as the name, so it can't be predicted reliably —
+// match by a keyword in the name instead of relying on the exact id.
+const LOCAL_PRODUCT_IMAGES_BY_KEYWORD: { keyword: string; images: string[] }[] = [
+  { keyword: 'invierno', images: [gorroInviernoFlat, gorroInviernoModel1, gorroInviernoModel2, gorroInviernoDetail] },
+  { keyword: 'pescador', images: [gorroPescadorFlat, gorroPescadorModel, gorroPescadorAngle, gorroPescadorInside] },
+]
+
+export function localImagesFor(id: string, name: string): string[] | undefined {
+  if (LOCAL_PRODUCT_IMAGES[id]) return LOCAL_PRODUCT_IMAGES[id]
+  const normalized = name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+  return LOCAL_PRODUCT_IMAGES_BY_KEYWORD.find((m) => normalized.includes(m.keyword))?.images
 }
