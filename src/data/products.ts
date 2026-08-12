@@ -2,6 +2,10 @@ import viceGolf1 from '../assets/ViceGolf1.jpg'
 import viceGolf2 from '../assets/ViceGolf2.webp'
 import viceGolf3 from '../assets/ViceGolf3.webp'
 import viceGolf4 from '../assets/ViceGolf4.webp'
+import poloFront from '../assets/polo/polo-front.webp'
+import poloBack from '../assets/polo/polo-back.webp'
+import poloModel1 from '../assets/polo/polo-model-1.webp'
+import poloModel2 from '../assets/polo/polo-model-2.webp'
 
 export interface Product {
   id: string
@@ -13,6 +17,8 @@ export interface Product {
   images?: string[]
   /** Emoji shown as a placeholder while there are no product photos yet. */
   placeholderEmoji?: string
+  /** Bullet-point spec list shown below the description. */
+  specs?: string[]
 }
 
 export const PRODUCTS: Product[] = [
@@ -27,12 +33,21 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'polo-aftergolf',
-    name: 'Polo AfterGolf',
+    name: 'Polo Sport Adidas',
     description:
-      'Polo técnico transpirable con el escudo AfterGolf bordado en el pecho. Fabricado bajo demanda (Printful), disponible en varias tallas.',
+      'Renueva tu vestuario deportivo con el polo deportivo de adidas, una mezcla de rendimiento y estilo de primera calidad. Confeccionado con piqué de poliéster 100% reciclado con acabado hidrófilo, este polo ligero garantiza que te mantengas seco durante los entrenamientos y actividades diarias. Ideal tanto para uso personal como de complemento premium para tu tienda online.',
+    specs: [
+      '100% piqué de poliéster reciclado',
+      'Peso del tejido: 145,79 g/m² (4.3 oz./yd.²)',
+      'Acabado hidrófilo',
+      'Corte holgado',
+      'Cuello de canalé con solapa de tres botones',
+      'Logo de adidas contrastado en la manga derecha',
+      'Producto base procedente de Vietnam',
+    ],
     price: 39.99,
     category: 'Ropa',
-    placeholderEmoji: '👕',
+    images: [poloFront, poloBack, poloModel1, poloModel2],
   },
   {
     id: 'camiseta-aftergolf',

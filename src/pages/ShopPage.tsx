@@ -51,6 +51,62 @@ function ProductGallery({ product }: { product: Product }) {
   )
 }
 
+function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div className="flex flex-col rounded-2xl border border-cream-300 bg-white p-5 shadow-sm">
+      <div className="mb-3">
+        <ProductGallery product={product} />
+      </div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-gold-600">
+        {product.category}
+      </div>
+      <h2 className="mt-1 font-semibold text-fairway-900">{product.name}</h2>
+
+      <div className="mt-2 flex-1">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="text-xs font-medium text-fairway-600 underline-offset-2 hover:underline"
+        >
+          {expanded ? 'Ocultar información' : 'Información de producto'}
+        </button>
+
+        {expanded && (
+          <div className="mt-2">
+            <p className="text-sm text-fairway-600">{product.description}</p>
+            {product.specs && (
+              <ul className="mt-2 space-y-1 text-xs text-fairway-600">
+                {product.specs.map((spec) => (
+                  <li key={spec} className="flex gap-1.5">
+                    <span className="text-gold-600" aria-hidden>
+                      •
+                    </span>
+                    {spec}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-lg font-semibold text-fairway-900">
+          {formatPrice(product.price)}
+        </span>
+        <button
+          onClick={onAdd}
+          className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800"
+        >
+          Añadir
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function ShopPage() {
   const {
     items,
@@ -99,30 +155,11 @@ export function ShopPage() {
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="grid gap-4 sm:grid-cols-2">
           {PRODUCTS.map((product) => (
-            <div
+            <ProductCard
               key={product.id}
-              className="flex flex-col rounded-2xl border border-cream-300 bg-white p-5 shadow-sm"
-            >
-              <div className="mb-3">
-                <ProductGallery product={product} />
-              </div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-gold-600">
-                {product.category}
-              </div>
-              <h2 className="mt-1 font-semibold text-fairway-900">{product.name}</h2>
-              <p className="mt-1 flex-1 text-sm text-fairway-600">{product.description}</p>
-              <div className="mt-3 flex items-center justify-between">
-                <span className="text-lg font-semibold text-fairway-900">
-                  {formatPrice(product.price)}
-                </span>
-                <button
-                  onClick={() => addItem(product.id)}
-                  className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800"
-                >
-                  Añadir
-                </button>
-              </div>
-            </div>
+              product={product}
+              onAdd={() => addItem(product.id)}
+            />
           ))}
         </div>
 
