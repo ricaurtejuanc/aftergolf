@@ -127,9 +127,9 @@ function ProductCard({
         <button
           onClick={() => onAdd(needsSize ? size : undefined)}
           disabled={needsSize && !size}
-          className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:bg-fairway-300"
         >
-          Añadir
+          {needsSize && !size ? 'Selecciona talla' : 'Añadir'}
         </button>
       </div>
     </div>
@@ -199,7 +199,7 @@ export function ShopPage() {
           ))}
         </div>
 
-        <div className="h-fit rounded-2xl border border-cream-300 bg-white p-5 shadow-sm lg:sticky lg:top-6">
+        <div className="order-first h-fit rounded-2xl border border-cream-300 bg-white p-5 shadow-sm lg:order-none lg:sticky lg:top-6">
           <h2 className="font-semibold text-fairway-900">
             Carrito {totalCount > 0 && `(${totalCount})`}
           </h2>
