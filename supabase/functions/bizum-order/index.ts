@@ -1,9 +1,16 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
 
 // Auto-provided in every Supabase Edge Function — no manual secret needed.
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const BIZUM_PHONE = Deno.env.get('BIZUM_PHONE')
+
+// Same mailbox/secret already used by the contact form and confirm-bizum-order.
+const SMTP_HOST = 'smtp.hostinger.com'
+const SMTP_PORT = 465
+const SMTP_USER = 'info@aftergolf.es'
+const SMTP_PASSWORD = Deno.env.get('CONTACT_SMTP_PASSWORD')
 
 // Must match src/context/CartContext.tsx — there's no shared package between
 // the Vite app and these Deno functions, so these are duplicated on purpose.
@@ -51,6 +58,54 @@ interface ShippingAddressInput {
   line1?: string
   postalCode?: string
   city?: string
+}
+
+interface OrderItem {
+  name: string
+  quantity: number
+  unitAmount: number
+}
+
+function euros(cents: number) {
+  return `${(cents / 100).toFixed(2)} €`
+}
+
+async function sendPendingPaymentEmail(params: {
+  customerEmail: string
+  items: OrderItem[]
+  amountTotal: number
+  reference: string
+}) {
+  if (!SMTP_PASSWORD) {
+    console.error('CONTACT_SMTP_PASSWORD secret is not set — skipping pending-payment email')
+    return
+  }
+
+  const client = new SMTPClient({
+    connection: {
+      hostname: SMTP_HOST,
+      port: SMTP_PORT,
+      tls: true,
+      auth: { username: SMTP_USER, password: SMTP_PASSWORD },
+    },
+  })
+
+  const lines = params.items
+    .map((i) => `- ${i.quantity}x ${i.name} (${euros(i.unitAmount)} c/u)`)
+    .join('\n')
+
+  try {
+    await client.send({
+      from: `AfterGolf <${SMTP_USER}>`,
+      to: params.customerEmail,
+      subject: 'Completa el pago de tu pedido en AfterGolf con Bizum',
+      content: `¡Gracias por tu pedido!\n\nPara confirmarlo, haz un Bizum de ${euros(Math.round(params.amountTotal * 100))} al número ${BIZUM_PHONE}, indicando esta referencia en el concepto:\n\n${params.reference}\n\nResumen del pedido:\n\n${lines}\n\nEn cuanto verifiquemos el pago te lo confirmaremos por correo y tu pedido pasará a producción.\n\nUn saludo,\nAfterGolf`,
+    })
+  } catch (err) {
+    console.error('Failed to send pending-payment email', err)
+  } finally {
+    await client.close()
+  }
 }
 
 Deno.serve(async (req) => {
@@ -151,9 +206,18 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'No se pudo registrar el pedido' }, 500)
   }
 
+  const reference = order.id.slice(0, 8).toUpperCase()
+
+  await sendPendingPaymentEmail({
+    customerEmail: claims.email,
+    items: orderItems,
+    amountTotal,
+    reference,
+  })
+
   return jsonResponse({
     orderId: order.id,
-    reference: order.id.slice(0, 8).toUpperCase(),
+    reference,
     bizumPhone: BIZUM_PHONE,
     amountTotal,
   })
