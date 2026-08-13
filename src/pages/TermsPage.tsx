@@ -38,17 +38,21 @@ export function TermsPage() {
 
       <Section title="3. Precios">
         <p>
-          Todos los precios se muestran en euros (€). Los gastos de envío se calculan
-          durante el proceso de compra y se muestran antes de confirmar el pago.
+          Todos los precios se muestran en euros (€) y corresponden al importe total a
+          pagar; al vender como particular, no se repercute IVA sobre el precio. Los
+          gastos de envío se calculan durante el proceso de compra y se muestran antes
+          de confirmar el pedido.
         </p>
       </Section>
 
       <Section title="4. Proceso de compra y pago">
         <p>
           Los pedidos se realizan a través de la Shop de aftergolf.es y requieren una
-          cuenta con email y contraseña. El pago se procesa de forma segura a través de
-          Stripe; AfterGolf no almacena los datos de tu tarjeta. El pedido se considera
-          confirmado cuando recibes el correo de confirmación tras el pago.
+          cuenta con email y contraseña. Al finalizar el pedido se te indicará el número
+          de Bizum al que hacer el pago junto con la referencia de tu pedido, que debes
+          incluir en el concepto para que podamos identificarlo. El pedido queda
+          pendiente de pago hasta que verificamos manualmente que lo hemos recibido; en
+          ese momento te lo confirmamos por correo electrónico y pasa a producción.
         </p>
       </Section>
 
@@ -86,10 +90,9 @@ export function TermsPage() {
       <Section title="8. Protección de datos">
         <p>
           Los datos que nos facilitas (nombre, email, dirección de envío) se usan
-          exclusivamente para gestionar tu pedido y se comparten solo con los
-          proveedores necesarios para procesarlo (Stripe para el pago, y nuestro
-          proveedor de impresión bajo demanda para la fabricación y el envío). No
-          cedemos tus datos a terceros con fines comerciales.
+          exclusivamente para gestionar tu pedido y se comparten solo con nuestro
+          proveedor de impresión bajo demanda, necesario para la fabricación y el envío.
+          No cedemos tus datos a terceros con fines comerciales.
         </p>
       </Section>
 
