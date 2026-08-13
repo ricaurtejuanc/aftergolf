@@ -57,6 +57,7 @@ interface CartItemInput {
 
 interface ShippingAddressInput {
   name?: string
+  phone?: string
   line1?: string
   postalCode?: string
   city?: string
@@ -101,6 +102,7 @@ function resolveSyncVariantId(
 // truth either way.
 async function createPrintfulDraftOrder(params: {
   recipientName: string
+  recipientPhone: string
   address1: string
   city: string
   zip: string
@@ -120,6 +122,7 @@ async function createPrintfulDraftOrder(params: {
       body: JSON.stringify({
         recipient: {
           name: params.recipientName,
+          phone: params.recipientPhone,
           address1: params.address1,
           city: params.city,
           zip: params.zip,
@@ -209,7 +212,13 @@ Deno.serve(async (req) => {
   }
 
   const address = body.address ?? {}
-  if (!address.name?.trim() || !address.line1?.trim() || !address.postalCode?.trim() || !address.city?.trim()) {
+  if (
+    !address.name?.trim() ||
+    !address.phone?.trim() ||
+    !address.line1?.trim() ||
+    !address.postalCode?.trim() ||
+    !address.city?.trim()
+  ) {
     return jsonResponse({ error: 'Falta la dirección de envío' }, 400)
   }
 
@@ -267,6 +276,7 @@ Deno.serve(async (req) => {
       customer_email: claims.email,
       shipping_address: {
         name: address.name.trim(),
+        phone: address.phone.trim(),
         line1: address.line1.trim(),
         postal_code: address.postalCode.trim(),
         city: address.city.trim(),
@@ -290,6 +300,7 @@ Deno.serve(async (req) => {
   if (printfulResolved && printfulItems.length > 0) {
     const printfulOrderId = await createPrintfulDraftOrder({
       recipientName: address.name.trim(),
+      recipientPhone: address.phone.trim(),
       address1: address.line1.trim(),
       city: address.city.trim(),
       zip: address.postalCode.trim(),
