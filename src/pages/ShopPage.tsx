@@ -351,7 +351,7 @@ export function ShopPage() {
 
   useEffect(() => {
     if (!toast) return
-    const timer = setTimeout(() => setToast(null), 2500)
+    const timer = setTimeout(() => setToast(null), 4000)
     return () => clearTimeout(timer)
   }, [toast])
 
@@ -360,7 +360,7 @@ export function ShopPage() {
   useEffect(() => {
     if (checkoutStatus === 'success') {
       clear()
-      setToast('¡Pago recibido! Gracias por tu pedido.')
+      setToast('Pago completado correctamente. Te hemos enviado un correo con los detalles.')
       setSearchParams({}, { replace: true })
     } else if (checkoutStatus === 'cancelled') {
       setToast('Pago cancelado. Tu carrito sigue guardado.')
