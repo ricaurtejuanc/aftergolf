@@ -1,0 +1,113 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
+import { formatPrice } from '../lib/format'
+
+interface OrderItem {
+  productId: string | null
+  name: string | null
+  quantity: number | null
+  unitAmount: number | null
+}
+
+interface ShippingAddress {
+  line1?: string | null
+  line2?: string | null
+  postal_code?: string | null
+  city?: string | null
+  country?: string | null
+}
+
+interface Order {
+  id: string
+  customer_email: string
+  shipping_address: ShippingAddress | null
+  items: OrderItem[]
+  amount_total: number
+  currency: string
+  status: string
+  created_at: string
+}
+
+function formatAddress(address: ShippingAddress | null): string {
+  if (!address) return 'Sin dirección'
+  return [address.line1, address.line2, address.postal_code, address.city, address.country]
+    .filter(Boolean)
+    .join(', ')
+}
+
+export function OrdersAdminPage() {
+  const [orders, setOrders] = useState<Order[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          setError(error.message)
+          return
+        }
+        setOrders((data as Order[]) ?? [])
+      })
+  }, [])
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-fairway-900">Pedidos</h1>
+        <p className="mt-1 text-sm text-fairway-600">
+          Pedidos pagados a través de Stripe. Créalos en Printful manualmente para
+          producirlos y enviarlos.
+        </p>
+      </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {orders === null && !error ? (
+        <p className="text-sm text-fairway-500">Cargando pedidos...</p>
+      ) : orders && orders.length === 0 ? (
+        <p className="text-sm text-fairway-500">Todavía no hay pedidos pagados.</p>
+      ) : (
+        <div className="space-y-3">
+          {orders?.map((order) => (
+            <div
+              key={order.id}
+              className="space-y-2 rounded-xl border border-cream-300 bg-white p-4 shadow-sm"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="font-medium text-fairway-900">{order.customer_email}</div>
+                  <div className="text-xs text-fairway-500">
+                    {new Date(order.created_at).toLocaleString('es-ES')}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-fairway-900">
+                    {formatPrice(order.amount_total)}
+                  </div>
+                  <div className="text-xs uppercase tracking-wide text-gold-600">
+                    {order.status}
+                  </div>
+                </div>
+              </div>
+
+              <ul className="space-y-0.5 text-sm text-fairway-700">
+                {order.items.map((item, idx) => (
+                  <li key={idx}>
+                    {item.quantity ?? 1}× {item.name ?? item.productId ?? 'Producto'}
+                  </li>
+                ))}
+              </ul>
+
+              <p className="text-xs text-fairway-500">
+                Envío a: {formatAddress(order.shipping_address)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

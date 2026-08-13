@@ -4,6 +4,7 @@ import { translateAuthError } from '../lib/authErrors'
 import { ADMIN_EMAIL, isAdminUnlocked, lockAdmin, unlockAdmin } from '../lib/admin'
 import { CoursesPage } from './CoursesPage'
 import { ProductsAdminPage } from './ProductsAdminPage'
+import { OrdersAdminPage } from './OrdersAdminPage'
 
 function AdminSignIn() {
   const { signIn, requestPasswordReset } = useAuth()
@@ -84,7 +85,7 @@ export function AdminPage() {
   const [unlocked, setUnlocked] = useState(() => isAdminUnlocked())
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
-  const [tab, setTab] = useState<'campos' | 'productos'>('campos')
+  const [tab, setTab] = useState<'campos' | 'productos' | 'pedidos'>('campos')
   const { user, loading, signOut } = useAuth()
 
   function handleSubmit(e: FormEvent) {
@@ -155,6 +156,9 @@ export function AdminPage() {
           <button onClick={() => setTab('productos')} className={tabClass('productos')}>
             Productos
           </button>
+          <button onClick={() => setTab('pedidos')} className={tabClass('pedidos')}>
+            Pedidos
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -171,7 +175,13 @@ export function AdminPage() {
           </button>
         </div>
       </div>
-      {tab === 'campos' ? <CoursesPage /> : <ProductsAdminPage />}
+      {tab === 'campos' ? (
+        <CoursesPage />
+      ) : tab === 'productos' ? (
+        <ProductsAdminPage />
+      ) : (
+        <OrdersAdminPage />
+      )}
     </div>
   )
 }
