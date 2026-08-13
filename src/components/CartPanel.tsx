@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FREE_SHIPPING_THRESHOLD, useCart } from '../context/CartContext'
 import { formatPrice } from '../lib/format'
@@ -21,6 +22,7 @@ export function CartPanel({ className = '' }: { className?: string }) {
   const [showLogin, setShowLogin] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   useEffect(() => {
     if (user) setShowLogin(false)
@@ -31,6 +33,7 @@ export function CartPanel({ className = '' }: { className?: string }) {
       setShowLogin(true)
       return
     }
+    if (!acceptedTerms) return
     setCheckingOut(true)
     setCheckoutError(null)
     try {
@@ -122,9 +125,28 @@ export function CartPanel({ className = '' }: { className?: string }) {
           ) : (
             <>
               {checkoutError && <p className="text-xs text-red-500">{checkoutError}</p>}
+              <label className="flex items-start gap-2 text-xs text-fairway-600">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 shrink-0"
+                />
+                <span>
+                  He leído y acepto los{' '}
+                  <Link
+                    to="/terminos"
+                    target="_blank"
+                    className="underline-offset-2 hover:underline"
+                  >
+                    términos y condiciones
+                  </Link>
+                  .
+                </span>
+              </label>
               <button
                 onClick={handleCheckout}
-                disabled={checkingOut}
+                disabled={checkingOut || !acceptedTerms}
                 className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {checkingOut ? 'Redirigiendo al pago...' : 'Finalizar pedido'}
