@@ -9,9 +9,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-export function TermsPage() {
+export function TermsContent() {
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-fairway-900">Términos y condiciones de venta</h1>
         <p className="mt-1 text-sm text-fairway-600">
@@ -21,9 +21,9 @@ export function TermsPage() {
 
       <Section title="1. Identificación">
         <p>
-          AfterGolf (aftergolf.es) es un proyecto operado por [nombre y apellidos],
-          actuando como persona física, con DNI/NIF [DNI/NIF] y domicilio en
-          [dirección]. Para cualquier consulta puedes escribir a info@aftergolf.es.
+          AfterGolf (aftergolf.es) es un proyecto operado por Juan Carlos Ricaurte, con
+          NIF 03186893J y domicilio en C/ Circunvalación, 25, Madrid, actuando como
+          persona física. Para cualquier consulta puedes escribir a info@aftergolf.es.
         </p>
       </Section>
 
@@ -110,6 +110,14 @@ export function TermsPage() {
           info@aftergolf.es.
         </p>
       </Section>
+    </div>
+  )
+}
+
+export function TermsPage() {
+  return (
+    <div className="mx-auto max-w-2xl">
+      <TermsContent />
     </div>
   )
 }

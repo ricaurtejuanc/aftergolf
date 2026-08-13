@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FREE_SHIPPING_THRESHOLD, useCart } from '../context/CartContext'
 import { formatPrice } from '../lib/format'
 import { createBizumOrder, type BizumOrderResult } from '../lib/checkout'
 import { RegisterGate } from './RegisterGate'
+import { TermsModal } from './TermsModal'
 
 export function CartPanel({ className = '' }: { className?: string }) {
   const {
@@ -25,6 +25,7 @@ export function CartPanel({ className = '' }: { className?: string }) {
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [address, setAddress] = useState({ name: '', line1: '', postalCode: '', city: '' })
   const [bizumResult, setBizumResult] = useState<BizumOrderResult | null>(null)
+  const [showTerms, setShowTerms] = useState(false)
 
   useEffect(() => {
     if (user) setShowLogin(false)
@@ -185,7 +186,7 @@ export function CartPanel({ className = '' }: { className?: string }) {
                   placeholder="Código postal"
                   value={address.postalCode}
                   onChange={(e) => updateAddress('postalCode', e.target.value)}
-                  className="w-24 rounded-md border border-cream-300 px-2 py-1.5 text-sm text-fairway-900"
+                  className="w-24 shrink-0 rounded-md border border-cream-300 px-2 py-1.5 text-sm text-fairway-900"
                 />
                 <input
                   type="text"
@@ -193,7 +194,7 @@ export function CartPanel({ className = '' }: { className?: string }) {
                   placeholder="Ciudad"
                   value={address.city}
                   onChange={(e) => updateAddress('city', e.target.value)}
-                  className="flex-1 rounded-md border border-cream-300 px-2 py-1.5 text-sm text-fairway-900"
+                  className="min-w-0 flex-1 rounded-md border border-cream-300 px-2 py-1.5 text-sm text-fairway-900"
                 />
               </div>
 
@@ -207,13 +208,13 @@ export function CartPanel({ className = '' }: { className?: string }) {
                 />
                 <span>
                   He leído y acepto los{' '}
-                  <Link
-                    to="/terminos"
-                    target="_blank"
+                  <button
+                    type="button"
+                    onClick={() => setShowTerms(true)}
                     className="underline-offset-2 hover:underline"
                   >
                     términos y condiciones
-                  </Link>
+                  </button>
                   .
                 </span>
               </label>
@@ -235,6 +236,8 @@ export function CartPanel({ className = '' }: { className?: string }) {
           )}
         </div>
       )}
+
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
     </div>
   )
 }
