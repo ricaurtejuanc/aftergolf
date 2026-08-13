@@ -57,7 +57,8 @@ function guessSize(variantName: string): string | null {
 
 // Printful sync variant names typically look like "Product name - Color / Size".
 // With three or more segments the middle one is the color; two-segment names
-// (no color set on the product) have nothing to guess.
+// (no color set on the product) have nothing to guess. Only used as a
+// fallback when the authoritative catalog lookup below fails.
 function guessColor(variantName: string): string | null {
   const parts = variantName
     .split(/[-/]/)
@@ -75,7 +76,31 @@ interface PrintfulFile {
 interface PrintfulSyncVariant {
   name: string
   retail_price: string
+  variant_id: number
   files?: PrintfulFile[]
+}
+
+interface PrintfulCatalogVariant {
+  size?: string | null
+  color?: string | null
+  color_code?: string | null
+}
+
+// The sync API (what /store/products returns) only gives us a free-text
+// variant name to parse. The catalog API knows the real color name and its
+// hex code for the underlying Printful variant, so look that up per variant
+// instead of guessing — falls back to text-guessing if a lookup fails (e.g.
+// a discontinued catalog variant) so one bad variant doesn't break the import.
+async function fetchCatalogVariant(variantId: number): Promise<PrintfulCatalogVariant | null> {
+  try {
+    const result = (await printfulFetch(`/products/variant/${variantId}`)) as {
+      variant: PrintfulCatalogVariant
+    }
+    return result.variant
+  } catch (err) {
+    console.error(`Printful catalog lookup failed for variant ${variantId}`, err)
+    return null
+  }
 }
 
 Deno.serve(async (req) => {
@@ -122,9 +147,15 @@ Deno.serve(async (req) => {
         .filter((n) => !Number.isNaN(n))
       const price = prices.length ? Math.min(...prices) : 0
 
+      const catalogVariants = await Promise.all(
+        syncVariants.map((v) => fetchCatalogVariant(v.variant_id)),
+      )
+
       const sizes = Array.from(
         new Set(
-          syncVariants.map((v) => guessSize(v.name)).filter((s): s is string => s !== null),
+          syncVariants
+            .map((v, i) => catalogVariants[i]?.size ?? guessSize(v.name))
+            .filter((s): s is string => Boolean(s)),
         ),
       )
 
@@ -142,23 +173,27 @@ Deno.serve(async (req) => {
       )
 
       const colorOrder: string[] = []
-      const colorGroups = new Map<string, { images: Set<string>; sizes: Set<string> }>()
-      for (const variant of syncVariants) {
-        const color = guessColor(variant.name)
-        if (!color) continue
+      const colorGroups = new Map<
+        string,
+        { code: string | null; images: Set<string>; sizes: Set<string> }
+      >()
+      syncVariants.forEach((variant, i) => {
+        const catalog = catalogVariants[i]
+        const color = catalog?.color?.trim() || guessColor(variant.name)
+        if (!color) return
         if (!colorGroups.has(color)) {
-          colorGroups.set(color, { images: new Set(), sizes: new Set() })
+          colorGroups.set(color, { code: catalog?.color_code ?? null, images: new Set(), sizes: new Set() })
           colorOrder.push(color)
         }
         const group = colorGroups.get(color)!
-        const size = guessSize(variant.name)
+        const size = catalog?.size ?? guessSize(variant.name)
         if (size) group.sizes.add(size)
         for (const file of variant.files ?? []) {
           if ((file.type === 'preview' || file.type === 'default') && file.preview_url) {
             group.images.add(file.preview_url)
           }
         }
-      }
+      })
       // Only worth surfacing as a color picker when the product actually has
       // more than one color — a single guessed "color" is usually noise.
       const colors =
@@ -167,6 +202,7 @@ Deno.serve(async (req) => {
               const group = colorGroups.get(name)!
               return {
                 name,
+                code: group.code,
                 images: Array.from(group.images),
                 sizes: Array.from(group.sizes),
               }

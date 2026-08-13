@@ -1,5 +1,7 @@
 export interface ProductColor {
   name: string
+  /** Hex swatch color from Printful's catalog, when available. */
+  code?: string | null
   /** Photos for this color. First image is the default. */
   images: string[]
   /** Sizes available in this color; falls back to the product's sizes if empty. */
