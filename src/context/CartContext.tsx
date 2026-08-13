@@ -8,6 +8,7 @@ export const FREE_SHIPPING_THRESHOLD = 100
 
 interface CartContextValue {
   items: CartItem[]
+  products: Product[]
   addItem: (productId: string, size?: string) => void
   removeItem: (productId: string, size?: string) => void
   setQuantity: (productId: string, quantity: number, size?: string) => void
@@ -81,6 +82,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     <CartContext.Provider
       value={{
         items,
+        products,
         addItem,
         removeItem,
         setQuantity,
