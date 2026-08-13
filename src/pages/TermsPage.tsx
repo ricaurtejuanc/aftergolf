@@ -22,8 +22,8 @@ export function TermsPage() {
       <Section title="1. Identificación">
         <p>
           AfterGolf (aftergolf.es) es un proyecto operado por Juan Carlos Ricaurte, con
-          NIF 03186893J y domicilio en C/ Circunvalación, 25, actuando como persona
-          física. Para cualquier consulta puedes escribir a info@aftergolf.es.
+          NIF 03186893J y domicilio en C/ Circunvalación, 25, Madrid, actuando como
+          persona física. Para cualquier consulta puedes escribir a info@aftergolf.es.
         </p>
       </Section>
 
