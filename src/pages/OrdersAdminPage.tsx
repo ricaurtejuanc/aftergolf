@@ -12,6 +12,7 @@ interface OrderItem {
 
 interface ShippingAddress {
   name?: string | null
+  phone?: string | null
   line1?: string | null
   line2?: string | null
   postal_code?: string | null
@@ -28,12 +29,21 @@ interface Order {
   amount_total: number
   currency: string
   status: string
+  printful_order_id: string | null
   created_at: string
 }
 
 function formatAddress(address: ShippingAddress | null): string {
   if (!address) return 'Sin dirección'
-  return [address.name, address.line1, address.line2, address.postal_code, address.city, address.country]
+  return [
+    address.name,
+    address.phone,
+    address.line1,
+    address.line2,
+    address.postal_code,
+    address.city,
+    address.country,
+  ]
     .filter(Boolean)
     .join(', ')
 }
@@ -124,6 +134,11 @@ export function OrdersAdminPage() {
 
               <p className="text-xs text-fairway-500">
                 Envío a: {formatAddress(order.shipping_address)}
+              </p>
+              <p className="text-xs text-fairway-500">
+                {order.printful_order_id
+                  ? `Borrador creado en Printful (ID ${order.printful_order_id})`
+                  : 'Sin borrador en Printful — créalo a mano'}
               </p>
 
               {order.status === 'pending' && order.payment_method === 'bizum' && (

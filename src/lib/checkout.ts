@@ -3,6 +3,7 @@ import { SUPABASE_URL, supabase } from './supabaseClient'
 
 export interface ShippingAddressInput {
   name: string
+  phone: string
   line1: string
   postalCode: string
   city: string

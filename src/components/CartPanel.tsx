@@ -23,7 +23,7 @@ export function CartPanel({ className = '' }: { className?: string }) {
   const [checkingOut, setCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
-  const [address, setAddress] = useState({ name: '', line1: '', postalCode: '', city: '' })
+  const [address, setAddress] = useState({ name: '', phone: '', line1: '', postalCode: '', city: '' })
   const [bizumResult, setBizumResult] = useState<BizumOrderResult | null>(null)
   const [showTerms, setShowTerms] = useState(false)
 
@@ -169,6 +169,14 @@ export function CartPanel({ className = '' }: { className?: string }) {
                 placeholder="Nombre completo"
                 value={address.name}
                 onChange={(e) => updateAddress('name', e.target.value)}
+                className="w-full rounded-md border border-cream-300 px-2 py-1.5 text-sm text-fairway-900"
+              />
+              <input
+                type="tel"
+                required
+                placeholder="Teléfono"
+                value={address.phone}
+                onChange={(e) => updateAddress('phone', e.target.value)}
                 className="w-full rounded-md border border-cream-300 px-2 py-1.5 text-sm text-fairway-900"
               />
               <input

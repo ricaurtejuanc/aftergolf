@@ -49,6 +49,7 @@ interface OrderItem {
 
 interface Address {
   name?: string | null
+  phone?: string | null
   line1?: string | null
   line2?: string | null
   postal_code?: string | null
@@ -62,7 +63,15 @@ function euros(cents: number | null | undefined) {
 
 function formatAddress(address: Address | null): string {
   if (!address) return 'Sin dirección'
-  return [address.name, address.line1, address.line2, address.postal_code, address.city, address.country]
+  return [
+    address.name,
+    address.phone,
+    address.line1,
+    address.line2,
+    address.postal_code,
+    address.city,
+    address.country,
+  ]
     .filter(Boolean)
     .join(', ')
 }

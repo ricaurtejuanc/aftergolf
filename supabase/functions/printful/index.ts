@@ -74,6 +74,7 @@ interface PrintfulFile {
 }
 
 interface PrintfulSyncVariant {
+  id: number
   name: string
   retail_price: string
   variant_id: number
@@ -209,6 +210,18 @@ Deno.serve(async (req) => {
             })
           : undefined
 
+      // Needed to place orders through Printful's Orders API later on
+      // (sync_variant_id per line item) — kept separate from the
+      // size/color display data above since it's only used server-side.
+      const variants = syncVariants.map((variant, i) => {
+        const catalog = catalogVariants[i]
+        return {
+          syncVariantId: variant.id,
+          size: catalog?.size ?? guessSize(variant.name) ?? null,
+          color: catalog?.color?.trim() || guessColor(variant.name) || null,
+        }
+      })
+
       return jsonResponse({
         printfulId: syncProduct.id,
         name: syncProduct.name,
@@ -216,6 +229,7 @@ Deno.serve(async (req) => {
         sizes,
         images,
         colors,
+        variants,
       })
     }
 
