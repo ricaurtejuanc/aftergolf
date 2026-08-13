@@ -9,9 +9,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-export function TermsPage() {
+export function TermsContent() {
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-fairway-900">Términos y condiciones de venta</h1>
         <p className="mt-1 text-sm text-fairway-600">
@@ -110,6 +110,14 @@ export function TermsPage() {
           info@aftergolf.es.
         </p>
       </Section>
+    </div>
+  )
+}
+
+export function TermsPage() {
+  return (
+    <div className="mx-auto max-w-2xl">
+      <TermsContent />
     </div>
   )
 }
