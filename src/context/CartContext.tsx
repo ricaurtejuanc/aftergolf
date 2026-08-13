@@ -47,6 +47,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { productId, quantity: 1, size, color }]
     })
+    // The products list is only loaded once on mount, so a product added
+    // (or edited) after that wouldn't otherwise resolve here — refresh it
+    // whenever something new gets added to the cart so the badge/panel
+    // don't silently skip it.
+    loadProducts().then(setProducts)
   }
 
   function removeItem(productId: string, size?: string, color?: string) {
