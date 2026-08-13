@@ -54,6 +54,7 @@ export function OrdersAdminPage() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   function loadOrders() {
     supabase
@@ -97,6 +98,12 @@ export function OrdersAdminPage() {
     setSelectedIds((ids) =>
       orders && ids.size === orders.length ? new Set() : new Set(orders?.map((o) => o.id)),
     )
+  }
+
+  async function handleCopyPrintfulId(id: string) {
+    await navigator.clipboard.writeText(id)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 1500)
   }
 
   async function handleDeleteSelected() {
@@ -198,11 +205,25 @@ export function OrdersAdminPage() {
               <p className="text-xs text-fairway-500">
                 Envío a: {formatAddress(order.shipping_address)}
               </p>
-              <p className="text-xs text-fairway-500">
-                {order.printful_order_id
-                  ? `Borrador creado en Printful (ID ${order.printful_order_id})`
-                  : 'Sin borrador en Printful — créalo a mano'}
-              </p>
+              {order.printful_order_id ? (
+                <p className="flex items-center gap-2 text-xs text-fairway-500">
+                  Borrador en Printful — ID{' '}
+                  <span className="rounded bg-cream-100 px-1.5 py-0.5 font-mono text-fairway-800">
+                    {order.printful_order_id}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyPrintfulId(order.printful_order_id!)}
+                    className="text-fairway-500 underline-offset-2 hover:underline"
+                  >
+                    {copiedId === order.printful_order_id ? 'Copiado' : 'Copiar'}
+                  </button>
+                </p>
+              ) : (
+                <p className="text-xs text-fairway-500">
+                  Sin borrador en Printful — créalo a mano
+                </p>
+              )}
 
               {order.status === 'pending' && order.payment_method === 'bizum' && (
                 <button
