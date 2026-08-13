@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { FREE_SHIPPING_THRESHOLD, useCart } from '../context/CartContext'
 import { formatPrice } from '../lib/format'
-import { createCheckoutSession } from '../lib/checkout'
+import { CHECKOUT_RELOADED_KEY, createCheckoutSession } from '../lib/checkout'
 import { RegisterGate } from './RegisterGate'
 
 export function CartPanel({ className = '' }: { className?: string }) {
@@ -35,6 +35,7 @@ export function CartPanel({ className = '' }: { className?: string }) {
     setCheckoutError(null)
     try {
       const { url } = await createCheckoutSession(items)
+      sessionStorage.removeItem(CHECKOUT_RELOADED_KEY)
       window.location.href = url
     } catch (err) {
       setCheckoutError(err instanceof Error ? err.message : 'No se pudo iniciar el pago')

@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext'
 import { CartPanel } from '../components/CartPanel'
 import { formatPrice } from '../lib/format'
 import { colorNameToHex } from '../lib/colorSwatches'
+import { CHECKOUT_RELOADED_KEY } from '../lib/checkout'
 
 function ProductLightbox({
   alt,
@@ -366,14 +367,25 @@ export function ShopPage() {
   const checkoutStatus = searchParams.get('checkout')
 
   useEffect(() => {
+    if (checkoutStatus !== 'success' && checkoutStatus !== 'cancelled') return
+
     if (checkoutStatus === 'success') {
       clear()
       sessionStorage.setItem(ORDER_CONFIRMED_KEY, '1')
       setOrderConfirmed(true)
-      setSearchParams({}, { replace: true })
-    } else if (checkoutStatus === 'cancelled') {
+    } else {
       setToast('Pago cancelado. Tu carrito sigue guardado.')
-      setSearchParams({}, { replace: true })
+    }
+    setSearchParams({}, { replace: true })
+
+    // The very first paint right after Stripe's redirect can come back
+    // blank on some mobile browsers (a known cross-site-redirect hiccup,
+    // seen on iOS Safari) — a real reload always fixes it, so force one
+    // automatically instead of relying on the customer to notice and do
+    // it themselves. Guarded to run at most once per visit.
+    if (!sessionStorage.getItem(CHECKOUT_RELOADED_KEY)) {
+      sessionStorage.setItem(CHECKOUT_RELOADED_KEY, '1')
+      window.location.reload()
     }
   }, [checkoutStatus, clear, setSearchParams])
 
