@@ -5,6 +5,7 @@ import { ADMIN_EMAIL, isAdminUnlocked, lockAdmin, unlockAdmin } from '../lib/adm
 import { CoursesPage } from './CoursesPage'
 import { ProductsAdminPage } from './ProductsAdminPage'
 import { OrdersAdminPage } from './OrdersAdminPage'
+import { DashboardAdminPage } from './DashboardAdminPage'
 
 function AdminSignIn() {
   const { signIn, requestPasswordReset } = useAuth()
@@ -85,7 +86,7 @@ export function AdminPage() {
   const [unlocked, setUnlocked] = useState(() => isAdminUnlocked())
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
-  const [tab, setTab] = useState<'campos' | 'productos' | 'pedidos'>('campos')
+  const [tab, setTab] = useState<'resumen' | 'campos' | 'productos' | 'pedidos'>('resumen')
   const { user, loading, signOut } = useAuth()
 
   function handleSubmit(e: FormEvent) {
@@ -150,6 +151,9 @@ export function AdminPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex gap-2">
+          <button onClick={() => setTab('resumen')} className={tabClass('resumen')}>
+            Resumen
+          </button>
           <button onClick={() => setTab('campos')} className={tabClass('campos')}>
             Campos
           </button>
@@ -175,7 +179,9 @@ export function AdminPage() {
           </button>
         </div>
       </div>
-      {tab === 'campos' ? (
+      {tab === 'resumen' ? (
+        <DashboardAdminPage />
+      ) : tab === 'campos' ? (
         <CoursesPage />
       ) : tab === 'productos' ? (
         <ProductsAdminPage />

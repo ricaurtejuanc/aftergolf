@@ -52,6 +52,9 @@ export function OrdersAdminPage() {
   const [orders, setOrders] = useState<Order[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   function loadOrders() {
     supabase
@@ -82,6 +85,46 @@ export function OrdersAdminPage() {
     }
   }
 
+  function toggleSelected(orderId: string) {
+    setSelectedIds((ids) => {
+      const next = new Set(ids)
+      if (next.has(orderId)) next.delete(orderId)
+      else next.add(orderId)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((ids) =>
+      orders && ids.size === orders.length ? new Set() : new Set(orders?.map((o) => o.id)),
+    )
+  }
+
+  async function handleCopyPrintfulId(id: string) {
+    await navigator.clipboard.writeText(id)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 1500)
+  }
+
+  async function handleDeleteSelected() {
+    if (selectedIds.size === 0) return
+    if (!window.confirm(`¿Borrar ${selectedIds.size} pedido(s)? Esta acción no se puede deshacer.`)) {
+      return
+    }
+    setDeleting(true)
+    setError(null)
+    try {
+      const { error } = await supabase.from('orders').delete().in('id', Array.from(selectedIds))
+      if (error) throw error
+      setSelectedIds(new Set())
+      loadOrders()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron borrar los pedidos')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
@@ -100,18 +143,45 @@ export function OrdersAdminPage() {
         <p className="text-sm text-fairway-500">Todavía no hay pedidos.</p>
       ) : (
         <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <label className="flex items-center gap-2 text-fairway-700">
+              <input
+                type="checkbox"
+                checked={Boolean(orders?.length) && selectedIds.size === orders?.length}
+                onChange={toggleSelectAll}
+              />
+              Seleccionar todos
+            </label>
+            <button
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.size === 0 || deleting}
+              className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:border-red-400 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {deleting ? 'Borrando...' : `Borrar seleccionados (${selectedIds.size})`}
+            </button>
+          </div>
+
           {orders?.map((order) => (
             <div
               key={order.id}
               className="space-y-2 rounded-xl border border-cream-300 bg-white p-4 shadow-sm"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <div className="font-medium text-fairway-900">{order.customer_email}</div>
-                  <div className="text-xs text-fairway-500">
-                    {new Date(order.created_at).toLocaleString('es-ES')} ·{' '}
-                    {order.payment_method === 'bizum' ? 'Bizum' : 'Stripe'} · ref.{' '}
-                    {order.id.slice(0, 8).toUpperCase()}
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(order.id)}
+                    onChange={() => toggleSelected(order.id)}
+                    aria-label={`Seleccionar pedido de ${order.customer_email}`}
+                    className="mt-1"
+                  />
+                  <div>
+                    <div className="font-medium text-fairway-900">{order.customer_email}</div>
+                    <div className="text-xs text-fairway-500">
+                      {new Date(order.created_at).toLocaleString('es-ES')} ·{' '}
+                      {order.payment_method === 'bizum' ? 'Bizum' : 'Stripe'} · ref.{' '}
+                      {order.id.slice(0, 8).toUpperCase()}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
@@ -135,11 +205,25 @@ export function OrdersAdminPage() {
               <p className="text-xs text-fairway-500">
                 Envío a: {formatAddress(order.shipping_address)}
               </p>
-              <p className="text-xs text-fairway-500">
-                {order.printful_order_id
-                  ? `Borrador creado en Printful (ID ${order.printful_order_id})`
-                  : 'Sin borrador en Printful — créalo a mano'}
-              </p>
+              {order.printful_order_id ? (
+                <p className="flex items-center gap-2 text-xs text-fairway-500">
+                  Borrador en Printful — ID{' '}
+                  <span className="rounded bg-cream-100 px-1.5 py-0.5 font-mono text-fairway-800">
+                    {order.printful_order_id}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyPrintfulId(order.printful_order_id!)}
+                    className="text-fairway-500 underline-offset-2 hover:underline"
+                  >
+                    {copiedId === order.printful_order_id ? 'Copiado' : 'Copiar'}
+                  </button>
+                </p>
+              ) : (
+                <p className="text-xs text-fairway-500">
+                  Sin borrador en Printful — créalo a mano
+                </p>
+              )}
 
               {order.status === 'pending' && order.payment_method === 'bizum' && (
                 <button
