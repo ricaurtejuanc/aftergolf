@@ -24,6 +24,10 @@ export interface Product {
   sizes?: string[]
   /** Color variants; when set, a color must be picked and determines the photos shown. */
   colors?: ProductColor[]
+  /** Estimated delivery time for this specific product, shown in its detail view. */
+  shippingTime?: string
 }
 
 export const CLOTHING_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL']
+
+export const DEFAULT_SHIPPING_TIME = 'Entregas en España en 3-5 días laborables.'

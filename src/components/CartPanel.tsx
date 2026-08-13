@@ -11,7 +11,6 @@ export function CartPanel({ className = '' }: { className?: string }) {
     totalPrice,
     shippingCost,
     orderTotal,
-    shippingTime,
     clear,
   } = useCart()
 
@@ -40,6 +39,9 @@ export function CartPanel({ className = '' }: { className?: string }) {
                     {item.size && <>Talla {item.size} · </>}
                     {formatPrice(product.price)} c/u
                   </div>
+                  {product.shippingTime && (
+                    <div className="text-xs text-fairway-400">{product.shippingTime}</div>
+                  )}
                 </div>
                 <input
                   type="number"
@@ -75,7 +77,6 @@ export function CartPanel({ className = '' }: { className?: string }) {
                 Envío gratis en pedidos superiores a {formatPrice(FREE_SHIPPING_THRESHOLD)}.
               </p>
             )}
-            <p className="text-xs text-fairway-500">{shippingTime}</p>
             <div className="flex items-center justify-between pt-1 font-semibold text-fairway-900">
               <span>Total</span>
               <span>{formatPrice(orderTotal)}</span>

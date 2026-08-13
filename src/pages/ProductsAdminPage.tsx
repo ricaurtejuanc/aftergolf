@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CLOTHING_SIZES, type Product } from '../data/products'
+import { CLOTHING_SIZES, DEFAULT_SHIPPING_TIME, type Product } from '../data/products'
 import {
   addProduct,
   deleteProduct,
@@ -9,7 +9,6 @@ import {
   updateProduct,
 } from '../lib/productStore'
 import { getPrintfulProduct, listPrintfulProducts, type PrintfulListItem } from '../lib/printful'
-import { loadShopSettings, updateShopSettings } from '../lib/settings'
 
 interface ProductDraft {
   name: string
@@ -19,6 +18,7 @@ interface ProductDraft {
   hasSizes: boolean
   sizesInput: string
   placeholderEmoji: string
+  shippingTime: string
 }
 
 function toDraft(p?: Product): ProductDraft {
@@ -30,6 +30,7 @@ function toDraft(p?: Product): ProductDraft {
     hasSizes: Boolean(p?.sizes),
     sizesInput: (p?.sizes ?? CLOTHING_SIZES).join(', '),
     placeholderEmoji: p?.placeholderEmoji ?? '🏌️',
+    shippingTime: p?.shippingTime ?? DEFAULT_SHIPPING_TIME,
   }
 }
 
@@ -48,6 +49,7 @@ function draftToProduct(draft: ProductDraft, existing?: Product): Omit<Product, 
     images: existing?.images,
     specs: existing?.specs,
     placeholderEmoji: draft.placeholderEmoji || undefined,
+    shippingTime: draft.shippingTime.trim() || undefined,
   }
 }
 
@@ -132,6 +134,18 @@ function ProductForm({
             className="mt-1 w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
           />
         )}
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-fairway-700 mb-1">
+          Plazo de envío de este producto
+        </label>
+        <input
+          type="text"
+          value={draft.shippingTime}
+          onChange={(e) => update('shippingTime', e.target.value)}
+          className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+        />
       </div>
 
       <div className="rounded-lg border border-gold-400 bg-gold-400/10 p-3 text-xs text-fairway-700">
@@ -239,60 +253,6 @@ function PrintfulImportPanel({
   )
 }
 
-function ShippingSettingsPanel() {
-  const [value, setValue] = useState('')
-  const [loaded, setLoaded] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-
-  useEffect(() => {
-    loadShopSettings().then((s) => {
-      setValue(s.shippingTime)
-      setLoaded(true)
-    })
-  }, [])
-
-  async function handleSave() {
-    setSaving(true)
-    setSaved(false)
-    try {
-      const updated = await updateShopSettings({ shippingTime: value })
-      setValue(updated.shippingTime)
-      setSaved(true)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="space-y-2 rounded-xl border border-cream-300 bg-white p-4 shadow-sm">
-      <label className="block text-xs font-medium text-fairway-700">
-        Tiempo de envío a España (se muestra en el carrito)
-      </label>
-      <div className="flex flex-wrap gap-2">
-        <input
-          type="text"
-          value={value}
-          disabled={!loaded}
-          onChange={(e) => {
-            setValue(e.target.value)
-            setSaved(false)
-          }}
-          className="min-w-0 flex-1 rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
-        />
-        <button
-          onClick={handleSave}
-          disabled={saving || !loaded}
-          className="shrink-0 rounded-md bg-fairway-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
-        >
-          {saving ? 'Guardando...' : 'Guardar'}
-        </button>
-      </div>
-      {saved && <p className="text-xs text-fairway-500">Guardado.</p>}
-    </div>
-  )
-}
-
 export function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -316,8 +276,6 @@ export function ProductsAdminPage() {
           para cambiar el orden en el que aparecen en la Shop.
         </p>
       </div>
-
-      <ShippingSettingsPanel />
 
       <div className="flex flex-wrap gap-2">
         <button

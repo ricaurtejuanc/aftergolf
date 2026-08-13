@@ -2,11 +2,9 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Product } from '../data/products'
 import { loadProducts } from '../lib/productStore'
 import { loadCart, saveCart, type CartItem } from '../lib/cart'
-import { loadShopSettings } from '../lib/settings'
 
 export const SHIPPING_COST = 4.99
 export const FREE_SHIPPING_THRESHOLD = 100
-const DEFAULT_SHIPPING_TIME = 'Entregas en España en 3-5 días laborables.'
 
 interface CartContextValue {
   items: CartItem[]
@@ -19,7 +17,6 @@ interface CartContextValue {
   totalPrice: number
   shippingCost: number
   orderTotal: number
-  shippingTime: string
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
@@ -27,7 +24,6 @@ const CartContext = createContext<CartContextValue | null>(null)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => loadCart())
   const [products, setProducts] = useState<Product[]>([])
-  const [shippingTime, setShippingTime] = useState(DEFAULT_SHIPPING_TIME)
 
   useEffect(() => {
     saveCart(items)
@@ -35,7 +31,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadProducts().then(setProducts)
-    loadShopSettings().then((s) => setShippingTime(s.shippingTime))
   }, [])
 
   function addItem(productId: string, size?: string, color?: string) {
@@ -106,7 +101,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         totalPrice,
         shippingCost,
         orderTotal,
-        shippingTime,
       }}
     >
       {children}

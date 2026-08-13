@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Product } from '../data/products'
+import { DEFAULT_SHIPPING_TIME, type Product } from '../data/products'
 import { loadProducts } from '../lib/productStore'
 import { useCart } from '../context/CartContext'
 import { CartPanel } from '../components/CartPanel'
@@ -194,7 +194,6 @@ function ProductDetailModal({
 }) {
   const [size, setSize] = useState('')
   const [colorIdx, setColorIdx] = useState(0)
-  const { shippingTime } = useCart()
 
   const hasColors = Boolean(product.colors?.length)
   const activeColor = hasColors ? product.colors![colorIdx] : undefined
@@ -319,7 +318,9 @@ function ProductDetailModal({
           </button>
         </div>
 
-        <p className="mt-3 text-xs text-fairway-500">{shippingTime}</p>
+        <p className="mt-3 text-xs text-fairway-500">
+          {product.shippingTime || DEFAULT_SHIPPING_TIME}
+        </p>
       </div>
     </div>
   )
