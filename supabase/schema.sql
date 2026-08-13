@@ -120,6 +120,9 @@ create table if not exists public.products (
   shipping_time text,
   position integer not null default 0,
   printful_id integer,
+  -- Sync variant IDs from Printful, needed to place an order through their
+  -- Orders API: [{ syncVariantId, size, color }]. Populated on import.
+  printful_variants jsonb,
   created_at timestamptz not null default now()
 );
 
@@ -149,6 +152,9 @@ create table if not exists public.orders (
   amount_total numeric not null,
   currency text not null default 'eur',
   status text not null default 'paid',
+  -- Set once a draft order has been created in Printful for this order (best
+  -- effort, from bizum-order). Null if creation failed or wasn't possible.
+  printful_order_id text,
   created_at timestamptz not null default now()
 );
 

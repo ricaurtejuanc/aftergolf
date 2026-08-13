@@ -28,6 +28,7 @@ interface Order {
   amount_total: number
   currency: string
   status: string
+  printful_order_id: string | null
   created_at: string
 }
 
@@ -124,6 +125,11 @@ export function OrdersAdminPage() {
 
               <p className="text-xs text-fairway-500">
                 Envío a: {formatAddress(order.shipping_address)}
+              </p>
+              <p className="text-xs text-fairway-500">
+                {order.printful_order_id
+                  ? `Borrador creado en Printful (ID ${order.printful_order_id})`
+                  : 'Sin borrador en Printful — créalo a mano'}
               </p>
 
               {order.status === 'pending' && order.payment_method === 'bizum' && (

@@ -125,6 +125,7 @@ export async function importPrintfulProduct(detail: PrintfulProductDetail): Prom
         sizes: detail.sizes.length ? detail.sizes : null,
         images: detail.images.length ? detail.images : null,
         colors: detail.colors && detail.colors.length ? detail.colors : null,
+        printful_variants: detail.variants.length ? detail.variants : null,
       })
       .eq('id', existing.id)
     if (error) throw error
@@ -140,6 +141,7 @@ export async function importPrintfulProduct(detail: PrintfulProductDetail): Prom
       sizes: detail.sizes.length ? detail.sizes : null,
       images: detail.images.length ? detail.images : null,
       colors: detail.colors && detail.colors.length ? detail.colors : null,
+      printful_variants: detail.variants.length ? detail.variants : null,
       shipping_time: DEFAULT_SHIPPING_TIME,
       printful_id: detail.printfulId,
       position: count ?? 0,

@@ -14,6 +14,12 @@ export interface PrintfulProductColor {
   sizes: string[]
 }
 
+export interface PrintfulProductVariant {
+  syncVariantId: number
+  size: string | null
+  color: string | null
+}
+
 export interface PrintfulProductDetail {
   printfulId: number
   name: string
@@ -21,6 +27,7 @@ export interface PrintfulProductDetail {
   sizes: string[]
   images: string[]
   colors?: PrintfulProductColor[]
+  variants: PrintfulProductVariant[]
 }
 
 async function authHeaders(): Promise<HeadersInit> {

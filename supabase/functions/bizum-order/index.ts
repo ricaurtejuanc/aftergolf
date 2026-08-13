@@ -5,6 +5,8 @@ import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const BIZUM_PHONE = Deno.env.get('BIZUM_PHONE')
+// Same secret already used by the printful edge function.
+const PRINTFUL_API_KEY = Deno.env.get('PRINTFUL_API_KEY')
 
 // Same mailbox/secret already used by the contact form and confirm-bizum-order.
 const SMTP_HOST = 'smtp.hostinger.com'
@@ -66,8 +68,76 @@ interface OrderItem {
   unitAmount: number
 }
 
+interface PrintfulVariant {
+  syncVariantId: number
+  size: string | null
+  color: string | null
+}
+
 function euros(cents: number) {
   return `${(cents / 100).toFixed(2)} €`
+}
+
+// Matches a cart line (size/color) against a product's imported Printful
+// sync variants to find the sync_variant_id its Orders API needs. Falls
+// back to the only variant when the product has just one (no size/color
+// options), since there's nothing to disambiguate.
+function resolveSyncVariantId(
+  variants: PrintfulVariant[] | null | undefined,
+  size?: string,
+  color?: string,
+): number | null {
+  if (!variants || variants.length === 0) return null
+  const norm = (s?: string | null) => (s ?? '').trim().toLowerCase()
+  const match = variants.find((v) => norm(v.size) === norm(size) && norm(v.color) === norm(color))
+  if (match) return match.syncVariantId
+  return variants.length === 1 ? variants[0].syncVariantId : null
+}
+
+// Creates a draft order in Printful — NOT submitted for production or
+// charged until manually confirmed from the Printful dashboard. Best
+// effort: a failure here (missing variant mapping, API error, missing
+// secret) never blocks the AfterGolf order itself, which is the source of
+// truth either way.
+async function createPrintfulDraftOrder(params: {
+  recipientName: string
+  address1: string
+  city: string
+  zip: string
+  items: { syncVariantId: number; quantity: number }[]
+}): Promise<string | null> {
+  if (!PRINTFUL_API_KEY) {
+    console.error('PRINTFUL_API_KEY secret is not set — skipping Printful draft order')
+    return null
+  }
+  try {
+    const res = await fetch('https://api.printful.com/orders', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${PRINTFUL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        recipient: {
+          name: params.recipientName,
+          address1: params.address1,
+          city: params.city,
+          zip: params.zip,
+          country_code: 'ES',
+        },
+        items: params.items.map((i) => ({ sync_variant_id: i.syncVariantId, quantity: i.quantity })),
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      console.error('Printful draft order creation failed', data)
+      return null
+    }
+    return data.result?.id != null ? String(data.result.id) : null
+  } catch (err) {
+    console.error('Printful draft order creation error', err)
+    return null
+  }
 }
 
 async function sendPendingPaymentEmail(params: {
@@ -146,7 +216,7 @@ Deno.serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   const { data: products, error: productsError } = await supabase
     .from('products')
-    .select('id, name, price')
+    .select('id, name, price, printful_variants')
     .in(
       'id',
       items.map((i) => i.productId),
@@ -158,6 +228,8 @@ Deno.serve(async (req) => {
   }
 
   const orderItems: { productId: string; name: string; quantity: number; unitAmount: number }[] = []
+  const printfulItems: { syncVariantId: number; quantity: number }[] = []
+  let printfulResolved = true
   let subtotal = 0
 
   for (const item of items) {
@@ -171,6 +243,13 @@ Deno.serve(async (req) => {
       quantity: item.quantity,
       unitAmount: Math.round(product.price * 100),
     })
+
+    const syncVariantId = resolveSyncVariantId(product.printful_variants, item.size, item.color)
+    if (syncVariantId === null) {
+      printfulResolved = false
+    } else {
+      printfulItems.push({ syncVariantId, quantity: item.quantity })
+    }
   }
 
   if (orderItems.length === 0) {
@@ -207,6 +286,21 @@ Deno.serve(async (req) => {
   }
 
   const reference = order.id.slice(0, 8).toUpperCase()
+
+  if (printfulResolved && printfulItems.length > 0) {
+    const printfulOrderId = await createPrintfulDraftOrder({
+      recipientName: address.name.trim(),
+      address1: address.line1.trim(),
+      city: address.city.trim(),
+      zip: address.postalCode.trim(),
+      items: printfulItems,
+    })
+    if (printfulOrderId) {
+      await supabase.from('orders').update({ printful_order_id: printfulOrderId }).eq('id', order.id)
+    }
+  } else {
+    console.error(`Skipping Printful draft order for ${order.id} — missing variant mapping`)
+  }
 
   await sendPendingPaymentEmail({
     customerEmail: claims.email,
