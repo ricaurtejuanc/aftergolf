@@ -149,16 +149,52 @@ function ProductGallery({
   )
 }
 
-function ProductCard({
+function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void }) {
+  const thumbnail = product.colors?.[0]?.images[0] ?? product.images?.[0]
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex flex-col overflow-hidden rounded-2xl border border-cream-300 bg-white text-left shadow-sm transition hover:border-fairway-400 hover:shadow-md"
+    >
+      <div className="flex aspect-square w-full items-center justify-center overflow-hidden bg-cream-100">
+        {thumbnail ? (
+          <img src={thumbnail} alt={product.name} className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-5xl" aria-hidden>
+            {product.placeholderEmoji ?? '🏌️'}
+          </span>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-gold-600">
+          {product.category}
+        </div>
+        <h2 className="mt-1 font-semibold text-fairway-900">{product.name}</h2>
+        <div className="mt-auto flex items-center justify-between pt-3">
+          <span className="text-lg font-semibold text-fairway-900">
+            {formatPrice(product.price)}
+          </span>
+          <span className="text-xs font-medium text-fairway-600">Ver detalles</span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function ProductDetailModal({
   product,
+  onClose,
   onAdd,
 }: {
   product: Product
+  onClose: () => void
   onAdd: (size?: string, color?: string) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
   const [size, setSize] = useState('')
   const [colorIdx, setColorIdx] = useState(0)
+  const { shippingTime } = useCart()
 
   const hasColors = Boolean(product.colors?.length)
   const activeColor = hasColors ? product.colors![colorIdx] : undefined
@@ -171,103 +207,119 @@ function ProductCard({
     setSize('')
   }
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
   return (
-    <div className="flex flex-col rounded-2xl border border-cream-300 bg-white p-5 shadow-sm">
-      <div className="mb-3">
-        <ProductGallery
-          images={galleryImages}
-          name={product.name}
-          placeholderEmoji={product.placeholderEmoji}
-        />
-      </div>
-      <div className="text-xs font-semibold uppercase tracking-wide text-gold-600">
-        {product.category}
-      </div>
-      <h2 className="mt-1 font-semibold text-fairway-900">{product.name}</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gold-600">
+              {product.category}
+            </div>
+            <h2 className="mt-1 text-xl font-semibold text-fairway-900">{product.name}</h2>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="shrink-0 text-2xl leading-none text-fairway-400 transition hover:text-fairway-700"
+          >
+            ✕
+          </button>
+        </div>
 
-      <div className="mt-2 flex-1">
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="text-xs font-medium text-fairway-600 underline-offset-2 hover:underline"
-        >
-          {expanded ? 'Ocultar información' : 'Información de producto'}
-        </button>
+        <div className="mt-4">
+          <ProductGallery
+            images={galleryImages}
+            name={product.name}
+            placeholderEmoji={product.placeholderEmoji}
+          />
+        </div>
 
-        {expanded && (
-          <div className="mt-2">
-            <p className="text-sm text-fairway-600">{product.description}</p>
-            {product.specs && (
-              <ul className="mt-2 space-y-1 text-xs text-fairway-600">
-                {product.specs.map((spec) => (
-                  <li key={spec} className="flex gap-1.5">
-                    <span className="text-gold-600" aria-hidden>
-                      •
-                    </span>
-                    {spec}
-                  </li>
-                ))}
-              </ul>
-            )}
+        <p className="mt-4 text-sm text-fairway-600">{product.description}</p>
+        {product.specs && (
+          <ul className="mt-2 space-y-1 text-xs text-fairway-600">
+            {product.specs.map((spec) => (
+              <li key={spec} className="flex gap-1.5">
+                <span className="text-gold-600" aria-hidden>
+                  •
+                </span>
+                {spec}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {hasColors && (
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-fairway-700 mb-1">
+              Color: <span className="font-normal text-fairway-600">{activeColor!.name}</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {product.colors!.map((c, idx) => (
+                <button
+                  key={c.name}
+                  type="button"
+                  onClick={() => selectColor(idx)}
+                  title={c.name}
+                  aria-label={c.name}
+                  aria-pressed={idx === colorIdx}
+                  className={`h-7 w-7 rounded-md border-2 transition ${
+                    idx === colorIdx ? 'border-fairway-600' : 'border-cream-300 hover:border-fairway-400'
+                  }`}
+                  style={{ backgroundColor: colorNameToHex(c.name) }}
+                />
+              ))}
+            </div>
           </div>
         )}
-      </div>
 
-      {hasColors && (
-        <div className="mt-3">
-          <label className="block text-xs font-medium text-fairway-700 mb-1">
-            Color: <span className="font-normal text-fairway-600">{activeColor!.name}</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {product.colors!.map((c, idx) => (
-              <button
-                key={c.name}
-                type="button"
-                onClick={() => selectColor(idx)}
-                title={c.name}
-                aria-label={c.name}
-                aria-pressed={idx === colorIdx}
-                className={`h-7 w-7 rounded-md border-2 transition ${
-                  idx === colorIdx ? 'border-fairway-600' : 'border-cream-300 hover:border-fairway-400'
-                }`}
-                style={{ backgroundColor: colorNameToHex(c.name) }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {needsSize && (
-        <div className="mt-3">
-          <label className="block text-xs font-medium text-fairway-700 mb-1">Talla</label>
-          <select
-            value={size}
-            onChange={(e) => setSize(e.target.value)}
-            className="w-full rounded-lg border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
-          >
-            <option value="" disabled>
-              Selecciona talla
-            </option>
-            {availableSizes.map((s) => (
-              <option key={s} value={s}>
-                {s}
+        {needsSize && (
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-fairway-700 mb-1">Talla</label>
+            <select
+              value={size}
+              onChange={(e) => setSize(e.target.value)}
+              className="w-full rounded-lg border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+            >
+              <option value="" disabled>
+                Selecciona talla
               </option>
-            ))}
-          </select>
-        </div>
-      )}
+              {availableSizes.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
-      <div className="mt-3 flex items-center justify-between">
-        <span className="text-lg font-semibold text-fairway-900">
-          {formatPrice(product.price)}
-        </span>
-        <button
-          onClick={() => onAdd(needsSize ? size : undefined, activeColor?.name)}
-          disabled={needsSize && !size}
-          className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:bg-fairway-300"
-        >
-          {needsSize && !size ? 'Selecciona talla' : 'Añadir'}
-        </button>
+        <div className="mt-4 flex items-center justify-between">
+          <span className="text-lg font-semibold text-fairway-900">
+            {formatPrice(product.price)}
+          </span>
+          <button
+            onClick={() => onAdd(needsSize ? size : undefined, activeColor?.name)}
+            disabled={needsSize && !size}
+            className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:bg-fairway-300"
+          >
+            {needsSize && !size ? 'Selecciona talla' : 'Añadir'}
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs text-fairway-500">{shippingTime}</p>
       </div>
     </div>
   )
@@ -275,11 +327,13 @@ function ProductCard({
 
 export function ShopPage() {
   const [products, setProducts] = useState<Product[]>([])
+  const [openProductId, setOpenProductId] = useState<string | null>(null)
 
   useEffect(() => {
     loadProducts().then(setProducts)
   }, [])
   const { addItem } = useCart()
+  const openProduct = products.find((p) => p.id === openProductId) ?? null
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -302,13 +356,21 @@ export function ShopPage() {
             <ProductCard
               key={product.id}
               product={product}
-              onAdd={(size, color) => addItem(product.id, size, color)}
+              onOpen={() => setOpenProductId(product.id)}
             />
           ))}
         </div>
 
         <CartPanel className="hidden h-fit rounded-2xl border border-cream-300 bg-white p-5 shadow-sm lg:block lg:sticky lg:top-6" />
       </div>
+
+      {openProduct && (
+        <ProductDetailModal
+          product={openProduct}
+          onClose={() => setOpenProductId(null)}
+          onAdd={(size, color) => addItem(openProduct.id, size, color)}
+        />
+      )}
     </div>
   )
 }
