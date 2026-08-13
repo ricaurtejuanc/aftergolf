@@ -112,6 +112,9 @@ create table if not exists public.products (
   images text[],
   specs text[],
   sizes text[],
+  -- Color variants imported from Printful: [{ name, images, sizes }]. Null
+  -- for products with no color options (or not imported from Printful).
+  colors jsonb,
   position integer not null default 0,
   printful_id integer,
   created_at timestamptz not null default now()
@@ -124,4 +127,23 @@ create policy "products_select_all" on public.products
 
 create policy "products_write_admin" on public.products
   for all using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
+
+-- Singleton row of shop-wide settings editable from the admin panel (e.g.
+-- the shipping-time estimate shown to shoppers).
+create table if not exists public.shop_settings (
+  id boolean primary key default true,
+  shipping_time text not null default 'Entregas en España en 3-5 días laborables.',
+  constraint shop_settings_singleton check (id)
+);
+
+insert into public.shop_settings (id) values (true) on conflict do nothing;
+
+alter table public.shop_settings enable row level security;
+
+create policy "shop_settings_select_all" on public.shop_settings
+  for select using (true);
+
+create policy "shop_settings_write_admin" on public.shop_settings
+  for update using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
   with check (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');

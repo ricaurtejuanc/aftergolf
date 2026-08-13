@@ -13,6 +13,7 @@ interface ProductRow {
   images: string[] | null
   specs: string[] | null
   sizes: string[] | null
+  colors: Product['colors'] | null
 }
 
 function fromRow(row: ProductRow): Product {
@@ -28,6 +29,7 @@ function fromRow(row: ProductRow): Product {
     images: localImagesFor(row.id, row.name) ?? row.images ?? undefined,
     specs: row.specs ?? undefined,
     sizes: row.sizes ?? undefined,
+    colors: row.colors ?? undefined,
   }
 }
 
@@ -115,6 +117,7 @@ export async function importPrintfulProduct(detail: PrintfulProductDetail): Prom
         price: detail.price,
         sizes: detail.sizes.length ? detail.sizes : null,
         images: detail.images.length ? detail.images : null,
+        colors: detail.colors && detail.colors.length ? detail.colors : null,
       })
       .eq('id', existing.id)
     if (error) throw error
@@ -129,6 +132,7 @@ export async function importPrintfulProduct(detail: PrintfulProductDetail): Prom
       category: 'Ropa',
       sizes: detail.sizes.length ? detail.sizes : null,
       images: detail.images.length ? detail.images : null,
+      colors: detail.colors && detail.colors.length ? detail.colors : null,
       printful_id: detail.printfulId,
       position: count ?? 0,
     })

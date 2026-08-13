@@ -2,21 +2,24 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Product } from '../data/products'
 import { loadProducts } from '../lib/productStore'
 import { loadCart, saveCart, type CartItem } from '../lib/cart'
+import { loadShopSettings } from '../lib/settings'
 
 export const SHIPPING_COST = 4.99
 export const FREE_SHIPPING_THRESHOLD = 100
+const DEFAULT_SHIPPING_TIME = 'Entregas en España en 3-5 días laborables.'
 
 interface CartContextValue {
   items: CartItem[]
   products: Product[]
-  addItem: (productId: string, size?: string) => void
-  removeItem: (productId: string, size?: string) => void
-  setQuantity: (productId: string, quantity: number, size?: string) => void
+  addItem: (productId: string, size?: string, color?: string) => void
+  removeItem: (productId: string, size?: string, color?: string) => void
+  setQuantity: (productId: string, quantity: number, size?: string, color?: string) => void
   clear: () => void
   totalCount: number
   totalPrice: number
   shippingCost: number
   orderTotal: number
+  shippingTime: string
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
@@ -24,6 +27,7 @@ const CartContext = createContext<CartContextValue | null>(null)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => loadCart())
   const [products, setProducts] = useState<Product[]>([])
+  const [shippingTime, setShippingTime] = useState(DEFAULT_SHIPPING_TIME)
 
   useEffect(() => {
     saveCart(items)
@@ -31,31 +35,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadProducts().then(setProducts)
+    loadShopSettings().then((s) => setShippingTime(s.shippingTime))
   }, [])
 
-  function addItem(productId: string, size?: string) {
+  function addItem(productId: string, size?: string, color?: string) {
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === productId && i.size === size)
+      const existing = prev.find(
+        (i) => i.productId === productId && i.size === size && i.color === color,
+      )
       if (existing) {
         return prev.map((i) =>
-          i.productId === productId && i.size === size ? { ...i, quantity: i.quantity + 1 } : i,
+          i.productId === productId && i.size === size && i.color === color
+            ? { ...i, quantity: i.quantity + 1 }
+            : i,
         )
       }
-      return [...prev, { productId, quantity: 1, size }]
+      return [...prev, { productId, quantity: 1, size, color }]
     })
   }
 
-  function removeItem(productId: string, size?: string) {
-    setItems((prev) => prev.filter((i) => !(i.productId === productId && i.size === size)))
+  function removeItem(productId: string, size?: string, color?: string) {
+    setItems((prev) =>
+      prev.filter((i) => !(i.productId === productId && i.size === size && i.color === color)),
+    )
   }
 
-  function setQuantity(productId: string, quantity: number, size?: string) {
+  function setQuantity(productId: string, quantity: number, size?: string, color?: string) {
     if (quantity <= 0) {
-      removeItem(productId, size)
+      removeItem(productId, size, color)
       return
     }
     setItems((prev) =>
-      prev.map((i) => (i.productId === productId && i.size === size ? { ...i, quantity } : i)),
+      prev.map((i) =>
+        i.productId === productId && i.size === size && i.color === color
+          ? { ...i, quantity }
+          : i,
+      ),
     )
   }
 
@@ -91,6 +106,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         totalPrice,
         shippingCost,
         orderTotal,
+        shippingTime,
       }}
     >
       {children}
