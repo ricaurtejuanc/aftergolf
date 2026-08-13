@@ -1,17 +1,14 @@
-import Stripe from 'npm:stripe@17'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY')
+// Auto-provided in every Supabase Edge Function — no manual secret needed.
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const BIZUM_PHONE = Deno.env.get('BIZUM_PHONE')
 
 // Must match src/context/CartContext.tsx — there's no shared package between
 // the Vite app and these Deno functions, so these are duplicated on purpose.
 const SHIPPING_COST = 4.99
 const FREE_SHIPPING_THRESHOLD = 100
-
-const ALLOWED_ORIGINS = ['https://aftergolf.es', 'https://www.aftergolf.es']
-const DEFAULT_ORIGIN = 'https://www.aftergolf.es'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,6 +46,13 @@ interface CartItemInput {
   color?: string
 }
 
+interface ShippingAddressInput {
+  name?: string
+  line1?: string
+  postalCode?: string
+  city?: string
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -57,9 +61,9 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
-  if (!STRIPE_SECRET_KEY) {
-    console.error('STRIPE_SECRET_KEY secret is not set')
-    return jsonResponse({ error: 'Los pagos no están configurados' }, 500)
+  if (!BIZUM_PHONE) {
+    console.error('BIZUM_PHONE secret is not set')
+    return jsonResponse({ error: 'El pago por Bizum no está configurado' }, 500)
   }
 
   const claims = callerClaims(req)
@@ -67,7 +71,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'No autorizado' }, 401)
   }
 
-  let body: { items?: CartItemInput[]; origin?: string }
+  let body: { items?: CartItemInput[]; address?: ShippingAddressInput }
   try {
     body = await req.json()
   } catch {
@@ -79,9 +83,12 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'El carrito está vacío' }, 400)
   }
 
-  const origin = ALLOWED_ORIGINS.includes(body.origin ?? '') ? body.origin! : DEFAULT_ORIGIN
+  const address = body.address ?? {}
+  if (!address.name?.trim() || !address.line1?.trim() || !address.postalCode?.trim() || !address.city?.trim()) {
+    return jsonResponse({ error: 'Falta la dirección de envío' }, 400)
+  }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   const { data: products, error: productsError } = await supabase
     .from('products')
     .select('id, name, price')
@@ -91,11 +98,11 @@ Deno.serve(async (req) => {
     )
 
   if (productsError || !products) {
-    console.error('Failed to load products for checkout', productsError)
+    console.error('Failed to load products for bizum order', productsError)
     return jsonResponse({ error: 'No se pudieron cargar los productos' }, 500)
   }
 
-  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = []
+  const orderItems: { productId: string; name: string; quantity: number; unitAmount: number }[] = []
   let subtotal = 0
 
   for (const item of items) {
@@ -103,54 +110,51 @@ Deno.serve(async (req) => {
     if (!product) continue
     subtotal += product.price * item.quantity
     const variantLabel = [item.color, item.size && `Talla ${item.size}`].filter(Boolean).join(' / ')
-    lineItems.push({
+    orderItems.push({
+      productId: product.id,
+      name: variantLabel ? `${product.name} — ${variantLabel}` : product.name,
       quantity: item.quantity,
-      price_data: {
-        currency: 'eur',
-        unit_amount: Math.round(product.price * 100),
-        product_data: {
-          name: variantLabel ? `${product.name} — ${variantLabel}` : product.name,
-          metadata: { product_id: product.id },
-        },
-      },
+      unitAmount: Math.round(product.price * 100),
     })
   }
 
-  if (lineItems.length === 0) {
+  if (orderItems.length === 0) {
     return jsonResponse({ error: 'Ninguno de los productos del carrito existe ya' }, 400)
   }
 
-  const shippingAmount = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
+  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
+  const amountTotal = subtotal + shippingCost
 
-  try {
-    const stripe = new Stripe(STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() })
-
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
+  const { data: order, error: insertError } = await supabase
+    .from('orders')
+    .insert({
+      user_id: claims.sub,
+      payment_method: 'bizum',
       customer_email: claims.email,
-      client_reference_id: claims.sub,
-      metadata: { user_id: claims.sub },
-      line_items: lineItems,
-      shipping_address_collection: { allowed_countries: ['ES'] },
-      shipping_options: [
-        {
-          shipping_rate_data: {
-            type: 'fixed_amount',
-            fixed_amount: { amount: Math.round(shippingAmount * 100), currency: 'eur' },
-            display_name: shippingAmount === 0 ? 'Envío gratis' : 'Envío estándar',
-          },
-        },
-      ],
-      success_url: `${origin}/#/shop?checkout=success`,
-      cancel_url: `${origin}/#/shop?checkout=cancelled`,
+      shipping_address: {
+        name: address.name.trim(),
+        line1: address.line1.trim(),
+        postal_code: address.postalCode.trim(),
+        city: address.city.trim(),
+        country: 'ES',
+      },
+      items: orderItems,
+      amount_total: amountTotal,
+      currency: 'eur',
+      status: 'pending',
     })
+    .select('id')
+    .single()
 
-    if (!session.url) {
-      return jsonResponse({ error: 'No se pudo crear la sesión de pago' }, 502)
-    }
-    return jsonResponse({ url: session.url })
-  } catch (err) {
-    console.error('Stripe checkout session creation failed', err)
-    return jsonResponse({ error: 'No se pudo iniciar el pago' }, 502)
+  if (insertError || !order) {
+    console.error('Failed to insert bizum order', insertError)
+    return jsonResponse({ error: 'No se pudo registrar el pedido' }, 500)
   }
+
+  return jsonResponse({
+    orderId: order.id,
+    reference: order.id.slice(0, 8).toUpperCase(),
+    bizumPhone: BIZUM_PHONE,
+    amountTotal,
+  })
 })
