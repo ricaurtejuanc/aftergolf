@@ -41,3 +41,15 @@ body {
 #root {
   min-height: 100svh;
 }
+
+/* iOS Safari auto-zooms the page when focusing any input/select/textarea
+   with a font-size under 16px, and doesn't reliably zoom back out — most
+   fields here use Tailwind's text-sm (14px), so force 16px on mobile to
+   stop the zoom from triggering at all. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
