@@ -1,6 +1,7 @@
-import type { SVGProps } from 'react'
+import { useState, type SVGProps } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Logo } from './Logo'
+import { CartPanel } from './CartPanel'
 import { useCart } from '../context/CartContext'
 
 function FlagIcon(props: SVGProps<SVGSVGElement>) {
@@ -48,6 +49,16 @@ function MailIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+function CartIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="9" cy="20" r="1" />
+      <circle cx="18" cy="20" r="1" />
+      <path d="M3 4h2l2.4 12.2a1 1 0 0 0 1 .8h8.9a1 1 0 0 0 1-.8L20 8H6" />
+    </svg>
+  )
+}
+
 const NAV_ITEMS = [
   { to: '/antes-de-jugar', label: 'Antes de Jugar', shortLabel: 'Antes', icon: FlagIcon },
   { to: '/despues-de-jugar', label: 'Después de Jugar', shortLabel: 'Después', icon: ScoreIcon },
@@ -58,6 +69,7 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const { totalCount } = useCart()
+  const [cartOpen, setCartOpen] = useState(false)
 
   const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
@@ -73,17 +85,41 @@ export function Sidebar() {
 
   return (
     <>
-      <header className="flex items-center justify-between border-b border-cream-300 bg-cream-100 px-4 py-3 md:hidden">
+      <header className="relative flex items-center justify-between border-b border-cream-300 bg-cream-100 px-4 py-3 md:hidden">
         <NavLink to="/" className="flex items-center gap-2">
           <Logo className="h-8 w-8" />
           <span className="font-serif text-lg font-bold text-fairway-900">AfterGolf</span>
         </NavLink>
-        <NavLink
-          to="/handicap-federado"
-          className="rounded-lg border border-gold-400 bg-gold-400/10 px-2.5 py-1.5 text-xs font-medium text-fairway-800"
-        >
-          ¿No sabes tu handicap?
-        </NavLink>
+        <div className="flex items-center gap-2">
+          <NavLink
+            to="/handicap-federado"
+            className="rounded-lg border border-gold-400 bg-gold-400/10 px-2.5 py-1.5 text-xs font-medium text-fairway-800"
+          >
+            ¿No sabes tu handicap?
+          </NavLink>
+          <button
+            type="button"
+            onClick={() => setCartOpen((v) => !v)}
+            aria-label="Ver carrito"
+            className="relative rounded-lg border border-cream-300 bg-white p-1.5 text-fairway-800 transition hover:border-fairway-400"
+          >
+            <CartIcon className="h-5 w-5" />
+            {totalCount > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 rounded-full bg-gold-500 px-1 text-[9px] font-semibold text-white">
+                {totalCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {cartOpen && (
+          <>
+            <div className="fixed inset-0 z-30" onClick={() => setCartOpen(false)} />
+            <div className="absolute right-4 top-full z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-cream-300 bg-white p-4 shadow-lg">
+              <CartPanel />
+            </div>
+          </>
+        )}
       </header>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-cream-300 bg-cream-50/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
