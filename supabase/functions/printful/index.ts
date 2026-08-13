@@ -33,8 +33,11 @@ function callerEmail(req: Request): string | null {
 }
 
 async function printfulFetch(path: string) {
+  // Printful retired Basic auth with the legacy API key in favor of OAuth
+  // 2.0 tokens sent as a Bearer token (same v1 REST endpoints, new auth
+  // scheme) — see https://help.printful.com/hc/en-us/articles/4632388335260
   const res = await fetch(`${PRINTFUL_BASE}${path}`, {
-    headers: { Authorization: `Basic ${btoa(`${PRINTFUL_API_KEY}:`)}` },
+    headers: { Authorization: `Bearer ${PRINTFUL_API_KEY}` },
   })
   const data = await res.json()
   if (!res.ok) {
