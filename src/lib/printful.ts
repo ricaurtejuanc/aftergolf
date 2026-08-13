@@ -6,12 +6,19 @@ export interface PrintfulListItem {
   thumbnail: string | null
 }
 
+export interface PrintfulProductColor {
+  name: string
+  images: string[]
+  sizes: string[]
+}
+
 export interface PrintfulProductDetail {
   printfulId: number
   name: string
   price: number
   sizes: string[]
   images: string[]
+  colors?: PrintfulProductColor[]
 }
 
 async function authHeaders(): Promise<HeadersInit> {

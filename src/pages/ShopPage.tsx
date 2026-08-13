@@ -4,15 +4,16 @@ import { loadProducts } from '../lib/productStore'
 import { useCart } from '../context/CartContext'
 import { CartPanel } from '../components/CartPanel'
 import { formatPrice } from '../lib/format'
+import { colorNameToHex } from '../lib/colorSwatches'
 
 function ProductLightbox({
-  product,
+  alt,
   images,
   active,
   onClose,
   onNavigate,
 }: {
-  product: Product
+  alt: string
   images: string[]
   active: number
   onClose: () => void
@@ -42,7 +43,7 @@ function ProductLightbox({
       </button>
       <img
         src={images[active]}
-        alt={product.name}
+        alt={alt}
         onClick={(e) => e.stopPropagation()}
         className="max-h-full max-w-full rounded-lg object-contain"
       />
@@ -74,16 +75,29 @@ function ProductLightbox({
   )
 }
 
-function ProductGallery({ product }: { product: Product }) {
-  const images = product.images ?? []
+function ProductGallery({
+  images,
+  name,
+  placeholderEmoji,
+}: {
+  images: string[]
+  name: string
+  placeholderEmoji?: string
+}) {
   const [active, setActive] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+
+  // Reset to the first photo whenever the image set changes (e.g. switching
+  // color), so we never point past the end of a shorter set.
+  useEffect(() => {
+    setActive(0)
+  }, [images])
 
   if (images.length === 0) {
     return (
       <div className="flex aspect-square items-center justify-center rounded-xl bg-cream-100">
         <span className="text-5xl" aria-hidden>
-          {product.placeholderEmoji ?? '🏌️'}
+          {placeholderEmoji ?? '🏌️'}
         </span>
       </div>
     )
@@ -95,18 +109,18 @@ function ProductGallery({ product }: { product: Product }) {
         type="button"
         onClick={() => setLightboxOpen(true)}
         className="block w-full cursor-zoom-in"
-        aria-label={`Ampliar foto de ${product.name}`}
+        aria-label={`Ampliar foto de ${name}`}
       >
         <div className="aspect-square w-full overflow-hidden rounded-xl bg-cream-100">
           <img
             src={images[active]}
-            alt={product.name}
+            alt={name}
             className="h-full w-full object-cover"
           />
         </div>
       </button>
       {images.length > 1 && (
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
           {images.map((src, idx) => (
             <button
               key={src}
@@ -114,7 +128,7 @@ function ProductGallery({ product }: { product: Product }) {
               className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition ${
                 idx === active ? 'border-fairway-600' : 'border-transparent opacity-70 hover:opacity-100'
               }`}
-              aria-label={`Foto ${idx + 1} de ${product.name}`}
+              aria-label={`Foto ${idx + 1} de ${name}`}
             >
               <img src={src} alt="" className="h-full w-full object-cover" />
             </button>
@@ -124,7 +138,7 @@ function ProductGallery({ product }: { product: Product }) {
 
       {lightboxOpen && (
         <ProductLightbox
-          product={product}
+          alt={name}
           images={images}
           active={active}
           onClose={() => setLightboxOpen(false)}
@@ -140,16 +154,31 @@ function ProductCard({
   onAdd,
 }: {
   product: Product
-  onAdd: (size?: string) => void
+  onAdd: (size?: string, color?: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [size, setSize] = useState('')
-  const needsSize = Boolean(product.sizes)
+  const [colorIdx, setColorIdx] = useState(0)
+
+  const hasColors = Boolean(product.colors?.length)
+  const activeColor = hasColors ? product.colors![colorIdx] : undefined
+  const availableSizes = (activeColor?.sizes.length ? activeColor.sizes : product.sizes) ?? []
+  const needsSize = availableSizes.length > 0
+  const galleryImages = activeColor?.images.length ? activeColor.images : (product.images ?? [])
+
+  function selectColor(idx: number) {
+    setColorIdx(idx)
+    setSize('')
+  }
 
   return (
     <div className="flex flex-col rounded-2xl border border-cream-300 bg-white p-5 shadow-sm">
       <div className="mb-3">
-        <ProductGallery product={product} />
+        <ProductGallery
+          images={galleryImages}
+          name={product.name}
+          placeholderEmoji={product.placeholderEmoji}
+        />
       </div>
       <div className="text-xs font-semibold uppercase tracking-wide text-gold-600">
         {product.category}
@@ -184,6 +213,30 @@ function ProductCard({
         )}
       </div>
 
+      {hasColors && (
+        <div className="mt-3">
+          <label className="block text-xs font-medium text-fairway-700 mb-1">
+            Color: <span className="font-normal text-fairway-600">{activeColor!.name}</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {product.colors!.map((c, idx) => (
+              <button
+                key={c.name}
+                type="button"
+                onClick={() => selectColor(idx)}
+                title={c.name}
+                aria-label={c.name}
+                aria-pressed={idx === colorIdx}
+                className={`h-7 w-7 rounded-md border-2 transition ${
+                  idx === colorIdx ? 'border-fairway-600' : 'border-cream-300 hover:border-fairway-400'
+                }`}
+                style={{ backgroundColor: colorNameToHex(c.name) }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {needsSize && (
         <div className="mt-3">
           <label className="block text-xs font-medium text-fairway-700 mb-1">Talla</label>
@@ -195,7 +248,7 @@ function ProductCard({
             <option value="" disabled>
               Selecciona talla
             </option>
-            {product.sizes!.map((s) => (
+            {availableSizes.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
@@ -209,7 +262,7 @@ function ProductCard({
           {formatPrice(product.price)}
         </span>
         <button
-          onClick={() => onAdd(needsSize ? size : undefined)}
+          onClick={() => onAdd(needsSize ? size : undefined, activeColor?.name)}
           disabled={needsSize && !size}
           className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:bg-fairway-300"
         >
@@ -249,7 +302,7 @@ export function ShopPage() {
             <ProductCard
               key={product.id}
               product={product}
-              onAdd={(size) => addItem(product.id, size)}
+              onAdd={(size, color) => addItem(product.id, size, color)}
             />
           ))}
         </div>

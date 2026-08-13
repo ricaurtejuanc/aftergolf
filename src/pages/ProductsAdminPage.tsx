@@ -9,6 +9,7 @@ import {
   updateProduct,
 } from '../lib/productStore'
 import { getPrintfulProduct, listPrintfulProducts, type PrintfulListItem } from '../lib/printful'
+import { loadShopSettings, updateShopSettings } from '../lib/settings'
 
 interface ProductDraft {
   name: string
@@ -238,6 +239,60 @@ function PrintfulImportPanel({
   )
 }
 
+function ShippingSettingsPanel() {
+  const [value, setValue] = useState('')
+  const [loaded, setLoaded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    loadShopSettings().then((s) => {
+      setValue(s.shippingTime)
+      setLoaded(true)
+    })
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    setSaved(false)
+    try {
+      const updated = await updateShopSettings({ shippingTime: value })
+      setValue(updated.shippingTime)
+      setSaved(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-xl border border-cream-300 bg-white p-4 shadow-sm">
+      <label className="block text-xs font-medium text-fairway-700">
+        Tiempo de envío a España (se muestra en el carrito)
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <input
+          type="text"
+          value={value}
+          disabled={!loaded}
+          onChange={(e) => {
+            setValue(e.target.value)
+            setSaved(false)
+          }}
+          className="min-w-0 flex-1 rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+        />
+        <button
+          onClick={handleSave}
+          disabled={saving || !loaded}
+          className="shrink-0 rounded-md bg-fairway-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
+        >
+          {saving ? 'Guardando...' : 'Guardar'}
+        </button>
+      </div>
+      {saved && <p className="text-xs text-fairway-500">Guardado.</p>}
+    </div>
+  )
+}
+
 export function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -261,6 +316,8 @@ export function ProductsAdminPage() {
           para cambiar el orden en el que aparecen en la Shop.
         </p>
       </div>
+
+      <ShippingSettingsPanel />
 
       <div className="flex flex-wrap gap-2">
         <button
@@ -351,6 +408,7 @@ export function ProductsAdminPage() {
                   <div className="text-xs text-fairway-500">
                     {product.category} · {product.price.toFixed(2)}€
                     {product.sizes ? ` · Tallas: ${product.sizes.join(', ')}` : ''}
+                    {product.colors?.length ? ` · ${product.colors.length} colores` : ''}
                   </div>
                 </div>
               </div>

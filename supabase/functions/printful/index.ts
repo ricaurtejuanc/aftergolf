@@ -55,6 +55,18 @@ function guessSize(variantName: string): string | null {
   return KNOWN_SIZES.find((s) => s === upper) ?? null
 }
 
+// Printful sync variant names typically look like "Product name - Color / Size".
+// With three or more segments the middle one is the color; two-segment names
+// (no color set on the product) have nothing to guess.
+function guessColor(variantName: string): string | null {
+  const parts = variantName
+    .split(/[-/]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (parts.length < 3) return null
+  return parts[parts.length - 2]
+}
+
 interface PrintfulFile {
   type: string
   preview_url?: string
@@ -129,12 +141,45 @@ Deno.serve(async (req) => {
         ),
       )
 
+      const colorOrder: string[] = []
+      const colorGroups = new Map<string, { images: Set<string>; sizes: Set<string> }>()
+      for (const variant of syncVariants) {
+        const color = guessColor(variant.name)
+        if (!color) continue
+        if (!colorGroups.has(color)) {
+          colorGroups.set(color, { images: new Set(), sizes: new Set() })
+          colorOrder.push(color)
+        }
+        const group = colorGroups.get(color)!
+        const size = guessSize(variant.name)
+        if (size) group.sizes.add(size)
+        for (const file of variant.files ?? []) {
+          if ((file.type === 'preview' || file.type === 'default') && file.preview_url) {
+            group.images.add(file.preview_url)
+          }
+        }
+      }
+      // Only worth surfacing as a color picker when the product actually has
+      // more than one color — a single guessed "color" is usually noise.
+      const colors =
+        colorOrder.length > 1
+          ? colorOrder.map((name) => {
+              const group = colorGroups.get(name)!
+              return {
+                name,
+                images: Array.from(group.images),
+                sizes: Array.from(group.sizes),
+              }
+            })
+          : undefined
+
       return jsonResponse({
         printfulId: syncProduct.id,
         name: syncProduct.name,
         price,
         sizes,
         images,
+        colors,
       })
     }
 
