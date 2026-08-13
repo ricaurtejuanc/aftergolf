@@ -1,5 +1,6 @@
 import type { Product } from '../data/products'
 import { localImagesFor } from '../data/productImages'
+import type { PrintfulProductDetail } from './printful'
 import { supabase } from './supabaseClient'
 
 interface ProductRow {
@@ -96,6 +97,43 @@ export async function updateProduct(id: string, patch: Omit<Product, 'id'>): Pro
 export async function deleteProduct(id: string): Promise<Product[]> {
   const { error } = await supabase.from('products').delete().eq('id', id)
   if (error) throw error
+  return loadProducts()
+}
+
+export async function importPrintfulProduct(detail: PrintfulProductDetail): Promise<Product[]> {
+  const { data: existing } = await supabase
+    .from('products')
+    .select('id')
+    .eq('printful_id', detail.printfulId)
+    .maybeSingle()
+
+  if (existing) {
+    const { error } = await supabase
+      .from('products')
+      .update({
+        name: detail.name,
+        price: detail.price,
+        sizes: detail.sizes.length ? detail.sizes : null,
+        images: detail.images.length ? detail.images : null,
+      })
+      .eq('id', existing.id)
+    if (error) throw error
+  } else {
+    const id = await uniqueProductId(detail.name)
+    const { count } = await supabase.from('products').select('id', { count: 'exact', head: true })
+    const { error } = await supabase.from('products').insert({
+      id,
+      name: detail.name,
+      description: 'Importado desde Printful — edita esta descripción.',
+      price: detail.price,
+      category: 'Ropa',
+      sizes: detail.sizes.length ? detail.sizes : null,
+      images: detail.images.length ? detail.images : null,
+      printful_id: detail.printfulId,
+      position: count ?? 0,
+    })
+    if (error) throw error
+  }
   return loadProducts()
 }
 

@@ -113,6 +113,7 @@ create table if not exists public.products (
   specs text[],
   sizes text[],
   position integer not null default 0,
+  printful_id integer,
   created_at timestamptz not null default now()
 );
 
