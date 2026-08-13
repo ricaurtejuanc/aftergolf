@@ -115,6 +115,9 @@ create table if not exists public.products (
   -- Color variants imported from Printful: [{ name, images, sizes }]. Null
   -- for products with no color options (or not imported from Printful).
   colors jsonb,
+  -- Estimated delivery time for this specific product (varies per product,
+  -- not shop-wide), shown in its detail view. Editable by the admin.
+  shipping_time text,
   position integer not null default 0,
   printful_id integer,
   created_at timestamptz not null default now()
@@ -129,21 +132,26 @@ create policy "products_write_admin" on public.products
   for all using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
   with check (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
 
--- Singleton row of shop-wide settings editable from the admin panel (e.g.
--- the shipping-time estimate shown to shoppers).
-create table if not exists public.shop_settings (
-  id boolean primary key default true,
-  shipping_time text not null default 'Entregas en España en 3-5 días laborables.',
-  constraint shop_settings_singleton check (id)
+-- Orders paid through Stripe Checkout. Rows are written only by the
+-- stripe-webhook edge function using the service-role key (bypasses RLS) —
+-- there is no insert/update policy for regular clients by design.
+create table if not exists public.orders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users (id) on delete set null,
+  stripe_session_id text not null unique,
+  customer_email text not null,
+  shipping_address jsonb,
+  items jsonb not null,
+  amount_total numeric not null,
+  currency text not null default 'eur',
+  status text not null default 'paid',
+  created_at timestamptz not null default now()
 );
 
-insert into public.shop_settings (id) values (true) on conflict do nothing;
+alter table public.orders enable row level security;
 
-alter table public.shop_settings enable row level security;
+create policy "orders_select_own" on public.orders
+  for select using (auth.uid() = user_id);
 
-create policy "shop_settings_select_all" on public.shop_settings
-  for select using (true);
-
-create policy "shop_settings_write_admin" on public.shop_settings
-  for update using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
-  with check (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
+create policy "orders_select_admin" on public.orders
+  for select using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');

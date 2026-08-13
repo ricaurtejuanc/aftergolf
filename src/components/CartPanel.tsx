@@ -1,5 +1,9 @@
+import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { FREE_SHIPPING_THRESHOLD, useCart } from '../context/CartContext'
 import { formatPrice } from '../lib/format'
+import { createCheckoutSession } from '../lib/checkout'
+import { RegisterGate } from './RegisterGate'
 
 export function CartPanel({ className = '' }: { className?: string }) {
   const {
@@ -11,9 +15,32 @@ export function CartPanel({ className = '' }: { className?: string }) {
     totalPrice,
     shippingCost,
     orderTotal,
-    shippingTime,
     clear,
   } = useCart()
+  const { user } = useAuth()
+  const [showLogin, setShowLogin] = useState(false)
+  const [checkingOut, setCheckingOut] = useState(false)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (user) setShowLogin(false)
+  }, [user])
+
+  async function handleCheckout() {
+    if (!user) {
+      setShowLogin(true)
+      return
+    }
+    setCheckingOut(true)
+    setCheckoutError(null)
+    try {
+      const { url } = await createCheckoutSession(items)
+      window.location.href = url
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : 'No se pudo iniciar el pago')
+      setCheckingOut(false)
+    }
+  }
 
   return (
     <div className={className}>
@@ -40,6 +67,9 @@ export function CartPanel({ className = '' }: { className?: string }) {
                     {item.size && <>Talla {item.size} · </>}
                     {formatPrice(product.price)} c/u
                   </div>
+                  {product.shippingTime && (
+                    <div className="text-xs text-fairway-400">{product.shippingTime}</div>
+                  )}
                 </div>
                 <input
                   type="number"
@@ -75,26 +105,37 @@ export function CartPanel({ className = '' }: { className?: string }) {
                 Envío gratis en pedidos superiores a {formatPrice(FREE_SHIPPING_THRESHOLD)}.
               </p>
             )}
-            <p className="text-xs text-fairway-500">{shippingTime}</p>
             <div className="flex items-center justify-between pt-1 font-semibold text-fairway-900">
               <span>Total</span>
               <span>{formatPrice(orderTotal)}</span>
             </div>
           </div>
 
-          <button
-            disabled
-            title="El pago online todavía no está disponible."
-            className="w-full cursor-not-allowed rounded-lg bg-gold-400 px-4 py-2.5 text-sm font-semibold text-white opacity-70"
-          >
-            Finalizar pedido (próximamente)
-          </button>
-          <button
-            onClick={clear}
-            className="w-full rounded-lg border border-cream-300 px-4 py-2 text-xs text-fairway-500 transition hover:text-red-500"
-          >
-            Vaciar carrito
-          </button>
+          {showLogin ? (
+            <div className="space-y-2">
+              <p className="text-xs text-fairway-600">
+                Inicia sesión para continuar con tu pedido.
+              </p>
+              <RegisterGate onCancel={() => setShowLogin(false)} />
+            </div>
+          ) : (
+            <>
+              {checkoutError && <p className="text-xs text-red-500">{checkoutError}</p>}
+              <button
+                onClick={handleCheckout}
+                disabled={checkingOut}
+                className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {checkingOut ? 'Redirigiendo al pago...' : 'Finalizar pedido'}
+              </button>
+              <button
+                onClick={clear}
+                className="w-full rounded-lg border border-cream-300 px-4 py-2 text-xs text-fairway-500 transition hover:text-red-500"
+              >
+                Vaciar carrito
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -31,8 +31,7 @@ function App() {
         </main>
 
         <footer className="mx-auto max-w-5xl px-6 py-8 text-center text-xs text-fairway-500">
-          Cálculos basados en el World Handicap System (WHS) / RFEG. Todos los
-          datos se guardan solo en tu navegador. ·{' '}
+          Cálculos basados en el World Handicap System (WHS) / RFEG. ·{' '}
           <Link to="/contacto" className="underline-offset-2 hover:underline">
             Contacto
           </Link>

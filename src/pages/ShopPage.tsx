@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { Product } from '../data/products'
+import { useSearchParams } from 'react-router-dom'
+import { DEFAULT_SHIPPING_TIME, type Product } from '../data/products'
 import { loadProducts } from '../lib/productStore'
 import { useCart } from '../context/CartContext'
 import { CartPanel } from '../components/CartPanel'
@@ -194,7 +195,6 @@ function ProductDetailModal({
 }) {
   const [size, setSize] = useState('')
   const [colorIdx, setColorIdx] = useState(0)
-  const { shippingTime } = useCart()
 
   const hasColors = Boolean(product.colors?.length)
   const activeColor = hasColors ? product.colors![colorIdx] : undefined
@@ -319,7 +319,9 @@ function ProductDetailModal({
           </button>
         </div>
 
-        <p className="mt-3 text-xs text-fairway-500">{shippingTime}</p>
+        <p className="mt-3 text-xs text-fairway-500">
+          {product.shippingTime || DEFAULT_SHIPPING_TIME}
+        </p>
       </div>
     </div>
   )
@@ -339,11 +341,12 @@ export function ShopPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [openProductId, setOpenProductId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
 
   useEffect(() => {
     loadProducts().then(setProducts)
   }, [])
-  const { addItem } = useCart()
+  const { addItem, clear } = useCart()
   const openProduct = products.find((p) => p.id === openProductId) ?? null
 
   useEffect(() => {
@@ -351,6 +354,19 @@ export function ShopPage() {
     const timer = setTimeout(() => setToast(null), 2500)
     return () => clearTimeout(timer)
   }, [toast])
+
+  const checkoutStatus = searchParams.get('checkout')
+
+  useEffect(() => {
+    if (checkoutStatus === 'success') {
+      clear()
+      setToast('¡Pago recibido! Gracias por tu pedido.')
+      setSearchParams({}, { replace: true })
+    } else if (checkoutStatus === 'cancelled') {
+      setToast('Pago cancelado. Tu carrito sigue guardado.')
+      setSearchParams({}, { replace: true })
+    }
+  }, [checkoutStatus, clear, setSearchParams])
 
   function handleAdd(productId: string, size?: string, color?: string) {
     addItem(productId, size, color)
@@ -365,12 +381,6 @@ export function ShopPage() {
         <p className="mt-1 text-sm text-fairway-600">
           Aquí puedes ver el catálogo de merchandising de AfterGolf.
         </p>
-      </div>
-
-      <div className="rounded-xl border border-gold-400 bg-gold-400/10 p-4 text-sm text-fairway-800">
-        <span className="font-semibold">En breve podrás realizar tus pedidos.</span>{' '}
-        Estamos terminando de configurar el pago online — mientras tanto puedes
-        explorar el catálogo y guardar productos en el carrito.
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">

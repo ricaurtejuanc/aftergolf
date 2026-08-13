@@ -1,4 +1,4 @@
-import type { Product } from '../data/products'
+import { DEFAULT_SHIPPING_TIME, type Product } from '../data/products'
 import { localImagesFor } from '../data/productImages'
 import type { PrintfulProductDetail } from './printful'
 import { supabase } from './supabaseClient'
@@ -14,6 +14,7 @@ interface ProductRow {
   specs: string[] | null
   sizes: string[] | null
   colors: Product['colors'] | null
+  shipping_time: string | null
 }
 
 function fromRow(row: ProductRow): Product {
@@ -30,6 +31,7 @@ function fromRow(row: ProductRow): Product {
     specs: row.specs ?? undefined,
     sizes: row.sizes ?? undefined,
     colors: row.colors ?? undefined,
+    shippingTime: row.shipping_time ?? undefined,
   }
 }
 
@@ -73,6 +75,7 @@ export async function addProduct(input: Omit<Product, 'id'>): Promise<Product[]>
     placeholder_emoji: input.placeholderEmoji ?? null,
     specs: input.specs ?? null,
     sizes: input.sizes ?? null,
+    shipping_time: input.shippingTime || null,
     position: count ?? 0,
   })
   if (error) throw error
@@ -90,6 +93,7 @@ export async function updateProduct(id: string, patch: Omit<Product, 'id'>): Pro
       placeholder_emoji: patch.placeholderEmoji ?? null,
       specs: patch.specs ?? null,
       sizes: patch.sizes ?? null,
+      shipping_time: patch.shippingTime || null,
     })
     .eq('id', id)
   if (error) throw error
@@ -110,6 +114,9 @@ export async function importPrintfulProduct(detail: PrintfulProductDetail): Prom
     .maybeSingle()
 
   if (existing) {
+    // Deliberately excludes description and shipping_time — those are
+    // editorial fields the admin may have customized, and re-importing
+    // shouldn't clobber them.
     const { error } = await supabase
       .from('products')
       .update({
@@ -133,6 +140,7 @@ export async function importPrintfulProduct(detail: PrintfulProductDetail): Prom
       sizes: detail.sizes.length ? detail.sizes : null,
       images: detail.images.length ? detail.images : null,
       colors: detail.colors && detail.colors.length ? detail.colors : null,
+      shipping_time: DEFAULT_SHIPPING_TIME,
       printful_id: detail.printfulId,
       position: count ?? 0,
     })
