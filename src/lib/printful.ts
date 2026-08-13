@@ -8,6 +8,8 @@ export interface PrintfulListItem {
 
 export interface PrintfulProductColor {
   name: string
+  /** Hex swatch color from Printful's catalog, when available. */
+  code?: string | null
   images: string[]
   sizes: string[]
 }

@@ -279,7 +279,7 @@ function ProductDetailModal({
                   className={`h-7 w-7 rounded-md border-2 transition ${
                     idx === colorIdx ? 'border-fairway-600' : 'border-cream-300 hover:border-fairway-400'
                   }`}
-                  style={{ backgroundColor: colorNameToHex(c.name) }}
+                  style={{ backgroundColor: c.code || colorNameToHex(c.name) }}
                 />
               ))}
             </div>
@@ -325,15 +325,38 @@ function ProductDetailModal({
   )
 }
 
+function AddedToast({ message }: { message: string }) {
+  return (
+    <div className="fixed inset-x-0 bottom-20 z-50 flex justify-center px-4 md:bottom-6">
+      <div className="rounded-lg bg-fairway-800 px-4 py-2.5 text-sm font-medium text-white shadow-lg">
+        {message}
+      </div>
+    </div>
+  )
+}
+
 export function ShopPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [openProductId, setOpenProductId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
     loadProducts().then(setProducts)
   }, [])
   const { addItem } = useCart()
   const openProduct = products.find((p) => p.id === openProductId) ?? null
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(null), 2500)
+    return () => clearTimeout(timer)
+  }, [toast])
+
+  function handleAdd(productId: string, size?: string, color?: string) {
+    addItem(productId, size, color)
+    setOpenProductId(null)
+    setToast('Producto añadido al carrito correctamente')
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -368,9 +391,11 @@ export function ShopPage() {
         <ProductDetailModal
           product={openProduct}
           onClose={() => setOpenProductId(null)}
-          onAdd={(size, color) => addItem(openProduct.id, size, color)}
+          onAdd={(size, color) => handleAdd(openProduct.id, size, color)}
         />
       )}
+
+      {toast && <AddedToast message={toast} />}
     </div>
   )
 }
