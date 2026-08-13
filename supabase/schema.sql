@@ -132,13 +132,17 @@ create policy "products_write_admin" on public.products
   for all using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
   with check (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
 
--- Orders paid through Stripe Checkout. Rows are written only by the
--- stripe-webhook edge function using the service-role key (bypasses RLS) —
--- there is no insert/update policy for regular clients by design.
+-- Orders. Rows are written only by edge functions using the service-role
+-- key (bypasses RLS) — there is no insert/update policy for regular
+-- clients by design. payment_method is 'bizum' (status starts 'pending'
+-- until the admin confirms receipt via confirm-bizum-order) or the now-
+-- unused legacy 'stripe' path (status was always 'paid', written by the
+-- since-removed stripe-webhook function).
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users (id) on delete set null,
-  stripe_session_id text not null unique,
+  stripe_session_id text unique,
+  payment_method text not null default 'stripe',
   customer_email text not null,
   shipping_address jsonb,
   items jsonb not null,

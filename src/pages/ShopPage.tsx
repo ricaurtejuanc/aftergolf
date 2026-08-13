@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { DEFAULT_SHIPPING_TIME, type Product } from '../data/products'
 import { loadProducts } from '../lib/productStore'
 import { useCart } from '../context/CartContext'
 import { CartPanel } from '../components/CartPanel'
 import { formatPrice } from '../lib/format'
 import { colorNameToHex } from '../lib/colorSwatches'
-import { CHECKOUT_RELOADED_KEY } from '../lib/checkout'
 
 function ProductLightbox({
   alt,
@@ -338,24 +336,15 @@ function AddedToast({ message }: { message: string }) {
   )
 }
 
-const ORDER_CONFIRMED_KEY = 'aftergolf.orderConfirmed'
-
 export function ShopPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [openProductId, setOpenProductId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [searchParams, setSearchParams] = useSearchParams()
-  // Backed by sessionStorage (not just the URL param) so the confirmation
-  // survives even if the very first paint after the Stripe redirect is
-  // slow/blank — a reload still shows it instead of losing it silently.
-  const [orderConfirmed, setOrderConfirmed] = useState(
-    () => sessionStorage.getItem(ORDER_CONFIRMED_KEY) === '1',
-  )
 
   useEffect(() => {
     loadProducts().then(setProducts)
   }, [])
-  const { addItem, clear } = useCart()
+  const { addItem } = useCart()
   const openProduct = products.find((p) => p.id === openProductId) ?? null
 
   useEffect(() => {
@@ -363,36 +352,6 @@ export function ShopPage() {
     const timer = setTimeout(() => setToast(null), 4000)
     return () => clearTimeout(timer)
   }, [toast])
-
-  const checkoutStatus = searchParams.get('checkout')
-
-  useEffect(() => {
-    if (checkoutStatus !== 'success' && checkoutStatus !== 'cancelled') return
-
-    if (checkoutStatus === 'success') {
-      clear()
-      sessionStorage.setItem(ORDER_CONFIRMED_KEY, '1')
-      setOrderConfirmed(true)
-    } else {
-      setToast('Pago cancelado. Tu carrito sigue guardado.')
-    }
-    setSearchParams({}, { replace: true })
-
-    // The very first paint right after Stripe's redirect can come back
-    // blank on some mobile browsers (a known cross-site-redirect hiccup,
-    // seen on iOS Safari) — a real reload always fixes it, so force one
-    // automatically instead of relying on the customer to notice and do
-    // it themselves. Guarded to run at most once per visit.
-    if (!sessionStorage.getItem(CHECKOUT_RELOADED_KEY)) {
-      sessionStorage.setItem(CHECKOUT_RELOADED_KEY, '1')
-      window.location.reload()
-    }
-  }, [checkoutStatus, clear, setSearchParams])
-
-  function dismissOrderConfirmed() {
-    sessionStorage.removeItem(ORDER_CONFIRMED_KEY)
-    setOrderConfirmed(false)
-  }
 
   function handleAdd(productId: string, size?: string, color?: string) {
     addItem(productId, size, color)
@@ -408,22 +367,6 @@ export function ShopPage() {
           Aquí puedes ver el catálogo de merchandising de AfterGolf.
         </p>
       </div>
-
-      {orderConfirmed && (
-        <div className="flex items-start justify-between gap-3 rounded-xl border border-fairway-400 bg-fairway-50 p-4 text-sm text-fairway-800">
-          <div>
-            <span className="font-semibold">¡Pago completado correctamente!</span> Te hemos
-            enviado un correo con los detalles de tu pedido.
-          </div>
-          <button
-            onClick={dismissOrderConfirmed}
-            aria-label="Cerrar"
-            className="shrink-0 text-fairway-500 transition hover:text-fairway-800"
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="grid gap-4 sm:grid-cols-2">

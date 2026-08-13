@@ -9,6 +9,7 @@ import { ShopPage } from './pages/ShopPage'
 import { AdminPage } from './pages/AdminPage'
 import { FederatedHandicapPage } from './pages/FederatedHandicapPage'
 import { ContactPage } from './pages/ContactPage'
+import { TermsPage } from './pages/TermsPage'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/handicap-federado" element={<FederatedHandicapPage />} />
             <Route path="/contacto" element={<ContactPage />} />
+            <Route path="/terminos" element={<TermsPage />} />
           </Routes>
         </main>
 
@@ -34,6 +36,10 @@ function App() {
           Cálculos basados en el World Handicap System (WHS) / RFEG. ·{' '}
           <Link to="/contacto" className="underline-offset-2 hover:underline">
             Contacto
+          </Link>{' '}
+          ·{' '}
+          <Link to="/terminos" className="underline-offset-2 hover:underline">
+            Términos y condiciones
           </Link>
         </footer>
       </div>
