@@ -21,9 +21,9 @@ export function TermsPage() {
 
       <Section title="1. Identificación">
         <p>
-          AfterGolf (aftergolf.es) es un proyecto operado por un golfista apasionado,
-          actuando como persona física. Para cualquier consulta puedes escribir a
-          info@aftergolf.es.
+          AfterGolf (aftergolf.es) es un proyecto operado por Juan Carlos Ricaurte, con
+          NIF 03186893J, actuando como persona física. Para cualquier consulta puedes
+          escribir a info@aftergolf.es.
         </p>
       </Section>
 
