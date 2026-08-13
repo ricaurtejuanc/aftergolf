@@ -123,6 +123,16 @@ Deno.serve(async (req) => {
 
   try {
     if (action === 'list') {
+      // Temporary: log which Printful store this API key is scoped to, to
+      // rule out a mismatch with the store the admin is viewing in the
+      // Printful dashboard when draft orders don't show up there.
+      try {
+        const store = await printfulFetch('/store')
+        console.log('Printful store for this API key', JSON.stringify(store))
+      } catch (err) {
+        console.error('Printful /store lookup failed', err)
+      }
+
       const result = (await printfulFetch('/store/products')) as {
         id: number
         name: string

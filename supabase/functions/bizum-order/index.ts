@@ -136,6 +136,9 @@ async function createPrintfulDraftOrder(params: {
       console.error('Printful draft order creation failed', data)
       return null
     }
+    // Temporary: log the full response while diagnosing why drafts don't
+    // show up in the dashboard (e.g. wrong store, unexpected status).
+    console.log('Printful draft order created', JSON.stringify(data))
     return data.result?.id != null ? String(data.result.id) : null
   } catch (err) {
     console.error('Printful draft order creation error', err)
