@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { CLOTHING_SIZES, type Product } from '../data/products'
-import { addProduct, deleteProduct, loadProducts, reorderProduct, updateProduct } from '../lib/productStore'
+import {
+  addProduct,
+  deleteProduct,
+  importPrintfulProduct,
+  loadProducts,
+  reorderProduct,
+  updateProduct,
+} from '../lib/productStore'
+import { getPrintfulProduct, listPrintfulProducts, type PrintfulListItem } from '../lib/printful'
 
 interface ProductDraft {
   name: string
@@ -126,9 +134,10 @@ function ProductForm({
       </div>
 
       <div className="rounded-lg border border-gold-400 bg-gold-400/10 p-3 text-xs text-fairway-700">
-        Esto se guarda de verdad y ya lo ven tus clientes en la Shop. Lo único
-        que no puedes hacer aquí todavía es subir fotos (se muestra con un
-        emoji) — para eso, pásame las imágenes por chat.
+        Esto se guarda de verdad y ya lo ven tus clientes en la Shop. Si el
+        producto ya existe en tu tienda de Printful, mejor usa "Importar
+        desde Printful" para traer las fotos automáticamente — desde aquí, sin
+        fotos, se muestra con un emoji.
       </div>
 
       <div className="flex gap-2">
@@ -149,10 +158,91 @@ function ProductForm({
   )
 }
 
+function PrintfulImportPanel({
+  onImported,
+  onClose,
+}: {
+  onImported: (products: Product[]) => void
+  onClose: () => void
+}) {
+  const [items, setItems] = useState<PrintfulListItem[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [importingId, setImportingId] = useState<number | null>(null)
+
+  useEffect(() => {
+    listPrintfulProducts()
+      .then(setItems)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Error al listar productos'))
+  }, [])
+
+  async function handleImport(id: number) {
+    setImportingId(id)
+    setError(null)
+    try {
+      const detail = await getPrintfulProduct(id)
+      onImported(await importPrintfulProduct(detail))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo importar el producto')
+    } finally {
+      setImportingId(null)
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-fairway-400 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-fairway-900">Importar desde Printful</h3>
+        <button
+          onClick={onClose}
+          className="text-xs text-fairway-500 underline-offset-2 hover:underline"
+        >
+          Cerrar
+        </button>
+      </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {items === null && !error ? (
+        <p className="text-sm text-fairway-500">Cargando catálogo de Printful...</p>
+      ) : items && items.length === 0 ? (
+        <p className="text-sm text-fairway-500">No hay productos en tu tienda de Printful.</p>
+      ) : (
+        <div className="space-y-2">
+          {items?.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center justify-between gap-3 rounded-lg border border-cream-300 p-2"
+            >
+              <div className="flex items-center gap-2">
+                {item.thumbnail && (
+                  <img
+                    src={item.thumbnail}
+                    alt=""
+                    className="h-10 w-10 rounded object-cover"
+                  />
+                )}
+                <span className="text-sm text-fairway-900">{item.name}</span>
+              </div>
+              <button
+                onClick={() => handleImport(item.id)}
+                disabled={importingId === item.id}
+                className="shrink-0 rounded-md bg-fairway-700 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
+              >
+                {importingId === item.id ? 'Importando...' : 'Importar'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
+  const [importingFromPrintful, setImportingFromPrintful] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -172,12 +262,27 @@ export function ProductsAdminPage() {
         </p>
       </div>
 
-      <button
-        onClick={() => setAdding((v) => !v)}
-        className="rounded-lg bg-fairway-700 px-3 py-2 text-sm font-medium text-white transition hover:bg-fairway-800"
-      >
-        {adding ? 'Cancelar' : '+ Añadir producto'}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setAdding((v) => !v)}
+          className="rounded-lg bg-fairway-700 px-3 py-2 text-sm font-medium text-white transition hover:bg-fairway-800"
+        >
+          {adding ? 'Cancelar' : '+ Añadir producto'}
+        </button>
+        <button
+          onClick={() => setImportingFromPrintful((v) => !v)}
+          className="rounded-lg border border-fairway-400 px-3 py-2 text-sm font-medium text-fairway-800 transition hover:border-fairway-600"
+        >
+          {importingFromPrintful ? 'Cancelar' : 'Importar desde Printful'}
+        </button>
+      </div>
+
+      {importingFromPrintful && (
+        <PrintfulImportPanel
+          onImported={setProducts}
+          onClose={() => setImportingFromPrintful(false)}
+        />
+      )}
 
       {adding && (
         <ProductForm
