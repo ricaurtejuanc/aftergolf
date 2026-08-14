@@ -32,13 +32,15 @@ function callerEmail(req: Request): string | null {
 }
 
 async function golfApiFetch(path: string) {
-  // GolfCourseAPI uses a non-standard "Key" auth scheme (not "Bearer").
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { Authorization: `Key ${GOLF_COURSE_API_KEY}` },
+    headers: { Authorization: `Bearer ${GOLF_COURSE_API_KEY}` },
   })
   const data = await res.json()
+  // Temporary: log the raw upstream response while diagnosing why searches
+  // come back empty for real Spanish courses.
+  console.log(`GolfCourseAPI ${path} -> ${res.status}`, JSON.stringify(data))
   if (!res.ok) {
-    throw new Error(data?.message ?? `GolfCourseAPI respondió ${res.status}`)
+    throw new Error(data?.error ?? `GolfCourseAPI respondió ${res.status}`)
   }
   return data
 }
@@ -107,7 +109,7 @@ Deno.serve(async (req) => {
       if (!q?.trim()) return jsonResponse({ error: 'Falta el texto de búsqueda' }, 400)
 
       const data = (await golfApiFetch(`/v1/search?search_query=${encodeURIComponent(q)}`)) as {
-        courses?: { id: number; course_name?: string; club_name?: string; location?: { address?: string } }[]
+        courses?: { id: string; course_name?: string; club_name?: string; location?: { address?: string } }[]
       }
       return jsonResponse({
         courses: (data.courses ?? []).map((c) => ({

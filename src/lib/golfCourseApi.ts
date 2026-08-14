@@ -2,7 +2,7 @@ import type { CourseTee } from '../data/courses'
 import { SUPABASE_URL, supabase } from './supabaseClient'
 
 export interface GolfCourseApiSearchResult {
-  id: number
+  id: string
   name: string
   club: string | null
   address: string | null
@@ -35,6 +35,6 @@ export async function searchGolfCourses(query: string): Promise<GolfCourseApiSea
   return data.courses
 }
 
-export async function getGolfCourse(id: number): Promise<GolfCourseApiDetail> {
-  return callFunction<GolfCourseApiDetail>(`action=get&id=${id}`)
+export async function getGolfCourse(id: string): Promise<GolfCourseApiDetail> {
+  return callFunction<GolfCourseApiDetail>(`action=get&id=${encodeURIComponent(id)}`)
 }
