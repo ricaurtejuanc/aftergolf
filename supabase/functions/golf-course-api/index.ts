@@ -1,5 +1,4 @@
 const GOLF_COURSE_API_KEY = Deno.env.get('GOLF_COURSE_API_KEY')
-const ADMIN_EMAIL = 'ricaurtejuanc@gmail.com'
 const API_BASE = 'https://api.golfcourseapi.com'
 
 const corsHeaders = {
@@ -14,20 +13,20 @@ function jsonResponse(body: unknown, status = 200) {
   })
 }
 
-// Only the site admin may call this — decode the caller's Supabase JWT
-// (already verified by the platform since verify_jwt is on for this
-// function) and check the email claim rather than trusting anything client
-// side.
-function callerEmail(req: Request): string | null {
+// Any logged-in user may call this (read-only, no writes happen here) — the
+// platform already verifies the JWT since verify_jwt is on for this
+// function, so we only need to confirm one was actually presented rather
+// than checking a specific identity.
+function isLoggedIn(req: Request): boolean {
   const auth = req.headers.get('Authorization') ?? ''
   const token = auth.replace(/^Bearer\s+/i, '')
   const payloadSegment = token.split('.')[1]
-  if (!payloadSegment) return null
+  if (!payloadSegment) return false
   try {
     const payload = JSON.parse(atob(payloadSegment.replace(/-/g, '+').replace(/_/g, '/')))
-    return typeof payload.email === 'string' ? payload.email : null
+    return typeof payload.sub === 'string'
   } catch {
-    return null
+    return false
   }
 }
 
@@ -36,9 +35,6 @@ async function golfApiFetch(path: string) {
     headers: { Authorization: `Bearer ${GOLF_COURSE_API_KEY}` },
   })
   const data = await res.json()
-  // Temporary: log the raw upstream response while diagnosing why searches
-  // come back empty for real Spanish courses.
-  console.log(`GolfCourseAPI ${path} -> ${res.status}`, JSON.stringify(data))
   if (!res.ok) {
     throw new Error(data?.error ?? `GolfCourseAPI respondió ${res.status}`)
   }
@@ -96,8 +92,8 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'GolfCourseAPI no está configurado' }, 500)
   }
 
-  if (callerEmail(req) !== ADMIN_EMAIL) {
-    return jsonResponse({ error: 'No autorizado' }, 403)
+  if (!isLoggedIn(req)) {
+    return jsonResponse({ error: 'No autorizado' }, 401)
   }
 
   const url = new URL(req.url)
