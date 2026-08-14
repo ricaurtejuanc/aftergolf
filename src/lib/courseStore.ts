@@ -1,4 +1,5 @@
 import type { CourseTee, GolfCourse } from '../data/courses'
+import type { GolfCourseApiDetail } from './golfCourseApi'
 import { supabase } from './supabaseClient'
 
 interface CourseRow {
@@ -70,6 +71,31 @@ export async function addCourse(input: { name: string; location: string }): Prom
     .from('courses')
     .insert({ id, name: input.name, location: input.location })
   if (error) throw error
+  return loadCourses()
+}
+
+export async function importGolfCourse(detail: GolfCourseApiDetail): Promise<GolfCourse[]> {
+  const id = await uniqueCourseId(detail.name)
+  const { error: courseError } = await supabase
+    .from('courses')
+    .insert({ id, name: detail.name, location: detail.location })
+  if (courseError) throw courseError
+
+  if (detail.tees.length > 0) {
+    const { error: teesError } = await supabase.from('tees').insert(
+      detail.tees.map((tee, position) => ({
+        course_id: id,
+        color: tee.color,
+        gender: tee.gender,
+        cr: tee.cr,
+        slope: tee.slope,
+        par: tee.par,
+        position,
+      })),
+    )
+    if (teesError) throw teesError
+  }
+
   return loadCourses()
 }
 
