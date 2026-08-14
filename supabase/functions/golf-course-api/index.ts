@@ -37,6 +37,10 @@ async function golfApiFetch(path: string) {
     headers: { Authorization: `Key ${GOLF_COURSE_API_KEY}` },
   })
   const data = await res.json()
+  // Temporary: log the raw upstream response while diagnosing why searches
+  // come back empty — the exact response shape wasn't verified against
+  // official docs (network access to them was blocked in the build session).
+  console.log(`GolfCourseAPI ${path} -> ${res.status}`, JSON.stringify(data))
   if (!res.ok) {
     throw new Error(data?.message ?? `GolfCourseAPI respondió ${res.status}`)
   }
