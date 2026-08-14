@@ -299,7 +299,7 @@ function GolfCourseApiImportPanel({
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GolfCourseApiSearchResult[] | null>(null)
   const [searching, setSearching] = useState(false)
-  const [importingId, setImportingId] = useState<number | null>(null)
+  const [importingId, setImportingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSearch() {
@@ -315,7 +315,7 @@ function GolfCourseApiImportPanel({
     }
   }
 
-  async function handleImport(id: number) {
+  async function handleImport(id: string) {
     setImportingId(id)
     setError(null)
     try {
