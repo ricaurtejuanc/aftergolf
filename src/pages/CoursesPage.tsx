@@ -6,10 +6,16 @@ import {
   addTee,
   deleteCourse,
   deleteTee,
+  importGolfCourse,
   loadCourses,
   updateCourse,
   updateTee,
 } from '../lib/courseStore'
+import {
+  getGolfCourse,
+  searchGolfCourses,
+  type GolfCourseApiSearchResult,
+} from '../lib/golfCourseApi'
 
 const TEE_COLORS: TeeColor[] = ['blanco', 'amarillo', 'azul', 'rojo', 'negro', 'naranja']
 const TEE_GENDERS: TeeGender[] = ['hombres', 'mujeres', 'mixto']
@@ -283,11 +289,119 @@ function CourseRow({
   )
 }
 
+function GolfCourseApiImportPanel({
+  onImported,
+  onClose,
+}: {
+  onImported: (courses: GolfCourse[]) => void
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<GolfCourseApiSearchResult[] | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [importingId, setImportingId] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSearch() {
+    if (!query.trim()) return
+    setSearching(true)
+    setError(null)
+    try {
+      setResults(await searchGolfCourses(query.trim()))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al buscar campos')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  async function handleImport(id: number) {
+    setImportingId(id)
+    setError(null)
+    try {
+      const detail = await getGolfCourse(id)
+      onImported(await importGolfCourse(detail))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo importar el campo')
+    } finally {
+      setImportingId(null)
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-fairway-400 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-fairway-900">Importar desde GolfCourseAPI</h3>
+        <button
+          onClick={onClose}
+          className="text-xs text-fairway-500 underline-offset-2 hover:underline"
+        >
+          Cerrar
+        </button>
+      </div>
+
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Nombre del campo..."
+          className="flex-1 rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
+        />
+        <button
+          onClick={handleSearch}
+          disabled={searching || !query.trim()}
+          className="shrink-0 rounded-lg bg-fairway-700 px-3 py-2 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
+        >
+          {searching ? 'Buscando...' : 'Buscar'}
+        </button>
+      </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {results && (
+        <div className="space-y-2">
+          {results.length === 0 ? (
+            <p className="text-sm text-fairway-500">Sin resultados.</p>
+          ) : (
+            results.map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-cream-300 p-2"
+              >
+                <div>
+                  <div className="text-sm text-fairway-900">{r.name}</div>
+                  {r.address && <div className="text-xs text-fairway-500">{r.address}</div>}
+                </div>
+                <button
+                  onClick={() => handleImport(r.id)}
+                  disabled={importingId === r.id}
+                  className="shrink-0 rounded-md bg-fairway-700 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
+                >
+                  {importingId === r.id ? 'Importando...' : 'Importar'}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      <p className="text-xs text-fairway-500">
+        Trae el nombre, la ubicación y los tees (color aproximado, CR, Slope y Par) del campo.
+        Revisa el color de cada tee después de importar — se adivina a partir del nombre en
+        inglés y puede no ser exacto.
+      </p>
+    </div>
+  )
+}
+
 export function CoursesPage() {
   const [courses, setCourses] = useState<GolfCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [addingCourse, setAddingCourse] = useState(false)
+  const [importingFromApi, setImportingFromApi] = useState(false)
   const [newName, setNewName] = useState('')
   const [newLocation, setNewLocation] = useState('')
 
@@ -337,7 +451,20 @@ export function CoursesPage() {
         >
           {addingCourse ? 'Cancelar' : '+ Añadir campo'}
         </button>
+        <button
+          onClick={() => setImportingFromApi((v) => !v)}
+          className="shrink-0 rounded-lg border border-fairway-400 px-3 py-2 text-sm font-medium text-fairway-800 transition hover:border-fairway-600"
+        >
+          {importingFromApi ? 'Cancelar' : 'Importar desde GolfCourseAPI'}
+        </button>
       </div>
+
+      {importingFromApi && (
+        <GolfCourseApiImportPanel
+          onImported={setCourses}
+          onClose={() => setImportingFromApi(false)}
+        />
+      )}
 
       {addingCourse && (
         <div className="space-y-3 rounded-xl border border-fairway-400 bg-white p-4 shadow-sm">
