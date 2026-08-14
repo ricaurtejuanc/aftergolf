@@ -142,6 +142,7 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
   const [courses, setCourses] = useState<GolfCourse[]>([])
   const [apiCourse, setApiCourse] = useState<GolfCourse | null>(null)
   const [showApiSearch, setShowApiSearch] = useState(false)
+  const [teeExpanded, setTeeExpanded] = useState(true)
 
   useEffect(() => {
     loadCourses().then(setCourses)
@@ -160,6 +161,12 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
   // locally — the round is saved with copied values either way, so it
   // doesn't need to live in the local courses table.
   const course = courses.find((c) => c.id === courseId) ?? (apiCourse?.id === courseId ? apiCourse : undefined)
+
+  // Re-expand the tee picker whenever a different course is chosen, so
+  // there's always a chance to review/pick a tee for it.
+  useEffect(() => {
+    setTeeExpanded(true)
+  }, [course?.id])
 
   if (!course) {
     return (
@@ -240,31 +247,59 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-fairway-800 mb-1">
-          Tee de salida
-        </label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {course.tees.map((t, idx) => (
+        <div className="mb-1 flex items-center justify-between">
+          <label className="block text-sm font-medium text-fairway-800">Tee de salida</label>
+          {!teeExpanded && (
             <button
-              key={idx}
               type="button"
-              onClick={() => onChange(course.id, idx, t, course.name, course.location)}
-              className={`rounded-lg border p-2.5 text-left text-xs transition ${
-                idx === teeIndex
-                  ? 'border-fairway-700 bg-fairway-800 text-cream-50'
-                  : 'border-cream-300 bg-white text-fairway-800 hover:border-fairway-400'
-              }`}
+              onClick={() => setTeeExpanded(true)}
+              className="text-xs text-fairway-600 underline-offset-2 hover:underline"
             >
-              <div className="flex items-center gap-1.5 font-medium">
-                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TEE_DOT[t.color]}`} />
-                {TEE_LABEL[t.color]}
-              </div>
-              <div className={idx === teeIndex ? 'mt-1 text-cream-100' : 'mt-1 text-fairway-500'}>
-                CR {t.cr} · Slope {t.slope} · Par {t.par}
-              </div>
+              Cambiar tee
             </button>
-          ))}
+          )}
         </div>
+
+        {teeExpanded ? (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {course.tees.map((t, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  onChange(course.id, idx, t, course.name, course.location)
+                  setTeeExpanded(false)
+                }}
+                className={`rounded-lg border p-2.5 text-left text-xs transition ${
+                  idx === teeIndex
+                    ? 'border-fairway-700 bg-fairway-800 text-cream-50'
+                    : 'border-cream-300 bg-white text-fairway-800 hover:border-fairway-400'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-medium">
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TEE_DOT[t.color]}`} />
+                  {TEE_LABEL[t.color]}
+                </div>
+                <div className={idx === teeIndex ? 'mt-1 text-cream-100' : 'mt-1 text-fairway-500'}>
+                  CR {t.cr} · Slope {t.slope} · Par {t.par}
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          course.tees[teeIndex] && (
+            <div className="flex items-center gap-2 rounded-lg border border-fairway-700 bg-fairway-800 p-2.5 text-xs text-cream-50">
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TEE_DOT[course.tees[teeIndex].color]}`} />
+              <div>
+                <div className="font-medium">{TEE_LABEL[course.tees[teeIndex].color]}</div>
+                <div className="mt-0.5 text-cream-100">
+                  CR {course.tees[teeIndex].cr} · Slope {course.tees[teeIndex].slope} · Par{' '}
+                  {course.tees[teeIndex].par}
+                </div>
+              </div>
+            </div>
+          )
+        )}
       </div>
     </div>
   )
