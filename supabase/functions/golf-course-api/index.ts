@@ -56,16 +56,28 @@ const COLOR_KEYWORDS: [string, string][] = [
   ['naranja', 'naranja'],
 ]
 
-// GolfCourseAPI gives a free-text tee name ("Championship", "Blue", ...)
-// instead of one of our fixed marker colors — guess from common English/
-// Spanish color words, defaulting to "blanco" when nothing matches (the
-// admin can fix it after import, same as the Printful color guesser).
+// GolfCourseAPI gives a free-text tee name ("Championship", "Blue",
+// "Blue/White Combo", ...) instead of one of our fixed marker colors —
+// guess from common English/Spanish color words. Picks whichever known
+// color word appears EARLIEST in the name rather than checking our lookup
+// table in a fixed order — otherwise "Blue/White Combo" always reads as
+// "blanco" just because "white" happens to be first in the table, even
+// though "blue" is the actual (and earlier) color in the name. Falls back
+// to "blanco" only when nothing recognizable is found (e.g. "Brown",
+// "Championship" — our fixed palette has no brown/gold-alternate option;
+// the admin can fix it after import, same as the Printful color guesser).
 function guessTeeColor(teeName: string): string {
   const lower = teeName.toLowerCase()
+  let bestIndex = Infinity
+  let bestColor: string | null = null
   for (const [keyword, color] of COLOR_KEYWORDS) {
-    if (lower.includes(keyword)) return color
+    const idx = lower.indexOf(keyword)
+    if (idx !== -1 && idx < bestIndex) {
+      bestIndex = idx
+      bestColor = color
+    }
   }
-  return 'blanco'
+  return bestColor ?? 'blanco'
 }
 
 interface ApiTee {

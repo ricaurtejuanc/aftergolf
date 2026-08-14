@@ -321,6 +321,8 @@ function GolfCourseApiImportPanel({
     try {
       const detail = await getGolfCourse(id)
       onImported(await importGolfCourse(detail))
+      setResults(null)
+      setQuery('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo importar el campo')
     } finally {
