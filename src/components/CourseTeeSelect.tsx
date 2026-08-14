@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CourseTee, GolfCourse } from '../data/courses'
 import { loadCourses } from '../lib/courseStore'
+import {
+  getGolfCourse,
+  searchGolfCourses,
+  type GolfCourseApiSearchResult,
+} from '../lib/golfCourseApi'
 
 const TEE_LABEL: Record<CourseTee['color'], string> = {
   blanco: 'Blanco',
@@ -20,6 +25,106 @@ const TEE_DOT: Record<CourseTee['color'], string> = {
   naranja: 'bg-orange-500',
 }
 
+function GolfCourseApiFallback({
+  onSelect,
+  onCancel,
+}: {
+  onSelect: (course: GolfCourse) => void
+  onCancel: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<GolfCourseApiSearchResult[] | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSearch() {
+    if (!query.trim()) return
+    setSearching(true)
+    setError(null)
+    try {
+      setResults(await searchGolfCourses(query.trim()))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al buscar en GolfCourseAPI')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  async function handlePick(id: string) {
+    setLoadingId(id)
+    setError(null)
+    try {
+      const detail = await getGolfCourse(id)
+      if (detail.tees.length === 0) {
+        setError('Ese campo no tiene datos de tees disponibles.')
+        return
+      }
+      onSelect({ id: `api:${id}`, name: detail.name, location: detail.location, tees: detail.tees })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cargar el campo')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  return (
+    <div className="mt-2 space-y-2 rounded-lg border border-cream-300 bg-cream-50 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-fairway-700">Buscar en GolfCourseAPI</span>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-xs text-fairway-500 underline-offset-2 hover:underline"
+        >
+          Cancelar
+        </button>
+      </div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Nombre del campo..."
+          className="flex-1 rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+        />
+        <button
+          type="button"
+          onClick={handleSearch}
+          disabled={searching || !query.trim()}
+          className="shrink-0 rounded-md bg-fairway-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
+        >
+          {searching ? 'Buscando...' : 'Buscar'}
+        </button>
+      </div>
+
+      {error && <p className="text-xs text-red-500">{error}</p>}
+
+      {results &&
+        (results.length === 0 ? (
+          <p className="text-xs text-fairway-500">Sin resultados.</p>
+        ) : (
+          <div className="space-y-1">
+            {results.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => handlePick(r.id)}
+                disabled={loadingId === r.id}
+                className="block w-full rounded-md px-3 py-2 text-left text-sm text-fairway-900 transition hover:bg-white disabled:opacity-60"
+              >
+                <span className="font-medium">{r.name}</span>
+                {r.address && <span className="text-fairway-500"> — {r.address}</span>}
+                {loadingId === r.id && <span className="text-fairway-500"> (cargando...)</span>}
+              </button>
+            ))}
+          </div>
+        ))}
+    </div>
+  )
+}
+
 interface Props {
   courseId: string
   teeIndex: number
@@ -35,6 +140,8 @@ interface Props {
 export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
   const [query, setQuery] = useState('')
   const [courses, setCourses] = useState<GolfCourse[]>([])
+  const [apiCourse, setApiCourse] = useState<GolfCourse | null>(null)
+  const [showApiSearch, setShowApiSearch] = useState(false)
 
   useEffect(() => {
     loadCourses().then(setCourses)
@@ -48,7 +155,11 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
     ).slice(0, 8)
   }, [query, courses])
 
-  const course = courses.find((c) => c.id === courseId)
+  // Local courses take priority; falls back to a course picked from
+  // GolfCourseAPI (identified by its "api:" id prefix) when not found
+  // locally — the round is saved with copied values either way, so it
+  // doesn't need to live in the local courses table.
+  const course = courses.find((c) => c.id === courseId) ?? (apiCourse?.id === courseId ? apiCourse : undefined)
 
   if (!course) {
     return (
@@ -81,6 +192,25 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
             ))}
           </div>
         )}
+
+        {showApiSearch ? (
+          <GolfCourseApiFallback
+            onCancel={() => setShowApiSearch(false)}
+            onSelect={(golfCourse) => {
+              setApiCourse(golfCourse)
+              setShowApiSearch(false)
+              onChange(golfCourse.id, 0, golfCourse.tees[0], golfCourse.name, golfCourse.location)
+            }}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowApiSearch(true)}
+            className="mt-2 text-xs text-fairway-600 underline-offset-2 hover:underline"
+          >
+            ¿No está en la lista? Buscar en GolfCourseAPI
+          </button>
+        )}
       </div>
     )
   }
@@ -98,7 +228,10 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
           </div>
           <button
             type="button"
-            onClick={() => onChange('', 0, null, '', '')}
+            onClick={() => {
+              setApiCourse(null)
+              onChange('', 0, null, '', '')
+            }}
             className="shrink-0 rounded-lg border border-cream-300 bg-white px-2.5 py-1 text-xs font-medium text-fairway-700 transition hover:border-fairway-400"
           >
             Cambiar
