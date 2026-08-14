@@ -35,9 +35,6 @@ async function golfApiFetch(path: string) {
     headers: { Authorization: `Bearer ${GOLF_COURSE_API_KEY}` },
   })
   const data = await res.json()
-  // Temporary: log the raw upstream response while diagnosing why searches
-  // come back empty for real Spanish courses.
-  console.log(`GolfCourseAPI ${path} -> ${res.status}`, JSON.stringify(data))
   if (!res.ok) {
     throw new Error(data?.error ?? `GolfCourseAPI respondió ${res.status}`)
   }
