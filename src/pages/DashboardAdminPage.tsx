@@ -43,7 +43,9 @@ interface OrderStats {
 export function DashboardAdminPage() {
   const [visits, setVisits] = useState<VisitStats | null>(null)
   const [visitsError, setVisitsError] = useState<string | null>(null)
-  const [pageCounts, setPageCounts] = useState<Record<string, number> | null>(null)
+  const [pageCounts, setPageCounts] = useState<Record<string, { today: number; total: number }> | null>(
+    null,
+  )
   const [orderStats, setOrderStats] = useState<OrderStats | null>(null)
   const [ordersError, setOrdersError] = useState<string | null>(null)
   const [users, setUsers] = useState<AdminUser[] | null>(null)
@@ -80,14 +82,22 @@ export function DashboardAdminPage() {
     }
 
     async function loadPageCounts() {
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
+
       const results = await Promise.all(
-        TRACKED_PAGES.map(({ path }) =>
+        TRACKED_PAGES.flatMap(({ path }) => [
           supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('path', path),
-        ),
+          supabase
+            .from('page_views')
+            .select('*', { count: 'exact', head: true })
+            .eq('path', path)
+            .gte('created_at', startOfToday.toISOString()),
+        ]),
       )
-      const counts: Record<string, number> = {}
+      const counts: Record<string, { today: number; total: number }> = {}
       TRACKED_PAGES.forEach(({ path }, i) => {
-        counts[path] = results[i].count ?? 0
+        counts[path] = { total: results[i * 2].count ?? 0, today: results[i * 2 + 1].count ?? 0 }
       })
       setPageCounts(counts)
     }
@@ -151,14 +161,16 @@ export function DashboardAdminPage() {
               <thead>
                 <tr className="border-b border-cream-200 text-xs uppercase tracking-wide text-fairway-500">
                   <th className="px-4 py-2 font-medium">Página</th>
-                  <th className="px-4 py-2 font-medium">Visitas totales</th>
+                  <th className="px-4 py-2 font-medium">Hoy</th>
+                  <th className="px-4 py-2 font-medium">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {TRACKED_PAGES.map(({ path, label }) => (
                   <tr key={path} className="border-b border-cream-100 last:border-0">
                     <td className="px-4 py-2 text-fairway-900">{label}</td>
-                    <td className="px-4 py-2 text-fairway-600">{pageCounts[path] ?? 0}</td>
+                    <td className="px-4 py-2 text-fairway-600">{pageCounts[path]?.today ?? 0}</td>
+                    <td className="px-4 py-2 text-fairway-600">{pageCounts[path]?.total ?? 0}</td>
                   </tr>
                 ))}
               </tbody>
