@@ -27,6 +27,12 @@ interface VisitStats {
   last7Days: number
 }
 
+const TRACKED_PAGES: { path: string; label: string }[] = [
+  { path: '/antes-de-jugar', label: 'Antes de jugar' },
+  { path: '/despues-de-jugar', label: 'Después de jugar' },
+  { path: '/handicap-federado', label: 'Handicap oficial' },
+]
+
 interface OrderStats {
   total: number
   pending: number
@@ -37,6 +43,7 @@ interface OrderStats {
 export function DashboardAdminPage() {
   const [visits, setVisits] = useState<VisitStats | null>(null)
   const [visitsError, setVisitsError] = useState<string | null>(null)
+  const [pageCounts, setPageCounts] = useState<Record<string, number> | null>(null)
   const [orderStats, setOrderStats] = useState<OrderStats | null>(null)
   const [ordersError, setOrdersError] = useState<string | null>(null)
   const [users, setUsers] = useState<AdminUser[] | null>(null)
@@ -72,6 +79,19 @@ export function DashboardAdminPage() {
       })
     }
 
+    async function loadPageCounts() {
+      const results = await Promise.all(
+        TRACKED_PAGES.map(({ path }) =>
+          supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('path', path),
+        ),
+      )
+      const counts: Record<string, number> = {}
+      TRACKED_PAGES.forEach(({ path }, i) => {
+        counts[path] = results[i].count ?? 0
+      })
+      setPageCounts(counts)
+    }
+
     async function loadOrders() {
       const { data, error } = await supabase.from('orders').select('amount_total, status')
       if (error) {
@@ -98,6 +118,7 @@ export function DashboardAdminPage() {
     }
 
     loadVisits()
+    loadPageCounts()
     loadOrders()
     loadUsers()
   }, [])
@@ -121,6 +142,27 @@ export function DashboardAdminPage() {
             <StatCard label="Hoy" value={String(visits.today)} />
             <StatCard label="Últimos 7 días" value={String(visits.last7Days)} />
             <StatCard label="Total" value={String(visits.total)} />
+          </div>
+        )}
+
+        {pageCounts && (
+          <div className="overflow-hidden rounded-xl border border-cream-300 bg-white shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-cream-200 text-xs uppercase tracking-wide text-fairway-500">
+                  <th className="px-4 py-2 font-medium">Página</th>
+                  <th className="px-4 py-2 font-medium">Visitas totales</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TRACKED_PAGES.map(({ path, label }) => (
+                  <tr key={path} className="border-b border-cream-100 last:border-0">
+                    <td className="px-4 py-2 text-fairway-900">{label}</td>
+                    <td className="px-4 py-2 text-fairway-600">{pageCounts[path] ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </Section>
