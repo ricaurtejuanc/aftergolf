@@ -123,10 +123,6 @@ create table if not exists public.products (
   -- Sync variant IDs from Printful, needed to place an order through their
   -- Orders API: [{ syncVariantId, size, color }]. Populated on import.
   printful_variants jsonb,
-  -- When true, photos are managed manually per color (front + back) from
-  -- the admin "Fotos" panel instead of Printful's single auto-imported
-  -- photo — Printful's Mockup Generator proved unreliable.
-  has_back_design boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -191,10 +187,10 @@ create policy "page_views_insert_anyone" on public.page_views
 create policy "page_views_select_admin" on public.page_views
   for select using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
 
--- Home for manually-uploaded product photos (front/back per color, see
--- has_back_design above) — the admin uploads these directly from the
--- browser, so this bucket needs both public read (product photos are
--- public) and admin-only write policies.
+-- Home for manually-uploaded product photo galleries (per color, or per
+-- product when it has no color variants) — the admin uploads these
+-- directly from the browser, so this bucket needs both public read
+-- (product photos are public) and admin-only write policies.
 insert into storage.buckets (id, name, public)
 values ('product-mockups', 'product-mockups', true)
 on conflict (id) do nothing;

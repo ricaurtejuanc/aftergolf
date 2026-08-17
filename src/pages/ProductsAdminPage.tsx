@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import { CLOTHING_SIZES, DEFAULT_SHIPPING_TIME, type Product } from '../data/products'
 import {
+  addColorPhoto,
   addProduct,
+  deleteColorPhoto,
   deleteProduct,
-  getColorPhotoUrl,
   importPrintfulProduct,
   loadProducts,
+  reorderColorPhoto,
   reorderProduct,
-  setMainColorPhoto,
   updateProduct,
-  uploadColorPhoto,
 } from '../lib/productStore'
 import { getPrintfulProduct, listPrintfulProducts, type PrintfulListItem } from '../lib/printful'
 
@@ -22,7 +22,6 @@ interface ProductDraft {
   sizesInput: string
   placeholderEmoji: string
   shippingTime: string
-  hasBackDesign: boolean
 }
 
 function toDraft(p?: Product): ProductDraft {
@@ -35,7 +34,6 @@ function toDraft(p?: Product): ProductDraft {
     sizesInput: (p?.sizes ?? CLOTHING_SIZES).join(', '),
     placeholderEmoji: p?.placeholderEmoji ?? '🏌️',
     shippingTime: p?.shippingTime ?? DEFAULT_SHIPPING_TIME,
-    hasBackDesign: p?.hasBackDesign ?? false,
   }
 }
 
@@ -56,7 +54,6 @@ function draftToProduct(draft: ProductDraft, existing?: Product): Omit<Product, 
     specs: existing?.specs,
     placeholderEmoji: draft.placeholderEmoji || undefined,
     shippingTime: draft.shippingTime.trim() || undefined,
-    hasBackDesign: draft.hasBackDesign,
   }
 }
 
@@ -153,22 +150,6 @@ function ProductForm({
           onChange={(e) => update('shippingTime', e.target.value)}
           className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
         />
-      </div>
-
-      <div>
-        <label className="flex items-center gap-2 text-xs font-medium text-fairway-700">
-          <input
-            type="checkbox"
-            checked={draft.hasBackDesign}
-            onChange={(e) => update('hasBackDesign', e.target.checked)}
-          />
-          Tiene diseño en la parte trasera
-        </label>
-        <p className="mt-1 text-xs text-fairway-500">
-          Si lo marcas, podrás subir una foto delantera y otra trasera por
-          color desde el botón "Fotos" del producto. Si no, se usa la foto
-          que trae Printful automáticamente.
-        </p>
       </div>
 
       <div className="rounded-lg border border-gold-400 bg-gold-400/10 p-3 text-xs text-fairway-700">
@@ -276,32 +257,16 @@ function PrintfulImportPanel({
   )
 }
 
-function PhotoSlot({
-  label,
-  current,
-  uploading,
-  onSelect,
-}: {
-  label: string
-  current?: string
-  uploading: boolean
-  onSelect: (file: File) => void
-}) {
+function AddPhotoButton({ busy, onSelect }: { busy: boolean; onSelect: (file: File) => void }) {
   return (
-    <label className="flex cursor-pointer flex-col items-center gap-1 text-center">
-      <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md border border-cream-300 bg-cream-50">
-        {current ? (
-          <img src={current} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span className="text-[10px] text-fairway-400">Sin foto</span>
-        )}
-      </div>
-      <span className="text-[10px] text-fairway-500">{uploading ? 'Subiendo...' : label}</span>
+    <label className="flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-md border-2 border-dashed border-cream-300 text-center text-fairway-500 transition hover:border-fairway-400 hover:text-fairway-700">
+      <span className="text-lg leading-none">{busy ? '…' : '+'}</span>
+      <span className="text-[9px] leading-tight">{busy ? 'Subiendo' : 'Añadir'}</span>
       <input
         type="file"
         accept="image/*"
         className="hidden"
-        disabled={uploading}
+        disabled={busy}
         onChange={(e) => {
           const file = e.target.files?.[0]
           if (file) onSelect(file)
@@ -309,6 +274,73 @@ function PhotoSlot({
         }}
       />
     </label>
+  )
+}
+
+function PhotoThumb({
+  url,
+  isMain,
+  busy,
+  canMoveUp,
+  canMoveDown,
+  onMove,
+  onDelete,
+}: {
+  url: string
+  isMain: boolean
+  busy: boolean
+  canMoveUp: boolean
+  canMoveDown: boolean
+  onMove: (direction: 'up' | 'down') => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="relative h-16 w-16 shrink-0">
+      <div
+        className={`flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border-2 bg-white ${
+          isMain ? 'border-fairway-700' : 'border-cream-300'
+        }`}
+      >
+        <img src={url} alt="" className="h-full w-full object-cover" />
+      </div>
+      {isMain && (
+        <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 rounded-full bg-fairway-700 px-1.5 py-0.5 text-[8px] font-semibold text-white">
+          Shop
+        </span>
+      )}
+      <div className="mt-0.5 flex items-center justify-center gap-0.5">
+        <button
+          type="button"
+          onClick={() => onMove('up')}
+          disabled={!canMoveUp || busy}
+          title="Mover antes (más cerca de la foto del shop)"
+          aria-label="Mover antes"
+          className="rounded px-1 text-[10px] leading-none text-fairway-500 hover:text-fairway-800 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={busy}
+          title="Eliminar foto"
+          aria-label="Eliminar foto"
+          className="rounded px-1 text-[10px] leading-none text-red-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          ✕
+        </button>
+        <button
+          type="button"
+          onClick={() => onMove('down')}
+          disabled={!canMoveDown || busy}
+          title="Mover después"
+          aria-label="Mover después"
+          className="rounded px-1 text-[10px] leading-none text-fairway-500 hover:text-fairway-800 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          ›
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -321,10 +353,10 @@ function ProductPhotosPanel({
   onUpdated: (products: Product[]) => void
   onClose: () => void
 }) {
-  const [uploadingKey, setUploadingKey] = useState<string | null>(null)
+  const [busyKey, setBusyKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const slots: { name: string | null; label: string }[] = product.colors?.length
+  const rows: { name: string | null; label: string }[] = product.colors?.length
     ? product.colors.map((c) => ({ name: c.name, label: c.name }))
     : [{ name: null, label: 'Producto' }]
 
@@ -332,29 +364,42 @@ function ProductPhotosPanel({
     return name ? (product.colors?.find((c) => c.name === name)?.images ?? []) : (product.images ?? [])
   }
 
-  async function handleUpload(name: string | null, slot: 'front' | 'back', file: File) {
-    const key = `${name ?? '__single__'}:${slot}`
-    setUploadingKey(key)
+  async function handleAdd(name: string | null, file: File) {
+    const key = name ?? '__single__'
+    setBusyKey(key)
     setError(null)
     try {
-      onUpdated(await uploadColorPhoto(product.id, name, slot, file))
+      onUpdated(await addColorPhoto(product.id, name, file))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo subir la foto')
     } finally {
-      setUploadingKey(null)
+      setBusyKey(null)
     }
   }
 
-  async function handleSetMain(name: string | null, slot: 'front' | 'back') {
-    const key = `${name ?? '__single__'}:main`
-    setUploadingKey(key)
+  async function handleDelete(name: string | null, url: string) {
+    const key = name ?? '__single__'
+    setBusyKey(key)
     setError(null)
     try {
-      onUpdated(await setMainColorPhoto(product.id, name, slot))
+      onUpdated(await deleteColorPhoto(product.id, name, url))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo cambiar la foto principal')
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar la foto')
     } finally {
-      setUploadingKey(null)
+      setBusyKey(null)
+    }
+  }
+
+  async function handleMove(name: string | null, url: string, direction: 'up' | 'down') {
+    const key = name ?? '__single__'
+    setBusyKey(key)
+    setError(null)
+    try {
+      onUpdated(await reorderColorPhoto(product.id, name, url, direction))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo reordenar la foto')
+    } finally {
+      setBusyKey(null)
     }
   }
 
@@ -367,77 +412,37 @@ function ProductPhotosPanel({
         </button>
       </div>
 
-      {!product.hasBackDesign && (
-        <p className="text-xs text-fairway-500">
-          Puedes subir aquí la foto principal de cada color. Marca "Tiene diseño en la
-          parte trasera" al editarlo si también quieres subir una foto trasera.
-        </p>
-      )}
+      <p className="text-xs text-fairway-500">
+        La primera foto de cada color (marcada "Shop") es la que se ve en el listado y por
+        defecto al abrir el producto. Añade tantas como quieras, bórralas o cambia su orden
+        con las flechas.
+      </p>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      <div className="space-y-2">
-        {slots.map(({ name, label }) => {
+      <div className="space-y-3">
+        {rows.map(({ name, label }) => {
           const images = imagesFor(name)
           const key = name ?? '__single__'
-          const frontUrl = getColorPhotoUrl(product.id, name, 'front')
-          const backUrl = getColorPhotoUrl(product.id, name, 'back')
-          const frontExists = images.includes(frontUrl)
-          const backExists = images.includes(backUrl)
-          const mainIsFront = images[0] === frontUrl
+          const busy = busyKey === key
           return (
-            <div
-              key={key}
-              className="flex flex-wrap items-center gap-4 rounded-lg border border-cream-300 p-2"
-            >
-              <span className="w-20 shrink-0 text-xs font-medium text-fairway-700">{label}</span>
-              <PhotoSlot
-                label="Delantera"
-                current={frontExists ? frontUrl : undefined}
-                uploading={uploadingKey === `${key}:front`}
-                onSelect={(file) => handleUpload(name, 'front', file)}
-              />
-              {product.hasBackDesign && (
-                <PhotoSlot
-                  label="Trasera"
-                  current={backExists ? backUrl : undefined}
-                  uploading={uploadingKey === `${key}:back`}
-                  onSelect={(file) => handleUpload(name, 'back', file)}
-                />
-              )}
-              {product.hasBackDesign && (
-                <div className="flex flex-col items-start gap-1">
-                  <span className="text-[10px] text-fairway-500">Foto principal en la Shop</span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => handleSetMain(name, 'front')}
-                      disabled={!frontExists || mainIsFront || uploadingKey === `${key}:main`}
-                      title={!frontExists ? 'Sube antes la foto delantera' : undefined}
-                      className={`rounded border px-2 py-0.5 text-[10px] font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                        mainIsFront
-                          ? 'border-fairway-700 bg-fairway-700 text-white'
-                          : 'border-cream-300 text-fairway-600 hover:border-fairway-400'
-                      }`}
-                    >
-                      Delantera
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSetMain(name, 'back')}
-                      disabled={!backExists || !mainIsFront || uploadingKey === `${key}:main`}
-                      title={!backExists ? 'Sube antes la foto trasera' : undefined}
-                      className={`rounded border px-2 py-0.5 text-[10px] font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                        !mainIsFront && backExists
-                          ? 'border-fairway-700 bg-fairway-700 text-white'
-                          : 'border-cream-300 text-fairway-600 hover:border-fairway-400'
-                      }`}
-                    >
-                      Trasera
-                    </button>
-                  </div>
-                </div>
-              )}
+            <div key={key} className="rounded-lg border border-cream-300 p-2">
+              <div className="mb-1.5 text-xs font-medium text-fairway-700">{label}</div>
+              <div className="flex flex-wrap items-start gap-2">
+                {images.map((url, idx) => (
+                  <PhotoThumb
+                    key={url}
+                    url={url}
+                    isMain={idx === 0}
+                    busy={busy}
+                    canMoveUp={idx > 0}
+                    canMoveDown={idx < images.length - 1}
+                    onMove={(direction) => handleMove(name, url, direction)}
+                    onDelete={() => handleDelete(name, url)}
+                  />
+                ))}
+                <AddPhotoButton busy={busy} onSelect={(file) => handleAdd(name, file)} />
+              </div>
             </div>
           )
         })}

@@ -23,7 +23,6 @@ interface ProductRow {
   sizes: string[] | null
   colors: Product['colors'] | null
   shipping_time: string | null
-  has_back_design: boolean | null
 }
 
 function fromRow(row: ProductRow): Product {
@@ -41,7 +40,6 @@ function fromRow(row: ProductRow): Product {
     sizes: row.sizes ?? undefined,
     colors: row.colors ?? undefined,
     shippingTime: row.shipping_time ?? undefined,
-    hasBackDesign: row.has_back_design ?? false,
   }
 }
 
@@ -86,7 +84,6 @@ export async function addProduct(input: Omit<Product, 'id'>): Promise<Product[]>
     specs: input.specs ?? null,
     sizes: input.sizes ?? null,
     shipping_time: input.shippingTime || null,
-    has_back_design: input.hasBackDesign ?? false,
     position: count ?? 0,
   })
   if (error) throw error
@@ -106,7 +103,6 @@ export async function updateProduct(id: string, patch: Omit<Product, 'id'>): Pro
       sizes: patch.sizes ?? null,
       shipping_time: patch.shippingTime || null,
       colors: patch.colors ?? null,
-      has_back_design: patch.hasBackDesign ?? false,
     })
     .eq('id', id)
   if (error) throw error
@@ -131,9 +127,8 @@ export async function importPrintfulProduct(detail: PrintfulProductDetail): Prom
     // editorial fields the admin may have customized, and re-importing
     // shouldn't clobber them. Any color/product photo the admin uploaded
     // manually (via the "Fotos" panel) is kept instead of being replaced by
-    // Printful's photo — checked per photo (not gated by hasBackDesign),
-    // so a manually-set main photo survives a reimport even on a product
-    // that doesn't have a back design.
+    // Printful's photo — checked per photo, so manually-set photos survive
+    // a reimport.
     const existingColors = (existing.colors as Product['colors']) ?? null
     const existingImages = (existing.images as string[] | null) ?? null
 
@@ -206,95 +201,95 @@ export async function reorderProduct(
 
 const MOCKUP_BUCKET = 'product-mockups'
 
-// No file extension in the path — keeps the public URL for a given
-// product/color/slot stable across re-uploads (upsert just replaces the
-// bytes), regardless of the original file type, so re-uploading a photo
-// never needs to touch its position in the images array.
-function photoPath(productId: string, colorName: string | null, slot: 'front' | 'back'): string {
-  return `manual/${productId}/${colorName ? slugify(colorName) : 'unico'}/${slot}`
+function randomFileId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID().slice(0, 8)
+  return Math.random().toString(36).slice(2, 10)
 }
 
-// The deterministic public URL for one product/color's front or back
-// photo, whether or not it has actually been uploaded yet — lets the
-// admin UI know which of a color's images[] entries is "the front photo"
-// independent of display order.
-export function getColorPhotoUrl(productId: string, colorName: string | null, slot: 'front' | 'back'): string {
-  return supabase.storage.from(MOCKUP_BUCKET).getPublicUrl(photoPath(productId, colorName, slot)).data.publicUrl
+async function readImages(productId: string, colorName: string | null): Promise<string[]> {
+  const { data, error } = await supabase.from('products').select('colors, images').eq('id', productId).maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('Producto no encontrado')
+  if (colorName) {
+    const colors = (data.colors as Product['colors']) ?? []
+    return colors.find((c) => c.name === colorName)?.images ?? []
+  }
+  return (data.images as string[] | null) ?? []
 }
 
-// Manually-uploaded product photo for one slot (front/back) of one color —
-// the reliable alternative to Printful's Mockup Generator, which produced
-// inconsistent results. `colorName` is null for a product with no color
-// variants, in which case this sets the product's own top-level images.
-export async function uploadColorPhoto(
-  productId: string,
-  colorName: string | null,
-  slot: 'front' | 'back',
-  file: File,
-): Promise<Product[]> {
-  const path = photoPath(productId, colorName, slot)
+async function writeImages(productId: string, colorName: string | null, images: string[]): Promise<Product[]> {
+  if (colorName) {
+    const { data, error: fetchError } = await supabase
+      .from('products')
+      .select('colors')
+      .eq('id', productId)
+      .maybeSingle()
+    if (fetchError) throw fetchError
+    if (!data) throw new Error('Producto no encontrado')
+    const colors = (data.colors as Product['colors']) ?? []
+    const next = colors.map((c) => (c.name === colorName ? { ...c, images } : c))
+    const { error } = await supabase.from('products').update({ colors: next }).eq('id', productId)
+    if (error) throw error
+  } else {
+    const { error } = await supabase.from('products').update({ images }).eq('id', productId)
+    if (error) throw error
+  }
+  return loadProducts()
+}
+
+// Adds one more photo to a color's (or, when colorName is null, the
+// product's own) gallery — a reliable alternative to Printful's Mockup
+// Generator, which produced inconsistent results. Each upload gets its own
+// random path, so a failed or retried upload never touches a photo that's
+// already showing: the DB row is only updated after the file is confirmed
+// stored, and if that fails partway through, nothing changes.
+export async function addColorPhoto(productId: string, colorName: string | null, file: File): Promise<Product[]> {
+  const path = `manual/${productId}/${colorName ? slugify(colorName) : 'unico'}/${randomFileId()}`
   const { error: uploadError } = await supabase.storage
     .from(MOCKUP_BUCKET)
-    .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' })
+    .upload(path, file, { contentType: file.type || 'image/jpeg' })
   if (uploadError) throw uploadError
-  const url = getColorPhotoUrl(productId, colorName, slot)
+  const url = supabase.storage.from(MOCKUP_BUCKET).getPublicUrl(path).data.publicUrl
 
-  const { data, error: fetchError } = await supabase
-    .from('products')
-    .select('colors, images')
-    .eq('id', productId)
-    .maybeSingle()
-  if (fetchError) throw fetchError
-  if (!data) throw new Error('Producto no encontrado')
-
-  if (colorName) {
-    const colors = (data.colors as Product['colors']) ?? []
-    const next = colors.map((c) => {
-      if (c.name !== colorName) return c
-      return { ...c, images: c.images.includes(url) ? c.images : [...c.images, url] }
-    })
-    const { error } = await supabase.from('products').update({ colors: next }).eq('id', productId)
-    if (error) throw error
-  } else {
-    const current = (data.images as string[] | null) ?? []
-    const images = current.includes(url) ? current : [...current, url]
-    const { error } = await supabase.from('products').update({ images }).eq('id', productId)
-    if (error) throw error
-  }
-  return loadProducts()
+  const images = await readImages(productId, colorName)
+  return writeImages(productId, colorName, [...images, url])
 }
 
-// Reorders a color's (or product's) photos so the chosen front/back slot
-// comes first — that's the one used as the Shop thumbnail and default
-// gallery photo. No-op if that slot hasn't been uploaded yet.
-export async function setMainColorPhoto(
+// Removes a photo from the gallery (and best-effort deletes the underlying
+// file — a failure there shouldn't block removing it from the product).
+export async function deleteColorPhoto(
   productId: string,
   colorName: string | null,
-  slot: 'front' | 'back',
+  url: string,
 ): Promise<Product[]> {
-  const url = getColorPhotoUrl(productId, colorName, slot)
-
-  const { data, error: fetchError } = await supabase
-    .from('products')
-    .select('colors, images')
-    .eq('id', productId)
-    .maybeSingle()
-  if (fetchError) throw fetchError
-  if (!data) throw new Error('Producto no encontrado')
-
-  function reorder(images: string[]): string[] {
-    return images.includes(url) ? [url, ...images.filter((i) => i !== url)] : images
+  const images = await readImages(productId, colorName)
+  const marker = `/${MOCKUP_BUCKET}/`
+  const markerIndex = url.indexOf(marker)
+  if (markerIndex !== -1) {
+    const path = url.slice(markerIndex + marker.length)
+    await supabase.storage.from(MOCKUP_BUCKET).remove([path])
   }
+  return writeImages(
+    productId,
+    colorName,
+    images.filter((i) => i !== url),
+  )
+}
 
-  if (colorName) {
-    const colors = (data.colors as Product['colors']) ?? []
-    const next = colors.map((c) => (c.name === colorName ? { ...c, images: reorder(c.images) } : c))
-    const { error } = await supabase.from('products').update({ colors: next }).eq('id', productId)
-    if (error) throw error
-  } else {
-    const images = reorder((data.images as string[] | null) ?? [])
-    const { error } = await supabase.from('products').update({ images }).eq('id', productId)
-    if (error) throw error
-  }
-  return loadProducts()
+// Moves a photo one step earlier/later in the gallery. The first photo is
+// the one used as the Shop thumbnail and default gallery image, so moving
+// a photo to the front also makes it "the shop photo".
+export async function reorderColorPhoto(
+  productId: string,
+  colorName: string | null,
+  url: string,
+  direction: 'up' | 'down',
+): Promise<Product[]> {
+  const images = await readImages(productId, colorName)
+  const idx = images.indexOf(url)
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+  if (idx === -1 || swapIdx < 0 || swapIdx >= images.length) return loadProducts()
+  const next = [...images]
+  ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
+  return writeImages(productId, colorName, next)
 }

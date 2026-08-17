@@ -41,12 +41,12 @@ function ProductLightbox({
       >
         ✕
       </button>
-      <img
-        src={images[active]}
-        alt={alt}
+      <div
+        className="max-h-full max-w-full overflow-hidden rounded-lg bg-white"
         onClick={(e) => e.stopPropagation()}
-        className="max-h-full max-w-full rounded-lg object-contain"
-      />
+      >
+        <img src={images[active]} alt={alt} className="max-h-[85vh] max-w-[90vw] object-contain" />
+      </div>
       {images.length > 1 && (
         <>
           <button
@@ -111,7 +111,7 @@ function ProductGallery({
         className="block w-full cursor-zoom-in"
         aria-label={`Ampliar foto de ${name}`}
       >
-        <div className="aspect-square w-full overflow-hidden rounded-xl bg-cream-100">
+        <div className="aspect-square w-full overflow-hidden rounded-xl bg-white">
           <img
             src={images[active]}
             alt={name}
@@ -125,7 +125,7 @@ function ProductGallery({
             <button
               key={src}
               onClick={() => setActive(idx)}
-              className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+              className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 bg-white transition ${
                 idx === active ? 'border-fairway-600' : 'border-transparent opacity-70 hover:opacity-100'
               }`}
               aria-label={`Foto ${idx + 1} de ${name}`}
@@ -158,7 +158,9 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void
       onClick={onOpen}
       className="flex flex-col overflow-hidden rounded-2xl border border-cream-300 bg-white text-left shadow-sm transition hover:border-fairway-400 hover:shadow-md"
     >
-      <div className="flex aspect-square w-full items-center justify-center overflow-hidden bg-cream-100">
+      <div
+        className={`flex aspect-square w-full items-center justify-center overflow-hidden ${thumbnail ? 'bg-white' : 'bg-cream-100'}`}
+      >
         {thumbnail ? (
           <img src={thumbnail} alt={product.name} className="h-full w-full object-cover" />
         ) : (
@@ -172,8 +174,8 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void
           {product.category}
         </div>
         <h2 className="mt-1 font-semibold text-fairway-900">{product.name}</h2>
-        <div className="mt-auto flex items-center justify-between pt-3">
-          <span className="text-lg font-semibold text-fairway-900">
+        <div className="mt-auto pt-3">
+          <span className="block text-lg font-semibold text-fairway-900">
             {formatPrice(product.price)}
           </span>
           <span className="text-xs font-medium text-fairway-600">Ver detalles</span>
