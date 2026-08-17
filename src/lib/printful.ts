@@ -52,3 +52,11 @@ export async function listPrintfulProducts(): Promise<PrintfulListItem[]> {
 export async function getPrintfulProduct(id: number): Promise<PrintfulProductDetail> {
   return callFunction<PrintfulProductDetail>(`action=get&id=${id}`)
 }
+
+// Renders the full multi-angle Mockup Generator gallery for one color
+// (~45s-2min) and saves it directly onto the product row server-side.
+// `color` is omitted for a colorless product's single implicit color.
+export async function generateColorMockup(id: number, color: string | null): Promise<{ images: string[] }> {
+  const colorParam = color ? `&color=${encodeURIComponent(color)}` : ''
+  return callFunction<{ images: string[] }>(`action=generate-color&id=${id}${colorParam}`)
+}

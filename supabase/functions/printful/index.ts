@@ -274,52 +274,6 @@ async function patchProductImages(
   await admin.from('products').update({ colors: next }).eq('id', productRowId)
 }
 
-interface ColorGroup {
-  code: string | null
-  sizes: Set<string>
-  representative: PrintfulSyncVariant
-  fallbackImage: string | null
-}
-
-// Runs after the HTTP response has already gone out (via
-// EdgeRuntime.waitUntil) — rendering every color's full mockup gallery
-// takes 45s-2min *per color*, far past what's reasonable to make an admin
-// wait on before "Importar" even finishes, and multi-color products (e.g.
-// 7 colors) running that serially-ish inside one request routinely blew
-// past the platform's 150s wall-clock limit, losing the whole import.
-// Here each color is generated and persisted independently and patched
-// into the row as soon as it's ready, so a slow or failing color no
-// longer holds back — or breaks — the rest.
-async function backgroundGenerateMockups(
-  admin: ReturnType<typeof createClient>,
-  syncProductId: number,
-  catalogProductId: number | null,
-  colorOrder: string[],
-  colorGroups: Map<string, ColorGroup>,
-  hasColorPicker: boolean,
-) {
-  if (!catalogProductId) return
-  const productRowId = await waitForProductRow(admin, syncProductId)
-  if (!productRowId) {
-    console.error(`Product row for printful_id ${syncProductId} never appeared; skipping mockup generation`)
-    return
-  }
-  await Promise.all(
-    colorOrder.map(async (name) => {
-      const group = colorGroups.get(name)!
-      try {
-        const urls = await generateMockupsForColor(catalogProductId, group.representative)
-        if (!urls || urls.length === 0) return
-        const persisted = await persistMockups(admin, syncProductId, name, urls)
-        if (persisted.length === 0) return
-        await patchProductImages(admin, productRowId, hasColorPicker ? name : null, persisted)
-      } catch (err) {
-        console.error(`Background mockup generation failed for color "${name}"`, err)
-      }
-    }),
-  )
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -367,7 +321,6 @@ Deno.serve(async (req) => {
       const catalogVariants = await Promise.all(
         syncVariants.map((v) => fetchCatalogVariant(v.variant_id)),
       )
-      const catalogProductId = catalogVariants.find((c) => c?.product_id)?.product_id ?? null
 
       const sizes = Array.from(
         new Set(
@@ -407,11 +360,17 @@ Deno.serve(async (req) => {
         if (size) group.sizes.add(size)
       })
 
-      // Return immediately with each color's single flat preview photo (the
-      // same fast, always-available fallback as before this feature
-      // existed) — the full multi-angle Mockup Generator gallery renders in
-      // the background (see backgroundGenerateMockups) and gets patched
-      // into this same product row color-by-color as each one finishes.
+      // Returns immediately with each color's single flat preview photo
+      // (the same fast, always-available fallback as before this feature
+      // existed) — the client fires one request per color at
+      // action=generate-color right after this to fill in the full
+      // multi-angle gallery. That used to run here in the background via
+      // EdgeRuntime.waitUntil, but a background task is still bound by the
+      // same worker wall-clock limit as a normal request — with several
+      // colors rendering in parallel for minutes, the worker got recycled
+      // before every color finished, silently losing whichever ones
+      // hadn't. One request per color keeps each one safely inside its
+      // own request lifetime instead.
       const hasColorPicker = colorOrder.length > 1
       const colors = hasColorPicker
         ? colorOrder.map((name) => {
@@ -432,25 +391,6 @@ Deno.serve(async (req) => {
           ),
         ),
       )
-
-      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-      const backgroundTask = backgroundGenerateMockups(
-        admin,
-        syncProduct.id,
-        catalogProductId,
-        colorOrder,
-        colorGroups,
-        hasColorPicker,
-      )
-      // deno-lint-ignore no-explicit-any
-      const edgeRuntime = (globalThis as any).EdgeRuntime
-      if (edgeRuntime?.waitUntil) {
-        edgeRuntime.waitUntil(backgroundTask)
-      } else {
-        // Local/dev fallback where EdgeRuntime isn't available — still run
-        // it, just without the platform's background-task guarantee.
-        backgroundTask.catch((err) => console.error('Background mockup generation error', err))
-      }
 
       // Needed to place orders through Printful's Orders API later on
       // (sync_variant_id per line item) — kept separate from the
@@ -473,6 +413,59 @@ Deno.serve(async (req) => {
         colors,
         variants,
       })
+    }
+
+    // Renders and persists the full mockup gallery for a single color of an
+    // already-imported product, and patches it straight into that color's
+    // entry (or the top-level images, when `color` is omitted for a
+    // colorless product) on the product row. One color per call keeps each
+    // request safely within the platform's request wall-clock limit — the
+    // client calls this once per color right after importing.
+    if (action === 'generate-color') {
+      const id = url.searchParams.get('id')
+      if (!id) return jsonResponse({ error: 'Falta id' }, 400)
+      const color = url.searchParams.get('color')
+
+      const result = (await printfulFetch(`/store/products/${id}`)) as {
+        sync_product: { id: number }
+        sync_variants: PrintfulSyncVariant[]
+      }
+      const syncVariants = result.sync_variants
+      const catalogVariants = await Promise.all(
+        syncVariants.map((v) => fetchCatalogVariant(v.variant_id)),
+      )
+      const catalogProductId = catalogVariants.find((c) => c?.product_id)?.product_id ?? null
+      if (!catalogProductId) {
+        return jsonResponse({ error: 'No se encontró el producto en el catálogo de Printful' }, 502)
+      }
+
+      const representative = color
+        ? syncVariants[
+            syncVariants.findIndex((v, i) => {
+              const catalog = catalogVariants[i]
+              return (catalog?.color?.trim() || guessColor(v.name)) === color
+            })
+          ]
+        : syncVariants[0]
+      if (!representative) return jsonResponse({ error: 'Color no encontrado' }, 404)
+
+      const urls = await generateMockupsForColor(catalogProductId, representative)
+      if (!urls || urls.length === 0) {
+        return jsonResponse({ error: 'Printful no devolvió fotos para este color' }, 502)
+      }
+
+      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+      const persisted = await persistMockups(admin, result.sync_product.id, color ?? 'unico', urls)
+      if (persisted.length === 0) {
+        return jsonResponse({ error: 'No se pudieron guardar las fotos generadas' }, 502)
+      }
+
+      const productRowId = await waitForProductRow(admin, result.sync_product.id)
+      if (productRowId) {
+        await patchProductImages(admin, productRowId, color, persisted)
+      }
+
+      return jsonResponse({ images: persisted })
     }
 
     return jsonResponse({ error: 'Acción desconocida' }, 400)
