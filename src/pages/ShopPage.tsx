@@ -254,24 +254,26 @@ function ProductDetailModal({
       className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/50 p-4"
       onClick={onClose}
     >
+      {/* Fixed to the viewport (not the scrolling backdrop), so it's always
+          reachable without scrolling back up — needed on mobile Safari,
+          where the address bar can cover an in-flow close button. */}
+      <button
+        onClick={onClose}
+        aria-label="Cerrar"
+        className="fixed right-4 top-4 z-[60] flex h-9 w-9 items-center justify-center rounded-full bg-white text-xl leading-none text-fairway-600 shadow-md transition hover:text-fairway-900"
+      >
+        ✕
+      </button>
+
       <div
         className="mx-auto my-8 w-full max-w-2xl rounded-2xl bg-white p-5 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-gold-600">
-              {product.category}
-            </div>
-            <h2 className="mt-1 text-xl font-semibold text-fairway-900">{product.name}</h2>
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gold-600">
+            {product.category}
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="shrink-0 text-2xl leading-none text-fairway-400 transition hover:text-fairway-700"
-          >
-            ✕
-          </button>
+          <h2 className="mt-1 pr-10 text-xl font-semibold text-fairway-900">{product.name}</h2>
         </div>
 
         <div className="mt-4">
