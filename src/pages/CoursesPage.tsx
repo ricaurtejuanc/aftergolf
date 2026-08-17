@@ -159,7 +159,9 @@ function CourseRow({
               Editar
             </button>
             <button
-              onClick={onDelete}
+              onClick={() => {
+                if (window.confirm(`¿Seguro que quieres eliminar "${course.name}"? Esta acción no se puede deshacer.`)) onDelete()
+              }}
               className="rounded-md border border-cream-300 px-2.5 py-1 text-xs text-fairway-500 transition hover:border-red-400 hover:text-red-500"
             >
               Eliminar

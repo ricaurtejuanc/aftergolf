@@ -384,7 +384,10 @@ export function ProductsAdminPage() {
                   Editar
                 </button>
                 <button
-                  onClick={async () => setProducts(await deleteProduct(product.id))}
+                  onClick={async () => {
+                    if (!window.confirm(`¿Seguro que quieres eliminar "${product.name}"? Esta acción no se puede deshacer.`)) return
+                    setProducts(await deleteProduct(product.id))
+                  }}
                   className="rounded-md border border-cream-300 px-2.5 py-1 text-xs text-fairway-500 transition hover:border-red-400 hover:text-red-500"
                 >
                   Eliminar
