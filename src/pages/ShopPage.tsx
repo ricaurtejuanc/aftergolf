@@ -219,13 +219,33 @@ function ProductDetailModal({
   // Without this, the page behind the modal can still scroll — on mobile a
   // scroll gesture that starts inside the modal (e.g. scrolling down to
   // reach the size selector) can "leak" into the page once the modal's own
-  // content hits its scroll limit, leaving the modal stuck mid-scroll when
-  // scrolling back up instead of returning fully to the top.
+  // content hits its scroll limit. Plain `overflow: hidden` on body doesn't
+  // reliably stop that on iOS Safari (it still lets the page rubber-band),
+  // so instead the body is taken out of flow entirely with `position:
+  // fixed` at its current scroll offset, and restored to that same
+  // position on close.
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const scrollY = window.scrollY
+    const { style } = document.body
+    const previous = {
+      position: style.position,
+      top: style.top,
+      left: style.left,
+      right: style.right,
+      width: style.width,
+    }
+    style.position = 'fixed'
+    style.top = `-${scrollY}px`
+    style.left = '0'
+    style.right = '0'
+    style.width = '100%'
     return () => {
-      document.body.style.overflow = previousOverflow
+      style.position = previous.position
+      style.top = previous.top
+      style.left = previous.left
+      style.right = previous.right
+      style.width = previous.width
+      window.scrollTo(0, scrollY)
     }
   }, [])
 
@@ -235,7 +255,7 @@ function ProductDetailModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-lg"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-2xl bg-white p-5 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
