@@ -143,6 +143,13 @@ Deno.serve(async (req) => {
       }
       const { sync_product: syncProduct, sync_variants: syncVariants } = result
 
+      // Temporary: log the raw files array per variant while diagnosing why
+      // only 2 distinct mockup images are showing up for the camiseta.
+      console.log(
+        `Printful files for product ${id}`,
+        JSON.stringify(syncVariants.map((v) => ({ name: v.name, files: v.files }))),
+      )
+
       const prices = syncVariants
         .map((v) => Number(v.retail_price))
         .filter((n) => !Number.isNaN(n))
