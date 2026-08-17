@@ -143,13 +143,6 @@ Deno.serve(async (req) => {
       }
       const { sync_product: syncProduct, sync_variants: syncVariants } = result
 
-      // Temporary: log the raw files array per variant while diagnosing why
-      // only 2 distinct mockup images are showing up for the camiseta.
-      console.log(
-        `Printful files for product ${id}`,
-        JSON.stringify(syncVariants.map((v) => ({ name: v.name, files: v.files }))),
-      )
-
       const prices = syncVariants
         .map((v) => Number(v.retail_price))
         .filter((n) => !Number.isNaN(n))
@@ -167,40 +160,35 @@ Deno.serve(async (req) => {
         ),
       )
 
-      // Every file with a preview_url is a renderable mockup — Printful
-      // generates one per print placement (front, back, sleeve, ...), each
-      // with its own "type" value. Filtering to just "preview"/"default"
-      // dropped all the others, leaving only a single image per product.
-      const images = Array.from(
-        new Set(
-          [
-            syncProduct.thumbnail_url,
-            ...syncVariants.flatMap((v) => (v.files ?? []).map((f) => f.preview_url)),
-          ].filter((src): src is string => Boolean(src)),
-        ),
-      )
+      // Each variant's files include design/embroidery placement closeups
+      // (e.g. "embroidery_chest_left", "back") alongside the actual garment
+      // photo, which is always type "preview" — only that one is a real
+      // product photo, the rest are flat, backgroundless design previews.
+      // "preview" is also regenerated per size (same garment, near-identical
+      // photo), so only the first size's preview is kept per color instead
+      // of piling up near-duplicates from every size.
+      function previewFor(variant: PrintfulSyncVariant): string | null {
+        return variant.files?.find((f) => f.type === 'preview')?.preview_url ?? null
+      }
 
       const colorOrder: string[] = []
-      const colorGroups = new Map<
-        string,
-        { code: string | null; images: Set<string>; sizes: Set<string> }
-      >()
+      const colorGroups = new Map<string, { code: string | null; images: string[]; sizes: Set<string> }>()
       syncVariants.forEach((variant, i) => {
         const catalog = catalogVariants[i]
         const color = catalog?.color?.trim() || guessColor(variant.name)
         if (!color) return
         if (!colorGroups.has(color)) {
-          colorGroups.set(color, { code: catalog?.color_code ?? null, images: new Set(), sizes: new Set() })
+          const preview = previewFor(variant)
+          colorGroups.set(color, {
+            code: catalog?.color_code ?? null,
+            images: preview ? [preview] : [],
+            sizes: new Set(),
+          })
           colorOrder.push(color)
         }
         const group = colorGroups.get(color)!
         const size = catalog?.size ?? guessSize(variant.name)
         if (size) group.sizes.add(size)
-        for (const file of variant.files ?? []) {
-          if (file.preview_url) {
-            group.images.add(file.preview_url)
-          }
-        }
       })
       // Only worth surfacing as a color picker when the product actually has
       // more than one color — a single guessed "color" is usually noise.
@@ -211,11 +199,19 @@ Deno.serve(async (req) => {
               return {
                 name,
                 code: group.code,
-                images: Array.from(group.images),
+                images: group.images,
                 sizes: Array.from(group.sizes),
               }
             })
           : undefined
+
+      const images = Array.from(
+        new Set(
+          [syncProduct.thumbnail_url, previewFor(syncVariants[0])].filter(
+            (src): src is string => Boolean(src),
+          ),
+        ),
+      )
 
       // Needed to place orders through Printful's Orders API later on
       // (sync_variant_id per line item) — kept separate from the
