@@ -213,8 +213,12 @@ function PrintfulImportPanel({
       setColorProgress(
         Object.fromEntries(colorNames.map((name) => [name ?? '__single__', 'generating' as const])),
       )
+      // Staggered rather than all fired at once — several colors hitting
+      // Printful's Mockup Generator in the same instant was tripping its
+      // rate limit and failing every one of them.
       await Promise.allSettled(
-        colorNames.map(async (name) => {
+        colorNames.map(async (name, index) => {
+          await new Promise((resolve) => setTimeout(resolve, index * 1500))
           const key = name ?? '__single__'
           try {
             await generateColorMockup(id, name)
