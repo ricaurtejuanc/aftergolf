@@ -488,7 +488,7 @@ function ProductPhotosPanel({
                     key={url}
                     url={url}
                     isMain={idx === 0}
-                    badgeLabel={isShopThumbnail ? 'Shop' : 'Portada'}
+                    badgeLabel={isShopThumbnail ? 'Shop' : undefined}
                     busy={busy}
                     canMoveUp={idx > 0}
                     canMoveDown={idx < images.length - 1}
