@@ -1,7 +1,15 @@
 import { DEFAULT_SHIPPING_TIME, type Product } from '../data/products'
 import { localImagesFor } from '../data/productImages'
 import type { PrintfulProductDetail } from './printful'
-import { supabase } from './supabaseClient'
+import { SUPABASE_URL, supabase } from './supabaseClient'
+
+// A manually-uploaded photo (via the "Fotos" panel) lives in our own
+// Storage bucket rather than Printful's CDN — used to tell reimports which
+// photos are safe to refresh from Printful and which ones the admin set on
+// purpose and should be left alone.
+function isManualPhoto(url: string | undefined | null): boolean {
+  return Boolean(url && url.startsWith(`${SUPABASE_URL}/storage/v1/object/public/product-mockups/manual/`))
+}
 
 interface ProductRow {
   id: string
@@ -114,31 +122,30 @@ export async function deleteProduct(id: string): Promise<Product[]> {
 export async function importPrintfulProduct(detail: PrintfulProductDetail): Promise<Product[]> {
   const { data: existing } = await supabase
     .from('products')
-    .select('id, has_back_design, colors, images')
+    .select('id, colors, images')
     .eq('printful_id', detail.printfulId)
     .maybeSingle()
 
   if (existing) {
     // Deliberately excludes description and shipping_time — those are
     // editorial fields the admin may have customized, and re-importing
-    // shouldn't clobber them. When photos are managed manually (front/back
-    // per color via the "Fotos" panel), the color/size metadata still
-    // stays in sync with Printful but the uploaded photos themselves are
-    // kept instead of being replaced by Printful's single auto photo.
-    const hasBackDesign = existing.has_back_design ?? false
+    // shouldn't clobber them. Any color/product photo the admin uploaded
+    // manually (via the "Fotos" panel) is kept instead of being replaced by
+    // Printful's photo — checked per photo (not gated by hasBackDesign),
+    // so a manually-set main photo survives a reimport even on a product
+    // that doesn't have a back design.
     const existingColors = (existing.colors as Product['colors']) ?? null
+    const existingImages = (existing.images as string[] | null) ?? null
 
     const colors =
       detail.colors && detail.colors.length
-        ? hasBackDesign
-          ? detail.colors.map((c) => ({
-              ...c,
-              images: existingColors?.find((ec) => ec.name === c.name)?.images ?? [],
-            }))
-          : detail.colors
+        ? detail.colors.map((c) => {
+            const existingColor = existingColors?.find((ec) => ec.name === c.name)
+            return isManualPhoto(existingColor?.images[0]) ? { ...c, images: existingColor!.images } : c
+          })
         : null
-    const images = hasBackDesign
-      ? (existing.images as string[] | null) ?? null
+    const images = isManualPhoto(existingImages?.[0])
+      ? existingImages
       : detail.images.length
         ? detail.images
         : null

@@ -369,8 +369,8 @@ function ProductPhotosPanel({
 
       {!product.hasBackDesign && (
         <p className="text-xs text-fairway-500">
-          Este producto solo usa la foto que trae Printful. Marca "Tiene diseño en la
-          parte trasera" al editarlo para poder subir fotos delantera y trasera aquí.
+          Puedes subir aquí la foto principal de cada color. Marca "Tiene diseño en la
+          parte trasera" al editarlo si también quieres subir una foto trasera.
         </p>
       )}
 
