@@ -42,19 +42,29 @@ async function printfulFetch(path: string, init?: RequestInit) {
   // Printful retired Basic auth with the legacy API key in favor of OAuth
   // 2.0 tokens sent as a Bearer token (same v1 REST endpoints, new auth
   // scheme) — see https://help.printful.com/hc/en-us/articles/4632388335260
-  const res = await fetch(`${PRINTFUL_BASE}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${PRINTFUL_API_KEY}`,
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init?.headers,
-    },
-  })
-  const data = await res.json()
-  if (!res.ok) {
-    throw new Error(data?.error?.message ?? `Printful respondió ${res.status}`)
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${PRINTFUL_BASE}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${PRINTFUL_API_KEY}`,
+        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+        ...init?.headers,
+      },
+    })
+    // Several colors regenerating in parallel right after import can burst
+    // past Printful's rate limit — back off and retry a couple of times
+    // instead of failing the whole color outright.
+    if (res.status === 429 && attempt < 3) {
+      const retryAfter = Number(res.headers.get('Retry-After'))
+      await new Promise((resolve) => setTimeout(resolve, (Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : 2 ** attempt) * 1000))
+      continue
+    }
+    const data = await res.json()
+    if (!res.ok) {
+      throw new Error(data?.error?.message ?? `Printful respondió ${res.status}`)
+    }
+    return data.result
   }
-  return data.result
 }
 
 function guessSize(variantName: string): string | null {
@@ -431,22 +441,27 @@ Deno.serve(async (req) => {
         sync_variants: PrintfulSyncVariant[]
       }
       const syncVariants = result.sync_variants
-      const catalogVariants = await Promise.all(
-        syncVariants.map((v) => fetchCatalogVariant(v.variant_id)),
-      )
-      const catalogProductId = catalogVariants.find((c) => c?.product_id)?.product_id ?? null
+
+      // Looks up catalog data one variant at a time, stopping as soon as
+      // the requested color turns up, instead of fetching every
+      // size×color variant up front — with several colors being
+      // regenerated in parallel from the client right after import, doing
+      // that for all of them at once fires far more requests than
+      // Printful's API tolerates in a burst and was getting every color
+      // rate-limited into failure.
+      let representative: PrintfulSyncVariant | null = null
+      let catalogProductId: number | null = null
+      for (const variant of syncVariants) {
+        const catalog = await fetchCatalogVariant(variant.variant_id)
+        if (catalogProductId === null && catalog?.product_id) catalogProductId = catalog.product_id
+        if (!color || (catalog?.color?.trim() || guessColor(variant.name)) === color) {
+          representative = variant
+          if (catalogProductId !== null) break
+        }
+      }
       if (!catalogProductId) {
         return jsonResponse({ error: 'No se encontró el producto en el catálogo de Printful' }, 502)
       }
-
-      const representative = color
-        ? syncVariants[
-            syncVariants.findIndex((v, i) => {
-              const catalog = catalogVariants[i]
-              return (catalog?.color?.trim() || guessColor(v.name)) === color
-            })
-          ]
-        : syncVariants[0]
       if (!representative) return jsonResponse({ error: 'Color no encontrado' }, 404)
 
       const urls = await generateMockupsForColor(catalogProductId, representative)
