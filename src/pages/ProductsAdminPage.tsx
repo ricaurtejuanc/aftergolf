@@ -8,7 +8,12 @@ import {
   reorderProduct,
   updateProduct,
 } from '../lib/productStore'
-import { getPrintfulProduct, listPrintfulProducts, type PrintfulListItem } from '../lib/printful'
+import {
+  generateColorMockup,
+  getPrintfulProduct,
+  listPrintfulProducts,
+  type PrintfulListItem,
+} from '../lib/printful'
 
 interface ProductDraft {
   name: string
@@ -183,7 +188,12 @@ function PrintfulImportPanel({
   const [items, setItems] = useState<PrintfulListItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [importingId, setImportingId] = useState<number | null>(null)
-  const [justImported, setJustImported] = useState(false)
+  // Keyed by color name, or '__single__' for a colorless product's one
+  // implicit color — tracks each color's mockup-generation request
+  // independently so the admin can see which ones are still working.
+  const [colorProgress, setColorProgress] = useState<Record<string, 'generating' | 'done' | 'error'> | null>(
+    null,
+  )
 
   useEffect(() => {
     listPrintfulProducts()
@@ -194,11 +204,27 @@ function PrintfulImportPanel({
   async function handleImport(id: number) {
     setImportingId(id)
     setError(null)
-    setJustImported(false)
+    setColorProgress(null)
     try {
       const detail = await getPrintfulProduct(id)
       onImported(await importPrintfulProduct(detail))
-      setJustImported(true)
+
+      const colorNames = detail.colors?.length ? detail.colors.map((c) => c.name) : [null]
+      setColorProgress(
+        Object.fromEntries(colorNames.map((name) => [name ?? '__single__', 'generating' as const])),
+      )
+      await Promise.allSettled(
+        colorNames.map(async (name) => {
+          const key = name ?? '__single__'
+          try {
+            await generateColorMockup(id, name)
+            setColorProgress((prev) => (prev ? { ...prev, [key]: 'done' } : prev))
+          } catch {
+            setColorProgress((prev) => (prev ? { ...prev, [key]: 'error' } : prev))
+          }
+        }),
+      )
+      onImported(await loadProducts())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo importar el producto')
     } finally {
@@ -220,12 +246,30 @@ function PrintfulImportPanel({
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      {justImported && (
-        <p className="text-xs text-fairway-500">
-          Producto importado. Las fotos completas de cada color se están generando en
-          segundo plano en Printful — recarga esta página en uno o dos minutos para
-          verlas todas.
-        </p>
+      {colorProgress && (
+        <div className="space-y-1 rounded-lg border border-cream-300 bg-cream-50 p-2.5">
+          <p className="text-xs font-medium text-fairway-700">
+            Generando las fotos completas con Printful (puede tardar 1-2 min por color)...
+          </p>
+          <ul className="space-y-0.5 text-xs text-fairway-600">
+            {Object.entries(colorProgress).map(([name, status]) => (
+              <li key={name} className="flex items-center justify-between">
+                <span>{name === '__single__' ? 'Fotos' : name}</span>
+                <span
+                  className={
+                    status === 'done'
+                      ? 'text-fairway-700'
+                      : status === 'error'
+                        ? 'text-red-500'
+                        : 'text-fairway-400'
+                  }
+                >
+                  {status === 'generating' ? 'Generando...' : status === 'done' ? 'Listo ✓' : 'Error'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {items === null && !error ? (
