@@ -160,15 +160,15 @@ Deno.serve(async (req) => {
         ),
       )
 
+      // Every file with a preview_url is a renderable mockup — Printful
+      // generates one per print placement (front, back, sleeve, ...), each
+      // with its own "type" value. Filtering to just "preview"/"default"
+      // dropped all the others, leaving only a single image per product.
       const images = Array.from(
         new Set(
           [
             syncProduct.thumbnail_url,
-            ...syncVariants.flatMap((v) =>
-              (v.files ?? [])
-                .filter((f) => f.type === 'preview' || f.type === 'default')
-                .map((f) => f.preview_url),
-            ),
+            ...syncVariants.flatMap((v) => (v.files ?? []).map((f) => f.preview_url)),
           ].filter((src): src is string => Boolean(src)),
         ),
       )
@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
         const size = catalog?.size ?? guessSize(variant.name)
         if (size) group.sizes.add(size)
         for (const file of variant.files ?? []) {
-          if ((file.type === 'preview' || file.type === 'default') && file.preview_url) {
+          if (file.preview_url) {
             group.images.add(file.preview_url)
           }
         }
