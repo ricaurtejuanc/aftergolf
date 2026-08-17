@@ -3,9 +3,11 @@ import { CLOTHING_SIZES, DEFAULT_SHIPPING_TIME, type Product } from '../data/pro
 import {
   addProduct,
   deleteProduct,
+  getColorPhotoUrl,
   importPrintfulProduct,
   loadProducts,
   reorderProduct,
+  setMainColorPhoto,
   updateProduct,
   uploadColorPhoto,
 } from '../lib/productStore'
@@ -343,6 +345,19 @@ function ProductPhotosPanel({
     }
   }
 
+  async function handleSetMain(name: string | null, slot: 'front' | 'back') {
+    const key = `${name ?? '__single__'}:main`
+    setUploadingKey(key)
+    setError(null)
+    try {
+      onUpdated(await setMainColorPhoto(product.id, name, slot))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cambiar la foto principal')
+    } finally {
+      setUploadingKey(null)
+    }
+  }
+
   return (
     <div className="space-y-3 rounded-xl border border-fairway-400 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -365,25 +380,61 @@ function ProductPhotosPanel({
         {slots.map(({ name, label }) => {
           const images = imagesFor(name)
           const key = name ?? '__single__'
+          const frontUrl = getColorPhotoUrl(product.id, name, 'front')
+          const backUrl = getColorPhotoUrl(product.id, name, 'back')
+          const frontExists = images.includes(frontUrl)
+          const backExists = images.includes(backUrl)
+          const mainIsFront = images[0] === frontUrl
           return (
             <div
               key={key}
-              className="flex items-center gap-4 rounded-lg border border-cream-300 p-2"
+              className="flex flex-wrap items-center gap-4 rounded-lg border border-cream-300 p-2"
             >
               <span className="w-20 shrink-0 text-xs font-medium text-fairway-700">{label}</span>
               <PhotoSlot
                 label="Delantera"
-                current={images[0]}
+                current={frontExists ? frontUrl : undefined}
                 uploading={uploadingKey === `${key}:front`}
                 onSelect={(file) => handleUpload(name, 'front', file)}
               />
               {product.hasBackDesign && (
                 <PhotoSlot
                   label="Trasera"
-                  current={images[1]}
+                  current={backExists ? backUrl : undefined}
                   uploading={uploadingKey === `${key}:back`}
                   onSelect={(file) => handleUpload(name, 'back', file)}
                 />
+              )}
+              {product.hasBackDesign && frontExists && backExists && (
+                <div className="flex flex-col items-start gap-1">
+                  <span className="text-[10px] text-fairway-500">Foto principal en la Shop</span>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSetMain(name, 'front')}
+                      disabled={mainIsFront || uploadingKey === `${key}:main`}
+                      className={`rounded border px-2 py-0.5 text-[10px] font-medium transition disabled:cursor-default ${
+                        mainIsFront
+                          ? 'border-fairway-700 bg-fairway-700 text-white'
+                          : 'border-cream-300 text-fairway-600 hover:border-fairway-400'
+                      }`}
+                    >
+                      Delantera
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetMain(name, 'back')}
+                      disabled={!mainIsFront || uploadingKey === `${key}:main`}
+                      className={`rounded border px-2 py-0.5 text-[10px] font-medium transition disabled:cursor-default ${
+                        !mainIsFront
+                          ? 'border-fairway-700 bg-fairway-700 text-white'
+                          : 'border-cream-300 text-fairway-600 hover:border-fairway-400'
+                      }`}
+                    >
+                      Trasera
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )
