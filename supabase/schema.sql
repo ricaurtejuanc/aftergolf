@@ -123,6 +123,10 @@ create table if not exists public.products (
   -- Sync variant IDs from Printful, needed to place an order through their
   -- Orders API: [{ syncVariantId, size, color }]. Populated on import.
   printful_variants jsonb,
+  -- When true, photos are managed manually per color (front + back) from
+  -- the admin "Fotos" panel instead of Printful's single auto-imported
+  -- photo — Printful's Mockup Generator proved unreliable.
+  has_back_design boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -187,10 +191,10 @@ create policy "page_views_insert_anyone" on public.page_views
 create policy "page_views_select_admin" on public.page_views
   for select using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
 
--- Permanent home for Printful Mockup Generator images. The Mockup
--- Generator's own URLs are temporary (expire ~72h after generation), so the
--- printful edge function downloads them and re-uploads here right at import
--- time; product rows then store these permanent public URLs instead.
+-- Home for manually-uploaded product photos (front/back per color, see
+-- has_back_design above) — the admin uploads these directly from the
+-- browser, so this bucket needs both public read (product photos are
+-- public) and admin-only write policies.
 insert into storage.buckets (id, name, public)
 values ('product-mockups', 'product-mockups', true)
 on conflict (id) do nothing;
@@ -204,5 +208,24 @@ begin
     create policy "product_mockups_public_read"
     on storage.objects for select
     using (bucket_id = 'product-mockups');
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'product_mockups_admin_insert'
+  ) then
+    create policy "product_mockups_admin_insert"
+    on storage.objects for insert
+    with check (bucket_id = 'product-mockups' and auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'product_mockups_admin_update'
+  ) then
+    create policy "product_mockups_admin_update"
+    on storage.objects for update
+    using (bucket_id = 'product-mockups' and auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
+    with check (bucket_id = 'product-mockups' and auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
   end if;
 end $$;

@@ -7,13 +7,9 @@ import {
   loadProducts,
   reorderProduct,
   updateProduct,
+  uploadColorPhoto,
 } from '../lib/productStore'
-import {
-  generateColorMockup,
-  getPrintfulProduct,
-  listPrintfulProducts,
-  type PrintfulListItem,
-} from '../lib/printful'
+import { getPrintfulProduct, listPrintfulProducts, type PrintfulListItem } from '../lib/printful'
 
 interface ProductDraft {
   name: string
@@ -24,6 +20,7 @@ interface ProductDraft {
   sizesInput: string
   placeholderEmoji: string
   shippingTime: string
+  hasBackDesign: boolean
 }
 
 function toDraft(p?: Product): ProductDraft {
@@ -36,6 +33,7 @@ function toDraft(p?: Product): ProductDraft {
     sizesInput: (p?.sizes ?? CLOTHING_SIZES).join(', '),
     placeholderEmoji: p?.placeholderEmoji ?? '🏌️',
     shippingTime: p?.shippingTime ?? DEFAULT_SHIPPING_TIME,
+    hasBackDesign: p?.hasBackDesign ?? false,
   }
 }
 
@@ -52,9 +50,11 @@ function draftToProduct(draft: ProductDraft, existing?: Product): Omit<Product, 
           .filter(Boolean)
       : undefined,
     images: existing?.images,
+    colors: existing?.colors,
     specs: existing?.specs,
     placeholderEmoji: draft.placeholderEmoji || undefined,
     shippingTime: draft.shippingTime.trim() || undefined,
+    hasBackDesign: draft.hasBackDesign,
   }
 }
 
@@ -153,6 +153,22 @@ function ProductForm({
         />
       </div>
 
+      <div>
+        <label className="flex items-center gap-2 text-xs font-medium text-fairway-700">
+          <input
+            type="checkbox"
+            checked={draft.hasBackDesign}
+            onChange={(e) => update('hasBackDesign', e.target.checked)}
+          />
+          Tiene diseño en la parte trasera
+        </label>
+        <p className="mt-1 text-xs text-fairway-500">
+          Si lo marcas, podrás subir una foto delantera y otra trasera por
+          color desde el botón "Fotos" del producto. Si no, se usa la foto
+          que trae Printful automáticamente.
+        </p>
+      </div>
+
       <div className="rounded-lg border border-gold-400 bg-gold-400/10 p-3 text-xs text-fairway-700">
         Esto se guarda de verdad y ya lo ven tus clientes en la Shop. Si el
         producto ya existe en tu tienda de Printful, mejor usa "Importar
@@ -188,12 +204,6 @@ function PrintfulImportPanel({
   const [items, setItems] = useState<PrintfulListItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [importingId, setImportingId] = useState<number | null>(null)
-  // Keyed by color name, or '__single__' for a colorless product's one
-  // implicit color — tracks each color's mockup-generation request
-  // independently so the admin can see which ones are still working.
-  const [colorProgress, setColorProgress] = useState<Record<string, 'generating' | 'done' | 'error'> | null>(
-    null,
-  )
 
   useEffect(() => {
     listPrintfulProducts()
@@ -204,31 +214,9 @@ function PrintfulImportPanel({
   async function handleImport(id: number) {
     setImportingId(id)
     setError(null)
-    setColorProgress(null)
     try {
       const detail = await getPrintfulProduct(id)
       onImported(await importPrintfulProduct(detail))
-
-      const colorNames = detail.colors?.length ? detail.colors.map((c) => c.name) : [null]
-      setColorProgress(
-        Object.fromEntries(colorNames.map((name) => [name ?? '__single__', 'generating' as const])),
-      )
-      // Staggered rather than all fired at once — several colors hitting
-      // Printful's Mockup Generator in the same instant was tripping its
-      // rate limit and failing every one of them.
-      await Promise.allSettled(
-        colorNames.map(async (name, index) => {
-          await new Promise((resolve) => setTimeout(resolve, index * 1500))
-          const key = name ?? '__single__'
-          try {
-            await generateColorMockup(id, name)
-            setColorProgress((prev) => (prev ? { ...prev, [key]: 'done' } : prev))
-          } catch {
-            setColorProgress((prev) => (prev ? { ...prev, [key]: 'error' } : prev))
-          }
-        }),
-      )
-      onImported(await loadProducts())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo importar el producto')
     } finally {
@@ -249,32 +237,6 @@ function PrintfulImportPanel({
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
-
-      {colorProgress && (
-        <div className="space-y-1 rounded-lg border border-cream-300 bg-cream-50 p-2.5">
-          <p className="text-xs font-medium text-fairway-700">
-            Generando las fotos completas con Printful (puede tardar 1-2 min por color)...
-          </p>
-          <ul className="space-y-0.5 text-xs text-fairway-600">
-            {Object.entries(colorProgress).map(([name, status]) => (
-              <li key={name} className="flex items-center justify-between">
-                <span>{name === '__single__' ? 'Fotos' : name}</span>
-                <span
-                  className={
-                    status === 'done'
-                      ? 'text-fairway-700'
-                      : status === 'error'
-                        ? 'text-red-500'
-                        : 'text-fairway-400'
-                  }
-                >
-                  {status === 'generating' ? 'Generando...' : status === 'done' ? 'Listo ✓' : 'Error'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       {items === null && !error ? (
         <p className="text-sm text-fairway-500">Cargando catálogo de Printful...</p>
@@ -312,12 +274,132 @@ function PrintfulImportPanel({
   )
 }
 
+function PhotoSlot({
+  label,
+  current,
+  uploading,
+  onSelect,
+}: {
+  label: string
+  current?: string
+  uploading: boolean
+  onSelect: (file: File) => void
+}) {
+  return (
+    <label className="flex cursor-pointer flex-col items-center gap-1 text-center">
+      <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md border border-cream-300 bg-cream-50">
+        {current ? (
+          <img src={current} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-[10px] text-fairway-400">Sin foto</span>
+        )}
+      </div>
+      <span className="text-[10px] text-fairway-500">{uploading ? 'Subiendo...' : label}</span>
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        disabled={uploading}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) onSelect(file)
+          e.target.value = ''
+        }}
+      />
+    </label>
+  )
+}
+
+function ProductPhotosPanel({
+  product,
+  onUpdated,
+  onClose,
+}: {
+  product: Product
+  onUpdated: (products: Product[]) => void
+  onClose: () => void
+}) {
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const slots: { name: string | null; label: string }[] = product.colors?.length
+    ? product.colors.map((c) => ({ name: c.name, label: c.name }))
+    : [{ name: null, label: 'Producto' }]
+
+  function imagesFor(name: string | null): string[] {
+    return name ? (product.colors?.find((c) => c.name === name)?.images ?? []) : (product.images ?? [])
+  }
+
+  async function handleUpload(name: string | null, slot: 'front' | 'back', file: File) {
+    const key = `${name ?? '__single__'}:${slot}`
+    setUploadingKey(key)
+    setError(null)
+    try {
+      onUpdated(await uploadColorPhoto(product.id, name, slot, file))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo subir la foto')
+    } finally {
+      setUploadingKey(null)
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-fairway-400 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-fairway-900">Fotos de {product.name}</h3>
+        <button onClick={onClose} className="text-xs text-fairway-500 underline-offset-2 hover:underline">
+          Cerrar
+        </button>
+      </div>
+
+      {!product.hasBackDesign && (
+        <p className="text-xs text-fairway-500">
+          Este producto solo usa la foto que trae Printful. Marca "Tiene diseño en la
+          parte trasera" al editarlo para poder subir fotos delantera y trasera aquí.
+        </p>
+      )}
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      <div className="space-y-2">
+        {slots.map(({ name, label }) => {
+          const images = imagesFor(name)
+          const key = name ?? '__single__'
+          return (
+            <div
+              key={key}
+              className="flex items-center gap-4 rounded-lg border border-cream-300 p-2"
+            >
+              <span className="w-20 shrink-0 text-xs font-medium text-fairway-700">{label}</span>
+              <PhotoSlot
+                label="Delantera"
+                current={images[0]}
+                uploading={uploadingKey === `${key}:front`}
+                onSelect={(file) => handleUpload(name, 'front', file)}
+              />
+              {product.hasBackDesign && (
+                <PhotoSlot
+                  label="Trasera"
+                  current={images[1]}
+                  uploading={uploadingKey === `${key}:back`}
+                  onSelect={(file) => handleUpload(name, 'back', file)}
+                />
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [importingFromPrintful, setImportingFromPrintful] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [photosId, setPhotosId] = useState<string | null>(null)
 
   useEffect(() => {
     loadProducts()
@@ -380,6 +462,13 @@ export function ProductsAdminPage() {
               }}
               onCancel={() => setEditingId(null)}
             />
+          ) : photosId === product.id ? (
+            <ProductPhotosPanel
+              key={product.id}
+              product={product}
+              onUpdated={setProducts}
+              onClose={() => setPhotosId(null)}
+            />
           ) : (
             <div
               key={product.id}
@@ -430,6 +519,12 @@ export function ProductsAdminPage() {
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">
+                <button
+                  onClick={() => setPhotosId(product.id)}
+                  className="rounded-md border border-cream-300 px-2.5 py-1 text-xs font-medium text-fairway-700 transition hover:border-fairway-400"
+                >
+                  Fotos
+                </button>
                 <button
                   onClick={() => setEditingId(product.id)}
                   className="rounded-md border border-cream-300 px-2.5 py-1 text-xs font-medium text-fairway-700 transition hover:border-fairway-400"

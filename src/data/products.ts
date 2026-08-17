@@ -26,6 +26,12 @@ export interface Product {
   colors?: ProductColor[]
   /** Estimated delivery time for this specific product, shown in its detail view. */
   shippingTime?: string
+  /**
+   * When true, photos are managed manually per color (front + back) from
+   * the admin panel instead of using Printful's single auto-imported
+   * photo. Off by default — most products only need the front.
+   */
+  hasBackDesign?: boolean
 }
 
 export const CLOTHING_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL']
