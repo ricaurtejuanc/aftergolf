@@ -216,6 +216,19 @@ function ProductDetailModal({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
+  // Without this, the page behind the modal can still scroll — on mobile a
+  // scroll gesture that starts inside the modal (e.g. scrolling down to
+  // reach the size selector) can "leak" into the page once the modal's own
+  // content hits its scroll limit, leaving the modal stuck mid-scroll when
+  // scrolling back up instead of returning fully to the top.
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [])
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
