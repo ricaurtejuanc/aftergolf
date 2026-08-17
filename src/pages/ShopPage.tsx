@@ -150,7 +150,7 @@ function ProductGallery({
 }
 
 function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void }) {
-  const thumbnail = product.colors?.[0]?.images[0] ?? product.images?.[0]
+  const thumbnail = product.images?.[0] ?? product.colors?.[0]?.images[0]
 
   return (
     <button
