@@ -183,6 +183,7 @@ function PrintfulImportPanel({
   const [items, setItems] = useState<PrintfulListItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [importingId, setImportingId] = useState<number | null>(null)
+  const [justImported, setJustImported] = useState(false)
 
   useEffect(() => {
     listPrintfulProducts()
@@ -193,9 +194,11 @@ function PrintfulImportPanel({
   async function handleImport(id: number) {
     setImportingId(id)
     setError(null)
+    setJustImported(false)
     try {
       const detail = await getPrintfulProduct(id)
       onImported(await importPrintfulProduct(detail))
+      setJustImported(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo importar el producto')
     } finally {
@@ -217,9 +220,11 @@ function PrintfulImportPanel({
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      {importingId !== null && (
+      {justImported && (
         <p className="text-xs text-fairway-500">
-          Generando las fotos del producto con Printful, puede tardar un minuto...
+          Producto importado. Las fotos completas de cada color se están generando en
+          segundo plano en Printful — recarga esta página en uno o dos minutos para
+          verlas todas.
         </p>
       )}
 
