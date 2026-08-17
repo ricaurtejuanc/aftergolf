@@ -15,6 +15,7 @@ interface ProductRow {
   sizes: string[] | null
   colors: Product['colors'] | null
   shipping_time: string | null
+  has_back_design: boolean | null
 }
 
 function fromRow(row: ProductRow): Product {
@@ -32,6 +33,7 @@ function fromRow(row: ProductRow): Product {
     sizes: row.sizes ?? undefined,
     colors: row.colors ?? undefined,
     shippingTime: row.shipping_time ?? undefined,
+    hasBackDesign: row.has_back_design ?? false,
   }
 }
 
@@ -76,6 +78,7 @@ export async function addProduct(input: Omit<Product, 'id'>): Promise<Product[]>
     specs: input.specs ?? null,
     sizes: input.sizes ?? null,
     shipping_time: input.shippingTime || null,
+    has_back_design: input.hasBackDesign ?? false,
     position: count ?? 0,
   })
   if (error) throw error
@@ -94,6 +97,8 @@ export async function updateProduct(id: string, patch: Omit<Product, 'id'>): Pro
       specs: patch.specs ?? null,
       sizes: patch.sizes ?? null,
       shipping_time: patch.shippingTime || null,
+      colors: patch.colors ?? null,
+      has_back_design: patch.hasBackDesign ?? false,
     })
     .eq('id', id)
   if (error) throw error
@@ -109,22 +114,43 @@ export async function deleteProduct(id: string): Promise<Product[]> {
 export async function importPrintfulProduct(detail: PrintfulProductDetail): Promise<Product[]> {
   const { data: existing } = await supabase
     .from('products')
-    .select('id')
+    .select('id, has_back_design, colors, images')
     .eq('printful_id', detail.printfulId)
     .maybeSingle()
 
   if (existing) {
     // Deliberately excludes description and shipping_time — those are
     // editorial fields the admin may have customized, and re-importing
-    // shouldn't clobber them.
+    // shouldn't clobber them. When photos are managed manually (front/back
+    // per color via the "Fotos" panel), the color/size metadata still
+    // stays in sync with Printful but the uploaded photos themselves are
+    // kept instead of being replaced by Printful's single auto photo.
+    const hasBackDesign = existing.has_back_design ?? false
+    const existingColors = (existing.colors as Product['colors']) ?? null
+
+    const colors =
+      detail.colors && detail.colors.length
+        ? hasBackDesign
+          ? detail.colors.map((c) => ({
+              ...c,
+              images: existingColors?.find((ec) => ec.name === c.name)?.images ?? [],
+            }))
+          : detail.colors
+        : null
+    const images = hasBackDesign
+      ? (existing.images as string[] | null) ?? null
+      : detail.images.length
+        ? detail.images
+        : null
+
     const { error } = await supabase
       .from('products')
       .update({
         name: detail.name,
         price: detail.price,
         sizes: detail.sizes.length ? detail.sizes : null,
-        images: detail.images.length ? detail.images : null,
-        colors: detail.colors && detail.colors.length ? detail.colors : null,
+        images,
+        colors,
         printful_variants: detail.variants.length ? detail.variants : null,
       })
       .eq('id', existing.id)
@@ -168,5 +194,57 @@ export async function reorderProduct(
       supabase.from('products').update({ position }).eq('id', productId),
     ),
   )
+  return loadProducts()
+}
+
+const MOCKUP_BUCKET = 'product-mockups'
+
+// Manually-uploaded product photo for one slot (front/back) of one color —
+// the reliable alternative to Printful's Mockup Generator, which produced
+// inconsistent results. `colorName` is null for a product with no color
+// variants, in which case this sets the product's own top-level images.
+export async function uploadColorPhoto(
+  productId: string,
+  colorName: string | null,
+  slot: 'front' | 'back',
+  file: File,
+): Promise<Product[]> {
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const path = `manual/${productId}/${colorName ? slugify(colorName) : 'unico'}/${slot}.${ext}`
+  const { error: uploadError } = await supabase.storage
+    .from(MOCKUP_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' })
+  if (uploadError) throw uploadError
+  const url = supabase.storage.from(MOCKUP_BUCKET).getPublicUrl(path).data.publicUrl
+
+  const { data, error: fetchError } = await supabase
+    .from('products')
+    .select('colors, images')
+    .eq('id', productId)
+    .maybeSingle()
+  if (fetchError) throw fetchError
+  if (!data) throw new Error('Producto no encontrado')
+
+  const slotIndex = slot === 'front' ? 0 : 1
+
+  if (colorName) {
+    const colors = (data.colors as Product['colors']) ?? []
+    const next = colors.map((c) => {
+      if (c.name !== colorName) return c
+      const images = [...c.images]
+      images[slotIndex] = url
+      return { ...c, images: images.filter(Boolean) }
+    })
+    const { error } = await supabase.from('products').update({ colors: next }).eq('id', productId)
+    if (error) throw error
+  } else {
+    const images = [...((data.images as string[] | null) ?? [])]
+    images[slotIndex] = url
+    const { error } = await supabase
+      .from('products')
+      .update({ images: images.filter(Boolean) })
+      .eq('id', productId)
+    if (error) throw error
+  }
   return loadProducts()
 }
