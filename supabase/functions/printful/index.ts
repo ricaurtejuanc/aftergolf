@@ -165,6 +165,20 @@ Deno.serve(async (req) => {
       }
       const { sync_product: syncProduct, sync_variants: syncVariants } = result
 
+      // Temporary: compact summary (not the full files array, which gets
+      // truncated in the logs) — confirms whether any variant actually has
+      // more than one "preview"-type file.
+      console.log(
+        `Printful preview counts for product ${id}`,
+        JSON.stringify(
+          syncVariants.map((v) => ({
+            name: v.name,
+            previewCount: (v.files ?? []).filter((f) => f.type === 'preview').length,
+            previewUrls: (v.files ?? []).filter((f) => f.type === 'preview').map((f) => f.preview_url),
+          })),
+        ),
+      )
+
       const prices = syncVariants
         .map((v) => Number(v.retail_price))
         .filter((n) => !Number.isNaN(n))
