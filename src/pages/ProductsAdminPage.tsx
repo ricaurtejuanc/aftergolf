@@ -217,6 +217,12 @@ function PrintfulImportPanel({
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
+      {importingId !== null && (
+        <p className="text-xs text-fairway-500">
+          Generando las fotos del producto con Printful, puede tardar un minuto...
+        </p>
+      )}
+
       {items === null && !error ? (
         <p className="text-sm text-fairway-500">Cargando catálogo de Printful...</p>
       ) : items && items.length === 0 ? (
