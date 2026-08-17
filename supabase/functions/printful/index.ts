@@ -184,7 +184,7 @@ async function generateMockupsForColor(
   })) as { task_key: string }
   const taskKey = createResult.task_key
 
-  for (let attempt = 0; attempt < 25; attempt++) {
+  for (let attempt = 0; attempt < 40; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, 3000))
     const poll = (await printfulFetch(`/mockup-generator/task?task_key=${taskKey}`)) as {
       status: string
@@ -234,6 +234,90 @@ async function persistMockups(
     }),
   )
   return uploaded.filter((u): u is string => Boolean(u))
+}
+
+// The product row is created/updated by the client (importPrintfulProduct)
+// right after it receives this function's fast response, so a background
+// job that starts generating mockups before that response even lands has to
+// wait for the row to actually exist before it can patch it — retries for
+// up to ~20s, comfortably longer than that client round-trip ever takes.
+async function waitForProductRow(
+  admin: ReturnType<typeof createClient>,
+  printfulId: number,
+): Promise<string | null> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const { data } = await admin.from('products').select('id').eq('printful_id', printfulId).maybeSingle()
+    if (data) return data.id as string
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+  }
+  return null
+}
+
+// Patches just one color's images (or the top-level images, for a
+// colorless product) once its mockup gallery is ready — never a bulk
+// write of every color at once, so a color that's still rendering (or
+// never finishes) doesn't block the ones that already did.
+async function patchProductImages(
+  admin: ReturnType<typeof createClient>,
+  productRowId: string,
+  colorName: string | null,
+  images: string[],
+) {
+  if (!colorName) {
+    await admin.from('products').update({ images }).eq('id', productRowId)
+    return
+  }
+  const { data } = await admin.from('products').select('colors').eq('id', productRowId).maybeSingle()
+  const colors = Array.isArray(data?.colors) ? data.colors : null
+  if (!colors) return
+  const next = colors.map((c: { name: string }) => (c.name === colorName ? { ...c, images } : c))
+  await admin.from('products').update({ colors: next }).eq('id', productRowId)
+}
+
+interface ColorGroup {
+  code: string | null
+  sizes: Set<string>
+  representative: PrintfulSyncVariant
+  fallbackImage: string | null
+}
+
+// Runs after the HTTP response has already gone out (via
+// EdgeRuntime.waitUntil) — rendering every color's full mockup gallery
+// takes 45s-2min *per color*, far past what's reasonable to make an admin
+// wait on before "Importar" even finishes, and multi-color products (e.g.
+// 7 colors) running that serially-ish inside one request routinely blew
+// past the platform's 150s wall-clock limit, losing the whole import.
+// Here each color is generated and persisted independently and patched
+// into the row as soon as it's ready, so a slow or failing color no
+// longer holds back — or breaks — the rest.
+async function backgroundGenerateMockups(
+  admin: ReturnType<typeof createClient>,
+  syncProductId: number,
+  catalogProductId: number | null,
+  colorOrder: string[],
+  colorGroups: Map<string, ColorGroup>,
+  hasColorPicker: boolean,
+) {
+  if (!catalogProductId) return
+  const productRowId = await waitForProductRow(admin, syncProductId)
+  if (!productRowId) {
+    console.error(`Product row for printful_id ${syncProductId} never appeared; skipping mockup generation`)
+    return
+  }
+  await Promise.all(
+    colorOrder.map(async (name) => {
+      const group = colorGroups.get(name)!
+      try {
+        const urls = await generateMockupsForColor(catalogProductId, group.representative)
+        if (!urls || urls.length === 0) return
+        const persisted = await persistMockups(admin, syncProductId, name, urls)
+        if (persisted.length === 0) return
+        await patchProductImages(admin, productRowId, hasColorPicker ? name : null, persisted)
+      } catch (err) {
+        console.error(`Background mockup generation failed for color "${name}"`, err)
+      }
+    }),
+  )
 }
 
 Deno.serve(async (req) => {
@@ -323,48 +407,50 @@ Deno.serve(async (req) => {
         if (size) group.sizes.add(size)
       })
 
-      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+      // Return immediately with each color's single flat preview photo (the
+      // same fast, always-available fallback as before this feature
+      // existed) — the full multi-angle Mockup Generator gallery renders in
+      // the background (see backgroundGenerateMockups) and gets patched
+      // into this same product row color-by-color as each one finishes.
+      const hasColorPicker = colorOrder.length > 1
+      const colors = hasColorPicker
+        ? colorOrder.map((name) => {
+            const group = colorGroups.get(name)!
+            return {
+              name,
+              code: group.code,
+              images: group.fallbackImage ? [group.fallbackImage] : [],
+              sizes: Array.from(group.sizes),
+            }
+          })
+        : undefined
 
-      // Render the real multi-angle mockup gallery per color. Best-effort:
-      // any color whose generation fails or times out just keeps its single
-      // flat preview photo rather than losing an image entirely.
-      const mockupSets = await Promise.all(
-        colorOrder.map(async (name) => {
-          const group = colorGroups.get(name)!
-          if (!catalogProductId) return null
-          try {
-            const urls = await generateMockupsForColor(catalogProductId, group.representative)
-            if (!urls || urls.length === 0) return null
-            return await persistMockups(admin, syncProduct.id, name, urls)
-          } catch (err) {
-            console.error(`Mockup generation failed for color "${name}"`, err)
-            return null
-          }
-        }),
+      const images = Array.from(
+        new Set(
+          [syncProduct.thumbnail_url, previewFor(syncVariants[0])].filter(
+            (src): src is string => Boolean(src),
+          ),
+        ),
       )
 
-      const colors =
-        colorOrder.length > 1
-          ? colorOrder.map((name, i) => {
-              const group = colorGroups.get(name)!
-              const generated = mockupSets[i]
-              const images = generated?.length ? generated : group.fallbackImage ? [group.fallbackImage] : []
-              return { name, code: group.code, images, sizes: Array.from(group.sizes) }
-            })
-          : undefined
-
-      // Single-color (or colorless) products don't get a color picker, but
-      // still benefit from the full gallery for their one implicit color.
-      const singleColorMockups = colorOrder.length === 1 ? mockupSets[0] : null
-      const images = singleColorMockups?.length
-        ? singleColorMockups
-        : Array.from(
-            new Set(
-              [syncProduct.thumbnail_url, previewFor(syncVariants[0])].filter(
-                (src): src is string => Boolean(src),
-              ),
-            ),
-          )
+      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+      const backgroundTask = backgroundGenerateMockups(
+        admin,
+        syncProduct.id,
+        catalogProductId,
+        colorOrder,
+        colorGroups,
+        hasColorPicker,
+      )
+      // deno-lint-ignore no-explicit-any
+      const edgeRuntime = (globalThis as any).EdgeRuntime
+      if (edgeRuntime?.waitUntil) {
+        edgeRuntime.waitUntil(backgroundTask)
+      } else {
+        // Local/dev fallback where EdgeRuntime isn't available — still run
+        // it, just without the platform's background-task guarantee.
+        backgroundTask.catch((err) => console.error('Background mockup generation error', err))
+      }
 
       // Needed to place orders through Printful's Orders API later on
       // (sync_variant_id per line item) — kept separate from the
