@@ -405,15 +405,16 @@ function ProductPhotosPanel({
                   onSelect={(file) => handleUpload(name, 'back', file)}
                 />
               )}
-              {product.hasBackDesign && frontExists && backExists && (
+              {product.hasBackDesign && (
                 <div className="flex flex-col items-start gap-1">
                   <span className="text-[10px] text-fairway-500">Foto principal en la Shop</span>
                   <div className="flex gap-1">
                     <button
                       type="button"
                       onClick={() => handleSetMain(name, 'front')}
-                      disabled={mainIsFront || uploadingKey === `${key}:main`}
-                      className={`rounded border px-2 py-0.5 text-[10px] font-medium transition disabled:cursor-default ${
+                      disabled={!frontExists || mainIsFront || uploadingKey === `${key}:main`}
+                      title={!frontExists ? 'Sube antes la foto delantera' : undefined}
+                      className={`rounded border px-2 py-0.5 text-[10px] font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
                         mainIsFront
                           ? 'border-fairway-700 bg-fairway-700 text-white'
                           : 'border-cream-300 text-fairway-600 hover:border-fairway-400'
@@ -424,9 +425,10 @@ function ProductPhotosPanel({
                     <button
                       type="button"
                       onClick={() => handleSetMain(name, 'back')}
-                      disabled={!mainIsFront || uploadingKey === `${key}:main`}
-                      className={`rounded border px-2 py-0.5 text-[10px] font-medium transition disabled:cursor-default ${
-                        !mainIsFront
+                      disabled={!backExists || !mainIsFront || uploadingKey === `${key}:main`}
+                      title={!backExists ? 'Sube antes la foto trasera' : undefined}
+                      className={`rounded border px-2 py-0.5 text-[10px] font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                        !mainIsFront && backExists
                           ? 'border-fairway-700 bg-fairway-700 text-white'
                           : 'border-cream-300 text-fairway-600 hover:border-fairway-400'
                       }`}
