@@ -125,10 +125,11 @@ export async function importPrintfulProduct(detail: PrintfulProductDetail): Prom
   if (existing) {
     // Deliberately excludes description and shipping_time — those are
     // editorial fields the admin may have customized, and re-importing
-    // shouldn't clobber them. Any color/product photo the admin uploaded
-    // manually (via the "Fotos" panel) is kept instead of being replaced by
-    // Printful's photo — checked per photo, so manually-set photos survive
-    // a reimport.
+    // shouldn't clobber them. If a color's (or the product's own) gallery
+    // has ANY manually-uploaded photo in it, the whole gallery is left
+    // alone instead of being replaced by Printful's photos — so adding
+    // extra photos alongside a Printful one and reimporting later never
+    // loses them.
     const existingColors = (existing.colors as Product['colors']) ?? null
     const existingImages = (existing.images as string[] | null) ?? null
 
@@ -136,10 +137,10 @@ export async function importPrintfulProduct(detail: PrintfulProductDetail): Prom
       detail.colors && detail.colors.length
         ? detail.colors.map((c) => {
             const existingColor = existingColors?.find((ec) => ec.name === c.name)
-            return isManualPhoto(existingColor?.images[0]) ? { ...c, images: existingColor!.images } : c
+            return existingColor?.images.some(isManualPhoto) ? { ...c, images: existingColor.images } : c
           })
         : null
-    const images = isManualPhoto(existingImages?.[0])
+    const images = existingImages?.some(isManualPhoto)
       ? existingImages
       : detail.images.length
         ? detail.images
@@ -196,6 +197,37 @@ export async function reorderProduct(
       supabase.from('products').update({ position }).eq('id', productId),
     ),
   )
+  return loadProducts()
+}
+
+// Moves a color one step earlier/later within a product's own colors list.
+// The first color is the one selected by default when a customer opens the
+// product, and (absent a dedicated Shop thumbnail) the one whose photo is
+// used as the Shop card thumbnail — so this is how the admin picks which
+// color "wins" in both places.
+export async function reorderProductColor(
+  productId: string,
+  colorName: string,
+  direction: 'up' | 'down',
+): Promise<Product[]> {
+  const { data, error: fetchError } = await supabase
+    .from('products')
+    .select('colors')
+    .eq('id', productId)
+    .maybeSingle()
+  if (fetchError) throw fetchError
+  if (!data) throw new Error('Producto no encontrado')
+
+  const colors = (data.colors as Product['colors']) ?? []
+  const idx = colors.findIndex((c) => c.name === colorName)
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+  if (idx === -1 || swapIdx < 0 || swapIdx >= colors.length) return loadProducts()
+
+  const next = [...colors]
+  ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
+
+  const { error } = await supabase.from('products').update({ colors: next }).eq('id', productId)
+  if (error) throw error
   return loadProducts()
 }
 

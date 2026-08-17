@@ -9,6 +9,7 @@ import {
   loadProducts,
   reorderColorPhoto,
   reorderProduct,
+  reorderProductColor,
   updateProduct,
 } from '../lib/productStore'
 import { getPrintfulProduct, listPrintfulProducts, type PrintfulListItem } from '../lib/printful'
@@ -408,6 +409,18 @@ function ProductPhotosPanel({
     }
   }
 
+  async function handleMoveColor(name: string, direction: 'up' | 'down') {
+    setBusyKey(name)
+    setError(null)
+    try {
+      onUpdated(await reorderProductColor(product.id, name, direction))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo reordenar el color')
+    } finally {
+      setBusyKey(null)
+    }
+  }
+
   return (
     <div className="space-y-3 rounded-xl border border-fairway-400 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -420,18 +433,21 @@ function ProductPhotosPanel({
       <p className="text-xs text-fairway-500">
         "Shop thumbnail" es la foto que se ve en el listado del Shop — es un bloque aparte,
         independiente de los colores. Las galerías por color (si las hay) se usan al abrir el
-        producto y elegir ese color. Añade tantas fotos como quieras en cada bloque, bórralas o
-        cambia su orden con las flechas.
+        producto y elegir ese color; el primer color de la lista es el que se selecciona por
+        defecto, así que usa sus flechas ▲▼ para decidir cuál sale primero. Añade tantas fotos
+        como quieras en cada bloque, bórralas o cambia su orden con las flechas ‹ ›.
       </p>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="space-y-3">
-        {rows.map(({ name, label }) => {
+        {rows.map(({ name, label }, rowIdx) => {
           const images = imagesFor(name)
           const key = name ?? '__single__'
           const busy = busyKey === key
           const isShopThumbnail = name === null
+          const colorCount = product.colors?.length ?? 0
+          const colorIdx = isShopThumbnail ? -1 : rowIdx - 1
           return (
             <div
               key={key}
@@ -439,7 +455,33 @@ function ProductPhotosPanel({
                 isShopThumbnail ? 'border-gold-400 bg-gold-400/5' : 'border-cream-300'
               }`}
             >
-              <div className="mb-1.5 text-xs font-medium text-fairway-700">{label}</div>
+              <div className="mb-1.5 flex items-center gap-1.5">
+                {!isShopThumbnail && (
+                  <div className="flex gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveColor(name!, 'up')}
+                      disabled={colorIdx === 0 || busy}
+                      aria-label={`Subir color ${label}`}
+                      title="Subir color"
+                      className="rounded border border-cream-300 px-1 text-[10px] leading-tight text-fairway-600 transition hover:border-fairway-400 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveColor(name!, 'down')}
+                      disabled={colorIdx === colorCount - 1 || busy}
+                      aria-label={`Bajar color ${label}`}
+                      title="Bajar color"
+                      className="rounded border border-cream-300 px-1 text-[10px] leading-tight text-fairway-600 transition hover:border-fairway-400 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                )}
+                <span className="text-xs font-medium text-fairway-700">{label}</span>
+              </div>
               <div className="flex flex-wrap items-start gap-2">
                 {images.map((url, idx) => (
                   <PhotoThumb
