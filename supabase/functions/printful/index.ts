@@ -1,7 +1,13 @@
+import { createClient } from 'npm:@supabase/supabase-js@2'
+
 const PRINTFUL_API_KEY = Deno.env.get('PRINTFUL_API_KEY')
 const ADMIN_EMAIL = 'ricaurtejuanc@gmail.com'
 const PRINTFUL_BASE = 'https://api.printful.com'
 const KNOWN_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL']
+const MOCKUP_BUCKET = 'product-mockups'
+// Auto-provided in every Supabase Edge Function — no manual secret needed.
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -73,6 +79,17 @@ function guessColor(variantName: string): string | null {
   return parts[parts.length - 2]
 }
 
+function slugify(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'color'
+  )
+}
+
 interface PrintfulFile {
   type: string
   preview_url?: string
@@ -93,22 +110,6 @@ interface PrintfulCatalogVariant {
   color_code?: string | null
 }
 
-// Temporary: doesn't throw, returns the raw status + body so we can inspect
-// Printful's validation error details while probing the Mockup Generator
-// API's request shape (its docs aren't reachable from this environment).
-async function printfulFetchRaw(path: string, init?: RequestInit) {
-  const res = await fetch(`${PRINTFUL_BASE}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${PRINTFUL_API_KEY}`,
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init?.headers,
-    },
-  })
-  const data = await res.json().catch(() => null)
-  return { status: res.status, data }
-}
-
 // The sync API (what /store/products returns) only gives us a free-text
 // variant name to parse. The catalog API knows the real color name and its
 // hex code for the underlying Printful variant, so look that up per variant
@@ -124,6 +125,115 @@ async function fetchCatalogVariant(variantId: number): Promise<PrintfulCatalogVa
     console.error(`Printful catalog lookup failed for variant ${variantId}`, err)
     return null
   }
+}
+
+interface PrintfulPrintfile {
+  printfile_id: number
+  width: number
+  height: number
+}
+
+// Renders the full mockup gallery (every angle/model Printful's Mockup
+// Generator offers) for one representative variant of a color, instead of
+// the single flat "preview" photo the sync/store API exposes. The
+// generator needs the same design file(s) already placed on the product —
+// each placement's printable-area size comes from the printfiles endpoint,
+// and the design is placed to fill that whole area (matching how the
+// product was originally set up). Async on Printful's side (~45-60s), so
+// this polls until done or gives up. Returns null (caller falls back to
+// the plain preview photo) if anything about the product isn't shaped the
+// way we expect, rather than failing the whole import.
+async function generateMockupsForColor(
+  catalogProductId: number,
+  variant: PrintfulSyncVariant,
+): Promise<string[] | null> {
+  const designFiles = (variant.files ?? []).filter((f) => f.type !== 'preview' && f.preview_url)
+  if (designFiles.length === 0) return null
+
+  const printfilesResult = (await printfulFetch(`/mockup-generator/printfiles/${catalogProductId}`)) as {
+    printfiles: PrintfulPrintfile[]
+    variant_printfiles: { variant_id: number; placements: Record<string, number> }[]
+  }
+  const printfileById = new Map(printfilesResult.printfiles.map((p) => [p.printfile_id, p]))
+  const placements =
+    printfilesResult.variant_printfiles.find((v) => v.variant_id === variant.variant_id)?.placements ?? {}
+
+  const files = designFiles
+    .map((f) => {
+      const printfile = printfileById.get(placements[f.type])
+      if (!printfile) return null
+      return {
+        placement: f.type,
+        image_url: f.preview_url,
+        position: {
+          area_width: printfile.width,
+          area_height: printfile.height,
+          width: printfile.width,
+          height: printfile.height,
+          top: 0,
+          left: 0,
+        },
+      }
+    })
+    .filter((f): f is NonNullable<typeof f> => f !== null)
+  if (files.length === 0) return null
+
+  const createResult = (await printfulFetch(`/mockup-generator/create-task/${catalogProductId}`, {
+    method: 'POST',
+    body: JSON.stringify({ variant_ids: [variant.variant_id], files }),
+  })) as { task_key: string }
+  const taskKey = createResult.task_key
+
+  for (let attempt = 0; attempt < 25; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+    const poll = (await printfulFetch(`/mockup-generator/task?task_key=${taskKey}`)) as {
+      status: string
+      mockups?: { mockup_url: string; extra?: { url: string }[] }[]
+    }
+    if (poll.status === 'completed') {
+      const urls: string[] = []
+      for (const mockup of poll.mockups ?? []) {
+        urls.push(mockup.mockup_url)
+        for (const extra of mockup.extra ?? []) urls.push(extra.url)
+      }
+      return urls
+    }
+    if (poll.status === 'failed') return null
+  }
+  return null
+}
+
+// Printful's generated mockup URLs (an S3 bucket under its control) expire
+// ~72h after creation, so download and re-host each one in our own Storage
+// bucket for permanent use before saving them on the product row.
+async function persistMockups(
+  admin: ReturnType<typeof createClient>,
+  syncProductId: number,
+  colorName: string,
+  urls: string[],
+): Promise<string[]> {
+  const uploaded = await Promise.all(
+    urls.map(async (sourceUrl, index) => {
+      try {
+        const res = await fetch(sourceUrl)
+        if (!res.ok) return null
+        const bytes = await res.arrayBuffer()
+        const path = `printful/${syncProductId}/${slugify(colorName)}/${index}.png`
+        const { error } = await admin.storage
+          .from(MOCKUP_BUCKET)
+          .upload(path, bytes, { contentType: 'image/png', upsert: true })
+        if (error) {
+          console.error(`Storage upload failed for ${path}`, error)
+          return null
+        }
+        return admin.storage.from(MOCKUP_BUCKET).getPublicUrl(path).data.publicUrl
+      } catch (err) {
+        console.error(`Mockup download/upload failed for ${sourceUrl}`, err)
+        return null
+      }
+    }),
+  )
+  return uploaded.filter((u): u is string => Boolean(u))
 }
 
 Deno.serve(async (req) => {
@@ -165,20 +275,6 @@ Deno.serve(async (req) => {
       }
       const { sync_product: syncProduct, sync_variants: syncVariants } = result
 
-      // Temporary: compact summary (not the full files array, which gets
-      // truncated in the logs) — confirms whether any variant actually has
-      // more than one "preview"-type file.
-      console.log(
-        `Printful preview counts for product ${id}`,
-        JSON.stringify(
-          syncVariants.map((v) => ({
-            name: v.name,
-            previewCount: (v.files ?? []).filter((f) => f.type === 'preview').length,
-            previewUrls: (v.files ?? []).filter((f) => f.type === 'preview').map((f) => f.preview_url),
-          })),
-        ),
-      )
-
       const prices = syncVariants
         .map((v) => Number(v.retail_price))
         .filter((n) => !Number.isNaN(n))
@@ -187,6 +283,7 @@ Deno.serve(async (req) => {
       const catalogVariants = await Promise.all(
         syncVariants.map((v) => fetchCatalogVariant(v.variant_id)),
       )
+      const catalogProductId = catalogVariants.find((c) => c?.product_id)?.product_id ?? null
 
       const sizes = Array.from(
         new Set(
@@ -196,29 +293,28 @@ Deno.serve(async (req) => {
         ),
       )
 
-      // Each variant's files include design/embroidery placement closeups
-      // (e.g. "embroidery_chest_left", "back") alongside the actual garment
-      // photo, which is always type "preview" — only that one is a real
-      // product photo, the rest are flat, backgroundless design previews.
-      // "preview" is also regenerated per size (same garment, near-identical
-      // photo), so only the first size's preview is kept per color instead
-      // of piling up near-duplicates from every size.
+      // The garment photo Printful attaches directly to each variant
+      // ("preview" file) — used as a fallback when the full Mockup
+      // Generator gallery below can't be produced for a color in time.
       function previewFor(variant: PrintfulSyncVariant): string | null {
         return variant.files?.find((f) => f.type === 'preview')?.preview_url ?? null
       }
 
       const colorOrder: string[] = []
-      const colorGroups = new Map<string, { code: string | null; images: string[]; sizes: Set<string> }>()
+      const colorGroups = new Map<
+        string,
+        { code: string | null; sizes: Set<string>; representative: PrintfulSyncVariant; fallbackImage: string | null }
+      >()
       syncVariants.forEach((variant, i) => {
         const catalog = catalogVariants[i]
         const color = catalog?.color?.trim() || guessColor(variant.name)
         if (!color) return
         if (!colorGroups.has(color)) {
-          const preview = previewFor(variant)
           colorGroups.set(color, {
             code: catalog?.color_code ?? null,
-            images: preview ? [preview] : [],
             sizes: new Set(),
+            representative: variant,
+            fallbackImage: previewFor(variant),
           })
           colorOrder.push(color)
         }
@@ -226,28 +322,49 @@ Deno.serve(async (req) => {
         const size = catalog?.size ?? guessSize(variant.name)
         if (size) group.sizes.add(size)
       })
-      // Only worth surfacing as a color picker when the product actually has
-      // more than one color — a single guessed "color" is usually noise.
+
+      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+      // Render the real multi-angle mockup gallery per color. Best-effort:
+      // any color whose generation fails or times out just keeps its single
+      // flat preview photo rather than losing an image entirely.
+      const mockupSets = await Promise.all(
+        colorOrder.map(async (name) => {
+          const group = colorGroups.get(name)!
+          if (!catalogProductId) return null
+          try {
+            const urls = await generateMockupsForColor(catalogProductId, group.representative)
+            if (!urls || urls.length === 0) return null
+            return await persistMockups(admin, syncProduct.id, name, urls)
+          } catch (err) {
+            console.error(`Mockup generation failed for color "${name}"`, err)
+            return null
+          }
+        }),
+      )
+
       const colors =
         colorOrder.length > 1
-          ? colorOrder.map((name) => {
+          ? colorOrder.map((name, i) => {
               const group = colorGroups.get(name)!
-              return {
-                name,
-                code: group.code,
-                images: group.images,
-                sizes: Array.from(group.sizes),
-              }
+              const generated = mockupSets[i]
+              const images = generated?.length ? generated : group.fallbackImage ? [group.fallbackImage] : []
+              return { name, code: group.code, images, sizes: Array.from(group.sizes) }
             })
           : undefined
 
-      const images = Array.from(
-        new Set(
-          [syncProduct.thumbnail_url, previewFor(syncVariants[0])].filter(
-            (src): src is string => Boolean(src),
-          ),
-        ),
-      )
+      // Single-color (or colorless) products don't get a color picker, but
+      // still benefit from the full gallery for their one implicit color.
+      const singleColorMockups = colorOrder.length === 1 ? mockupSets[0] : null
+      const images = singleColorMockups?.length
+        ? singleColorMockups
+        : Array.from(
+            new Set(
+              [syncProduct.thumbnail_url, previewFor(syncVariants[0])].filter(
+                (src): src is string => Boolean(src),
+              ),
+            ),
+          )
 
       // Needed to place orders through Printful's Orders API later on
       // (sync_variant_id per line item) — kept separate from the
@@ -270,31 +387,6 @@ Deno.serve(async (req) => {
         colors,
         variants,
       })
-    }
-
-    if (action === 'mockup-debug') {
-      const id = url.searchParams.get('id')
-      if (!id) return jsonResponse({ error: 'Falta id' }, 400)
-
-      const syncResult = (await printfulFetch(`/store/products/${id}`)) as {
-        sync_variants: PrintfulSyncVariant[]
-      }
-      const firstVariant = syncResult.sync_variants[0]
-      const catalogRaw = await printfulFetchRaw(`/products/variant/${firstVariant.variant_id}`)
-      console.log('mockup-debug catalog variant', JSON.stringify(catalogRaw))
-
-      const catalogProductId = catalogRaw.data?.result?.variant?.product_id
-      if (!catalogProductId) {
-        return jsonResponse({ error: 'No product_id in catalog variant', catalogRaw })
-      }
-
-      const taskRaw = await printfulFetchRaw(`/mockup-generator/create-task/${catalogProductId}`, {
-        method: 'POST',
-        body: JSON.stringify({ variant_ids: [firstVariant.variant_id] }),
-      })
-      console.log('mockup-debug create-task', JSON.stringify(taskRaw))
-
-      return jsonResponse({ catalogProductId, catalogRaw, taskRaw })
     }
 
     return jsonResponse({ error: 'Acción desconocida' }, 400)
