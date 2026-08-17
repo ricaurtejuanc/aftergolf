@@ -199,6 +199,22 @@ export async function reorderProduct(
 
 const MOCKUP_BUCKET = 'product-mockups'
 
+// No file extension in the path — keeps the public URL for a given
+// product/color/slot stable across re-uploads (upsert just replaces the
+// bytes), regardless of the original file type, so re-uploading a photo
+// never needs to touch its position in the images array.
+function photoPath(productId: string, colorName: string | null, slot: 'front' | 'back'): string {
+  return `manual/${productId}/${colorName ? slugify(colorName) : 'unico'}/${slot}`
+}
+
+// The deterministic public URL for one product/color's front or back
+// photo, whether or not it has actually been uploaded yet — lets the
+// admin UI know which of a color's images[] entries is "the front photo"
+// independent of display order.
+export function getColorPhotoUrl(productId: string, colorName: string | null, slot: 'front' | 'back'): string {
+  return supabase.storage.from(MOCKUP_BUCKET).getPublicUrl(photoPath(productId, colorName, slot)).data.publicUrl
+}
+
 // Manually-uploaded product photo for one slot (front/back) of one color —
 // the reliable alternative to Printful's Mockup Generator, which produced
 // inconsistent results. `colorName` is null for a product with no color
@@ -209,13 +225,12 @@ export async function uploadColorPhoto(
   slot: 'front' | 'back',
   file: File,
 ): Promise<Product[]> {
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const path = `manual/${productId}/${colorName ? slugify(colorName) : 'unico'}/${slot}.${ext}`
+  const path = photoPath(productId, colorName, slot)
   const { error: uploadError } = await supabase.storage
     .from(MOCKUP_BUCKET)
     .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' })
   if (uploadError) throw uploadError
-  const url = supabase.storage.from(MOCKUP_BUCKET).getPublicUrl(path).data.publicUrl
+  const url = getColorPhotoUrl(productId, colorName, slot)
 
   const { data, error: fetchError } = await supabase
     .from('products')
@@ -225,25 +240,53 @@ export async function uploadColorPhoto(
   if (fetchError) throw fetchError
   if (!data) throw new Error('Producto no encontrado')
 
-  const slotIndex = slot === 'front' ? 0 : 1
-
   if (colorName) {
     const colors = (data.colors as Product['colors']) ?? []
     const next = colors.map((c) => {
       if (c.name !== colorName) return c
-      const images = [...c.images]
-      images[slotIndex] = url
-      return { ...c, images: images.filter(Boolean) }
+      return { ...c, images: c.images.includes(url) ? c.images : [...c.images, url] }
     })
     const { error } = await supabase.from('products').update({ colors: next }).eq('id', productId)
     if (error) throw error
   } else {
-    const images = [...((data.images as string[] | null) ?? [])]
-    images[slotIndex] = url
-    const { error } = await supabase
-      .from('products')
-      .update({ images: images.filter(Boolean) })
-      .eq('id', productId)
+    const current = (data.images as string[] | null) ?? []
+    const images = current.includes(url) ? current : [...current, url]
+    const { error } = await supabase.from('products').update({ images }).eq('id', productId)
+    if (error) throw error
+  }
+  return loadProducts()
+}
+
+// Reorders a color's (or product's) photos so the chosen front/back slot
+// comes first — that's the one used as the Shop thumbnail and default
+// gallery photo. No-op if that slot hasn't been uploaded yet.
+export async function setMainColorPhoto(
+  productId: string,
+  colorName: string | null,
+  slot: 'front' | 'back',
+): Promise<Product[]> {
+  const url = getColorPhotoUrl(productId, colorName, slot)
+
+  const { data, error: fetchError } = await supabase
+    .from('products')
+    .select('colors, images')
+    .eq('id', productId)
+    .maybeSingle()
+  if (fetchError) throw fetchError
+  if (!data) throw new Error('Producto no encontrado')
+
+  function reorder(images: string[]): string[] {
+    return images.includes(url) ? [url, ...images.filter((i) => i !== url)] : images
+  }
+
+  if (colorName) {
+    const colors = (data.colors as Product['colors']) ?? []
+    const next = colors.map((c) => (c.name === colorName ? { ...c, images: reorder(c.images) } : c))
+    const { error } = await supabase.from('products').update({ colors: next }).eq('id', productId)
+    if (error) throw error
+  } else {
+    const images = reorder((data.images as string[] | null) ?? [])
+    const { error } = await supabase.from('products').update({ images }).eq('id', productId)
     if (error) throw error
   }
   return loadProducts()
