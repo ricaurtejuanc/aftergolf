@@ -31,6 +31,7 @@ const TRACKED_PAGES: { path: string; label: string }[] = [
   { path: '/antes-de-jugar', label: 'Antes de jugar' },
   { path: '/despues-de-jugar', label: 'Después de jugar' },
   { path: '/handicap-federado', label: 'Handicap oficial' },
+  { path: '/shop', label: 'Shop' },
 ]
 
 interface OrderStats {
