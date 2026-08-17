@@ -361,6 +361,13 @@ function ProductDetailModal({
   )
 }
 
+// The admin sets a free-text category per product (default "Ropa"), so the
+// Shop's two filters just bucket by whether that text is literally "Ropa"
+// or anything else — no separate taxonomy to maintain.
+function isClothing(category: string): boolean {
+  return category.trim().toLowerCase() === 'ropa'
+}
+
 function AddedToast({ message }: { message: string }) {
   return (
     <div className="fixed inset-x-0 bottom-20 z-50 flex justify-center px-4 md:bottom-6">
@@ -375,12 +382,16 @@ export function ShopPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [openProductId, setOpenProductId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState<'ropa' | 'articulos'>('ropa')
 
   useEffect(() => {
     loadProducts().then(setProducts)
   }, [])
   const { addItem } = useCart()
   const openProduct = products.find((p) => p.id === openProductId) ?? null
+  const filteredProducts = products.filter((p) =>
+    categoryFilter === 'ropa' ? isClothing(p.category) : !isClothing(p.category),
+  )
 
   useEffect(() => {
     if (!toast) return
@@ -404,14 +415,45 @@ export function ShopPage() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onOpen={() => setOpenProductId(product.id)}
-            />
-          ))}
+        <div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setCategoryFilter('ropa')}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                categoryFilter === 'ropa'
+                  ? 'bg-fairway-800 text-cream-50'
+                  : 'border border-cream-300 text-fairway-800 hover:border-fairway-400'
+              }`}
+            >
+              Ropa
+            </button>
+            <button
+              type="button"
+              onClick={() => setCategoryFilter('articulos')}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                categoryFilter === 'articulos'
+                  ? 'bg-fairway-800 text-cream-50'
+                  : 'border border-cream-300 text-fairway-800 hover:border-fairway-400'
+              }`}
+            >
+              Artículos
+            </button>
+          </div>
+
+          {filteredProducts.length === 0 ? (
+            <p className="mt-6 text-sm text-fairway-500">Todavía no hay productos en esta categoría.</p>
+          ) : (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onOpen={() => setOpenProductId(product.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <CartPanel className="hidden h-fit rounded-2xl border border-cream-300 bg-white p-5 shadow-sm lg:block lg:sticky lg:top-6" />
