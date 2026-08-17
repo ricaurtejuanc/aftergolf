@@ -32,12 +32,17 @@ function callerEmail(req: Request): string | null {
   }
 }
 
-async function printfulFetch(path: string) {
+async function printfulFetch(path: string, init?: RequestInit) {
   // Printful retired Basic auth with the legacy API key in favor of OAuth
   // 2.0 tokens sent as a Bearer token (same v1 REST endpoints, new auth
   // scheme) — see https://help.printful.com/hc/en-us/articles/4632388335260
   const res = await fetch(`${PRINTFUL_BASE}${path}`, {
-    headers: { Authorization: `Bearer ${PRINTFUL_API_KEY}` },
+    ...init,
+    headers: {
+      Authorization: `Bearer ${PRINTFUL_API_KEY}`,
+      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...init?.headers,
+    },
   })
   const data = await res.json()
   if (!res.ok) {
@@ -82,9 +87,26 @@ interface PrintfulSyncVariant {
 }
 
 interface PrintfulCatalogVariant {
+  product_id?: number
   size?: string | null
   color?: string | null
   color_code?: string | null
+}
+
+// Temporary: doesn't throw, returns the raw status + body so we can inspect
+// Printful's validation error details while probing the Mockup Generator
+// API's request shape (its docs aren't reachable from this environment).
+async function printfulFetchRaw(path: string, init?: RequestInit) {
+  const res = await fetch(`${PRINTFUL_BASE}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${PRINTFUL_API_KEY}`,
+      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...init?.headers,
+    },
+  })
+  const data = await res.json().catch(() => null)
+  return { status: res.status, data }
 }
 
 // The sync API (what /store/products returns) only gives us a free-text
@@ -234,6 +256,31 @@ Deno.serve(async (req) => {
         colors,
         variants,
       })
+    }
+
+    if (action === 'mockup-debug') {
+      const id = url.searchParams.get('id')
+      if (!id) return jsonResponse({ error: 'Falta id' }, 400)
+
+      const syncResult = (await printfulFetch(`/store/products/${id}`)) as {
+        sync_variants: PrintfulSyncVariant[]
+      }
+      const firstVariant = syncResult.sync_variants[0]
+      const catalogRaw = await printfulFetchRaw(`/products/variant/${firstVariant.variant_id}`)
+      console.log('mockup-debug catalog variant', JSON.stringify(catalogRaw))
+
+      const catalogProductId = catalogRaw.data?.result?.variant?.product_id
+      if (!catalogProductId) {
+        return jsonResponse({ error: 'No product_id in catalog variant', catalogRaw })
+      }
+
+      const taskRaw = await printfulFetchRaw(`/mockup-generator/create-task/${catalogProductId}`, {
+        method: 'POST',
+        body: JSON.stringify({ variant_ids: [firstVariant.variant_id] }),
+      })
+      console.log('mockup-debug create-task', JSON.stringify(taskRaw))
+
+      return jsonResponse({ catalogProductId, catalogRaw, taskRaw })
     }
 
     return jsonResponse({ error: 'Acción desconocida' }, 400)
