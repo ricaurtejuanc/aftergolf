@@ -280,6 +280,7 @@ function AddPhotoButton({ busy, onSelect }: { busy: boolean; onSelect: (file: Fi
 function PhotoThumb({
   url,
   isMain,
+  badgeLabel,
   busy,
   canMoveUp,
   canMoveDown,
@@ -288,6 +289,7 @@ function PhotoThumb({
 }: {
   url: string
   isMain: boolean
+  badgeLabel?: string
   busy: boolean
   canMoveUp: boolean
   canMoveDown: boolean
@@ -295,27 +297,29 @@ function PhotoThumb({
   onDelete: () => void
 }) {
   return (
-    <div className="relative h-16 w-16 shrink-0">
-      <div
-        className={`flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border-2 bg-white ${
-          isMain ? 'border-fairway-700' : 'border-cream-300'
-        }`}
-      >
-        <img src={url} alt="" className="h-full w-full object-cover" />
+    <div className="flex w-16 shrink-0 flex-col items-center gap-1">
+      <div className="relative h-16 w-16">
+        <div
+          className={`flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border-2 bg-white ${
+            isMain ? 'border-fairway-700' : 'border-cream-300'
+          }`}
+        >
+          <img src={url} alt="" className="h-full w-full object-cover" />
+        </div>
+        {isMain && badgeLabel && (
+          <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-fairway-700 px-1.5 py-0.5 text-[8px] font-semibold text-white">
+            {badgeLabel}
+          </span>
+        )}
       </div>
-      {isMain && (
-        <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 rounded-full bg-fairway-700 px-1.5 py-0.5 text-[8px] font-semibold text-white">
-          Shop
-        </span>
-      )}
-      <div className="mt-0.5 flex items-center justify-center gap-0.5">
+      <div className="flex items-center justify-center gap-1">
         <button
           type="button"
           onClick={() => onMove('up')}
           disabled={!canMoveUp || busy}
-          title="Mover antes (más cerca de la foto del shop)"
+          title="Mover antes"
           aria-label="Mover antes"
-          className="rounded px-1 text-[10px] leading-none text-fairway-500 hover:text-fairway-800 disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded px-1 text-xs leading-none text-fairway-500 hover:text-fairway-800 disabled:cursor-not-allowed disabled:opacity-30"
         >
           ‹
         </button>
@@ -325,7 +329,7 @@ function PhotoThumb({
           disabled={busy}
           title="Eliminar foto"
           aria-label="Eliminar foto"
-          className="rounded px-1 text-[10px] leading-none text-red-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded px-1 text-xs leading-none text-red-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-30"
         >
           ✕
         </button>
@@ -335,7 +339,7 @@ function PhotoThumb({
           disabled={!canMoveDown || busy}
           title="Mover después"
           aria-label="Mover después"
-          className="rounded px-1 text-[10px] leading-none text-fairway-500 hover:text-fairway-800 disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded px-1 text-xs leading-none text-fairway-500 hover:text-fairway-800 disabled:cursor-not-allowed disabled:opacity-30"
         >
           ›
         </button>
@@ -356,9 +360,10 @@ function ProductPhotosPanel({
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const rows: { name: string | null; label: string }[] = product.colors?.length
-    ? product.colors.map((c) => ({ name: c.name, label: c.name }))
-    : [{ name: null, label: 'Producto' }]
+  const rows: { name: string | null; label: string }[] = [
+    { name: null, label: 'Shop thumbnail' },
+    ...(product.colors?.map((c) => ({ name: c.name, label: c.name })) ?? []),
+  ]
 
   function imagesFor(name: string | null): string[] {
     return name ? (product.colors?.find((c) => c.name === name)?.images ?? []) : (product.images ?? [])
@@ -413,9 +418,10 @@ function ProductPhotosPanel({
       </div>
 
       <p className="text-xs text-fairway-500">
-        La primera foto de cada color (marcada "Shop") es la que se ve en el listado y por
-        defecto al abrir el producto. Añade tantas como quieras, bórralas o cambia su orden
-        con las flechas.
+        "Shop thumbnail" es la foto que se ve en el listado del Shop — es un bloque aparte,
+        independiente de los colores. Las galerías por color (si las hay) se usan al abrir el
+        producto y elegir ese color. Añade tantas fotos como quieras en cada bloque, bórralas o
+        cambia su orden con las flechas.
       </p>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
@@ -425,8 +431,14 @@ function ProductPhotosPanel({
           const images = imagesFor(name)
           const key = name ?? '__single__'
           const busy = busyKey === key
+          const isShopThumbnail = name === null
           return (
-            <div key={key} className="rounded-lg border border-cream-300 p-2">
+            <div
+              key={key}
+              className={`rounded-lg border p-2 ${
+                isShopThumbnail ? 'border-gold-400 bg-gold-400/5' : 'border-cream-300'
+              }`}
+            >
               <div className="mb-1.5 text-xs font-medium text-fairway-700">{label}</div>
               <div className="flex flex-wrap items-start gap-2">
                 {images.map((url, idx) => (
@@ -434,6 +446,7 @@ function ProductPhotosPanel({
                     key={url}
                     url={url}
                     isMain={idx === 0}
+                    badgeLabel={isShopThumbnail ? 'Shop' : 'Portada'}
                     busy={busy}
                     canMoveUp={idx > 0}
                     canMoveDown={idx < images.length - 1}
