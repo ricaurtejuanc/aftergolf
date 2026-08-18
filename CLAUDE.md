@@ -16,7 +16,7 @@ npm run test      # vitest run (all tests)
 npx vitest run src/lib/handicap.test.ts   # single test file
 ```
 
-There is currently only one test file, `src/lib/handicap.test.ts` — it validates the handicap formulas against a real round exported from the original Base44 app (see comments in that file for the reference numbers). New tests go in `*.test.ts`/`*.test.tsx` next to the code they cover; jsdom + Testing Library are already configured via `src/test/setup.ts` (`vite.config.ts`'s `test` block).
+There is currently only one test file, `src/lib/handicap.test.ts` — it validates the handicap formulas against a real round (see comments in that file for the reference numbers). New tests go in `*.test.ts`/`*.test.tsx` next to the code they cover; jsdom + Testing Library are already configured via `src/test/setup.ts` (`vite.config.ts`'s `test` block).
 
 No CI runs tests/lint on push — `.github/workflows/deploy-pages.yml` only builds and deploys on push to `main`. Run `lint`/`build`/`test` yourself before considering a change done.
 
