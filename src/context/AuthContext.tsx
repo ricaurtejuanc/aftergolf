@@ -24,6 +24,7 @@ interface AuthContextValue {
   passwordRecovery: boolean
   signUp: (input: SignUpInput) => Promise<{ needsConfirmation: boolean }>
   signIn: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   completePasswordRecovery: (password: string) => Promise<void>
   signOut: () => Promise<void>
@@ -59,6 +60,27 @@ async function completePendingProfile(userId: string, fallbackEmail: string) {
   } catch {
     // malformed pending data — nothing to recover
   }
+}
+
+// A Google sign-in never goes through signUp(), so there's no pending
+// profile for completePendingProfile() to pick up — build one from
+// whatever Google handed back instead, the first time we see that user.
+async function ensureProfile(sessionUser: User): Promise<Profile | null> {
+  const existing = await fetchProfile(sessionUser.id)
+  if (existing) return existing
+
+  const meta = sessionUser.user_metadata as Record<string, string | undefined>
+  const email = sessionUser.email ?? ''
+  const fullName = meta.full_name || meta.name || ''
+  const [nameFirst, ...nameRest] = fullName.split(' ').filter(Boolean)
+  const firstName = meta.given_name || nameFirst || email.split('@')[0] || 'Usuario'
+  const lastName = meta.family_name || nameRest.join(' ')
+
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({ id: sessionUser.id, first_name: firstName, last_name: lastName, email })
+  if (error) return null
+  return { firstName, lastName, email }
 }
 
 async function flushPendingRounds(userId: string) {
@@ -113,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       await completePendingProfile(sessionUser.id, sessionUser.email ?? '')
       await flushPendingRounds(sessionUser.id)
-      setProfile(await fetchProfile(sessionUser.id))
+      setProfile(await ensureProfile(sessionUser))
       restorePendingRedirect()
     }
 
@@ -161,6 +183,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }
 
+  // Redirects away to Google's consent screen and back — unlike signIn(),
+  // there's no session to react to here; the app picks it up from the
+  // onAuthStateChange listener once the redirect completes.
+  async function signInWithGoogle() {
+    stashPendingRedirect()
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + window.location.pathname },
+    })
+    if (error) {
+      localStorage.removeItem(PENDING_REDIRECT_KEY)
+      throw error
+    }
+  }
+
   async function requestPasswordReset(email: string) {
     stashPendingRedirect()
     localStorage.setItem(PENDING_RECOVERY_KEY, '1')
@@ -193,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         passwordRecovery,
         signUp,
         signIn,
+        signInWithGoogle,
         requestPasswordReset,
         completePasswordRecovery,
         signOut,
