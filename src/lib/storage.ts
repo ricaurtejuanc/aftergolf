@@ -72,6 +72,7 @@ export async function loadRounds(): Promise<SavedRound[]> {
   const { data, error } = await supabase
     .from('rounds')
     .select('*')
+    .order('date_played', { ascending: false })
     .order('created_at', { ascending: false })
   if (error || !data) return []
   return (data as RoundRow[]).map(fromRow)
