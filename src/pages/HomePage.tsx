@@ -35,7 +35,7 @@ export function HomePage() {
           <div className="text-sm font-semibold uppercase tracking-wide text-gold-600">
             Después de jugar
           </div>
-          <h2 className="mt-1 text-xl font-semibold text-fairway-900">Después de Jugar</h2>
+          <h2 className="mt-1 text-xl font-semibold text-fairway-900">Handicap Jugado</h2>
           <p className="mt-2 text-sm text-fairway-600">
             Introduce tu resultado bruto y obtén tu resultado neto, puntos
             Stableford, el Score Differential y tu historial de rondas.
