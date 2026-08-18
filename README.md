@@ -1,7 +1,7 @@
 # AfterGolf
 
-Calculadora de handicap de golf, replicada de la app AfterGolf (Base44) como
-proyecto independiente, sin depender de un backend.
+Calculadora de handicap de golf de AfterGolf, como proyecto independiente,
+sin depender de un backend.
 
 ## Qué hace
 
@@ -31,9 +31,9 @@ Además, `/admin` (protegido por PIN, no aparece en el menú) da acceso a
 **Campos**: la base de datos local con 55 campos de golf españoles reales
 (nombre, ubicación, y Course Rating / Slope / Par por cada tee).
 
-Las fórmulas y el redondeo se validaron contra una ronda real exportada de la
-app original en Base44 (Aloha Golf Club, HI 6.1 → Handicap de juego 6, bruto
-76 → neto 70, differential 4.1), ver `src/lib/handicap.test.ts`.
+Las fórmulas y el redondeo se validaron contra una ronda real (Aloha Golf
+Club, HI 6.1 → Handicap de juego 6, bruto 76 → neto 70, differential 4.1),
+ver `src/lib/handicap.test.ts`.
 
 ## Desarrollo
 
