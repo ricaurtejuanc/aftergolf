@@ -11,6 +11,7 @@ import { AdminPage } from './pages/AdminPage'
 import { FederatedHandicapPage } from './pages/FederatedHandicapPage'
 import { ContactPage } from './pages/ContactPage'
 import { TermsPage } from './pages/TermsPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
             <Route path="/handicap-federado" element={<FederatedHandicapPage />} />
             <Route path="/contacto" element={<ContactPage />} />
             <Route path="/terminos" element={<TermsPage />} />
+            <Route path="/privacidad" element={<PrivacyPage />} />
           </Routes>
         </main>
 
@@ -42,6 +44,10 @@ function App() {
           ·{' '}
           <Link to="/terminos" className="underline-offset-2 hover:underline">
             Términos y condiciones
+          </Link>{' '}
+          ·{' '}
+          <Link to="/privacidad" className="underline-offset-2 hover:underline">
+            Privacidad
           </Link>
         </footer>
       </div>
