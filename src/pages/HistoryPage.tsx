@@ -26,9 +26,12 @@ export function HistoryPage() {
     setRounds((prev) => prev.filter((r) => r.id !== id))
   }
 
+  // rounds is already sorted most-recent-first (see loadRounds()), so the
+  // first 8 are the last 8 played.
+  const recentRounds = rounds.slice(0, 8)
   const avgDifferential =
-    rounds.length > 0
-      ? (rounds.reduce((sum, r) => sum + r.differential, 0) / rounds.length).toFixed(1)
+    recentRounds.length > 0
+      ? (recentRounds.reduce((sum, r) => sum + r.differential, 0) / recentRounds.length).toFixed(1)
       : null
 
   return (
@@ -68,7 +71,7 @@ export function HistoryPage() {
         <>
           {avgDifferential && (
             <div className="rounded-xl border border-gold-400 bg-gold-400/10 p-4 text-fairway-800">
-              Differential medio de las últimas {rounds.length} rondas:{' '}
+              Differential medio de las últimas {recentRounds.length} rondas:{' '}
               <span className="font-semibold text-fairway-900">{avgDifferential}</span>
             </div>
           )}
