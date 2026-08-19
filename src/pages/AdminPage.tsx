@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { es } from '../i18n/es'
 import { translateAuthError } from '../lib/authErrors'
 import { ADMIN_EMAIL, isAdminUnlocked, lockAdmin, unlockAdmin } from '../lib/admin'
 import { CoursesPage } from './CoursesPage'
@@ -22,7 +23,7 @@ function AdminSignIn() {
     try {
       await signIn(ADMIN_EMAIL, password)
     } catch (err) {
-      setError(translateAuthError(err))
+      setError(translateAuthError(err, es.authErrors))
     } finally {
       setSending(false)
     }
@@ -36,7 +37,7 @@ function AdminSignIn() {
       await requestPasswordReset(ADMIN_EMAIL)
       setInfo('Te hemos enviado un correo para restablecer tu contraseña.')
     } catch (err) {
-      setError(translateAuthError(err))
+      setError(translateAuthError(err, es.authErrors))
     } finally {
       setSending(false)
     }
