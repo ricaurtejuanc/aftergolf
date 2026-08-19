@@ -8,9 +8,9 @@ type SameShape<T> = T extends string ? string : { [K in keyof T]: SameShape<T[K]
 export const en: SameShape<typeof es> = {
   sidebar: {
     home: 'Home',
-    antesDeJugar: 'Before Playing',
-    despuesDeJugar: 'After Playing',
-    historial: 'Round History',
+    antesDeJugar: 'Before',
+    despuesDeJugar: 'After',
+    historial: 'History',
     shop: 'Shop',
     contacto: 'Contact',
     handicapCta: "Don't know your handicap?",
