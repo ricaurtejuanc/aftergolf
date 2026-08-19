@@ -113,11 +113,11 @@ export function Sidebar() {
   return (
     <>
       <header className="relative flex items-center justify-between border-b border-cream-300 bg-cream-100 px-4 py-3 md:hidden">
-        <NavLink to="/" className="flex items-center gap-2">
+        <NavLink to="/" className="flex shrink-0 items-center gap-2">
           <Logo className="h-8 w-8" />
-          <span className="font-serif text-lg font-bold text-fairway-900">AfterGolf</span>
+          <span className="whitespace-nowrap font-serif text-lg font-bold text-fairway-900">AfterGolf</span>
         </NavLink>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <LanguageSwitch />
           <NavLink
             to="/handicap-federado"
