@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
+import { useLanguage } from '../context/LanguageContext'
 import { TermsContent } from '../pages/TermsPage'
 
 export function TermsModal({ onClose }: { onClose: () => void }) {
+  const { dict } = useLanguage()
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -22,7 +24,7 @@ export function TermsModal({ onClose }: { onClose: () => void }) {
         <div className="flex items-start justify-end">
           <button
             onClick={onClose}
-            aria-label="Cerrar"
+            aria-label={dict.termsModal.close}
             className="shrink-0 text-2xl leading-none text-fairway-400 transition hover:text-fairway-700"
           >
             ✕
@@ -33,7 +35,7 @@ export function TermsModal({ onClose }: { onClose: () => void }) {
           onClick={onClose}
           className="mt-6 w-full rounded-lg border border-cream-300 px-4 py-2 text-sm text-fairway-600 transition hover:text-fairway-900"
         >
-          Cerrar
+          {dict.termsModal.close}
         </button>
       </div>
     </div>
