@@ -1,11 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import { translateAuthError } from '../lib/authErrors'
 
 type Mode = 'login' | 'signup' | 'reset'
 
 export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
   const { signUp, signIn, signInWithGoogle, requestPasswordReset } = useAuth()
+  const { dict } = useLanguage()
+  const t = dict.registerGate
   const [mode, setMode] = useState<Mode>('login')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -22,7 +25,7 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
     try {
       await signInWithGoogle()
     } catch (err) {
-      setError(translateAuthError(err))
+      setError(translateAuthError(err, dict.authErrors))
       setSending(false)
     }
     // No `finally` — on success the browser navigates away to Google.
@@ -45,16 +48,16 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
       } else if (mode === 'signup') {
         const { needsConfirmation } = await signUp({ firstName, lastName, email, password })
         if (needsConfirmation) {
-          setInfo('Te hemos enviado un correo para confirmar tu cuenta. Ábrelo y luego inicia sesión aquí.')
+          setInfo(t.signupConfirmationSent)
           setMode('login')
         }
       } else {
         await requestPasswordReset(email)
-        setInfo('Te hemos enviado un correo para restablecer tu contraseña.')
+        setInfo(t.resetEmailSent)
         setMode('login')
       }
     } catch (err) {
-      setError(translateAuthError(err))
+      setError(translateAuthError(err, dict.authErrors))
     } finally {
       setSending(false)
     }
@@ -88,12 +91,12 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
                 d="M12 4.75c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.28 6.6l4.01 3.1C6.23 6.87 8.88 4.75 12 4.75Z"
               />
             </svg>
-            Continuar con Google
+            {t.continueWithGoogle}
           </button>
 
           <div className="flex items-center gap-3 text-xs text-fairway-400">
             <div className="h-px flex-1 bg-cream-200" />
-            o
+            {t.or}
             <div className="h-px flex-1 bg-cream-200" />
           </div>
         </>
@@ -110,7 +113,7 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
                 : 'border border-cream-300 text-fairway-700 hover:border-fairway-400'
             }`}
           >
-            Iniciar sesión
+            {t.login}
           </button>
           <button
             type="button"
@@ -121,23 +124,18 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
                 : 'border border-cream-300 text-fairway-700 hover:border-fairway-400'
             }`}
           >
-            Crear cuenta
+            {t.signup}
           </button>
         </div>
       )}
 
-      {mode === 'signup' && (
-        <p className="text-sm text-fairway-700">
-          Para guardar tu ronda necesitamos que te registres — así tu
-          historial queda ligado a tu cuenta, no solo a este navegador.
-        </p>
-      )}
+      {mode === 'signup' && <p className="text-sm text-fairway-700">{t.signupNote}</p>}
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {mode === 'signup' && (
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-fairway-700 mb-1">Nombre</label>
+              <label className="block text-xs font-medium text-fairway-700 mb-1">{t.firstName}</label>
               <input
                 type="text"
                 required
@@ -147,7 +145,7 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-fairway-700 mb-1">Apellidos</label>
+              <label className="block text-xs font-medium text-fairway-700 mb-1">{t.lastName}</label>
               <input
                 type="text"
                 required
@@ -160,7 +158,7 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
         )}
 
         <div>
-          <label className="block text-xs font-medium text-fairway-700 mb-1">Email</label>
+          <label className="block text-xs font-medium text-fairway-700 mb-1">{t.email}</label>
           <input
             type="email"
             required
@@ -172,7 +170,7 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
 
         {mode !== 'reset' && (
           <div>
-            <label className="block text-xs font-medium text-fairway-700 mb-1">Contraseña</label>
+            <label className="block text-xs font-medium text-fairway-700 mb-1">{t.password}</label>
             <input
               type="password"
               required
@@ -191,7 +189,7 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
             onClick={() => switchMode('reset')}
             className="text-xs text-fairway-600 underline-offset-2 hover:underline"
           >
-            ¿Olvidaste tu contraseña?
+            {t.forgotPassword}
           </button>
         )}
 
@@ -205,12 +203,12 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
             className="flex-1 rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
           >
             {sending
-              ? 'Enviando...'
+              ? t.sending
               : mode === 'login'
-                ? 'Iniciar sesión'
+                ? t.login
                 : mode === 'signup'
-                  ? 'Crear cuenta'
-                  : 'Enviar correo de recuperación'}
+                  ? t.signup
+                  : t.sendResetEmail}
           </button>
           {mode === 'reset' ? (
             <button
@@ -218,7 +216,7 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
               onClick={() => switchMode('login')}
               className="rounded-lg border border-cream-300 px-4 py-2.5 text-sm text-fairway-600 transition hover:border-fairway-400"
             >
-              Volver
+              {t.back}
             </button>
           ) : (
             onCancel && (
@@ -227,7 +225,7 @@ export function RegisterGate({ onCancel }: { onCancel?: () => void }) {
                 onClick={onCancel}
                 className="rounded-lg border border-cream-300 px-4 py-2.5 text-sm text-fairway-600 transition hover:border-fairway-400"
               >
-                Cancelar
+                {t.cancel}
               </button>
             )
           )}
