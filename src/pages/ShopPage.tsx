@@ -5,6 +5,8 @@ import { useCart } from '../context/CartContext'
 import { CartPanel } from '../components/CartPanel'
 import { formatPrice } from '../lib/format'
 import { colorNameToHex } from '../lib/colorSwatches'
+import { interpolate, useLanguage } from '../context/LanguageContext'
+import type { es } from '../i18n/es'
 
 function ProductLightbox({
   alt,
@@ -12,12 +14,14 @@ function ProductLightbox({
   active,
   onClose,
   onNavigate,
+  t,
 }: {
   alt: string
   images: string[]
   active: number
   onClose: () => void
   onNavigate: (idx: number) => void
+  t: typeof es.shop
 }) {
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -37,7 +41,7 @@ function ProductLightbox({
       <button
         onClick={onClose}
         className="absolute right-4 top-4 text-3xl leading-none text-white/80 transition hover:text-white"
-        aria-label="Cerrar"
+        aria-label={t.close}
       >
         ✕
       </button>
@@ -55,7 +59,7 @@ function ProductLightbox({
               onNavigate((active - 1 + images.length) % images.length)
             }}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-4xl leading-none text-white/80 transition hover:text-white"
-            aria-label="Foto anterior"
+            aria-label={t.previousPhoto}
           >
             ‹
           </button>
@@ -65,7 +69,7 @@ function ProductLightbox({
               onNavigate((active + 1) % images.length)
             }}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-4xl leading-none text-white/80 transition hover:text-white"
-            aria-label="Foto siguiente"
+            aria-label={t.nextPhoto}
           >
             ›
           </button>
@@ -79,10 +83,12 @@ function ProductGallery({
   images,
   name,
   placeholderEmoji,
+  t,
 }: {
   images: string[]
   name: string
   placeholderEmoji?: string
+  t: typeof es.shop
 }) {
   const [active, setActive] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -109,7 +115,7 @@ function ProductGallery({
         type="button"
         onClick={() => setLightboxOpen(true)}
         className="block w-full cursor-zoom-in"
-        aria-label={`Ampliar foto de ${name}`}
+        aria-label={interpolate(t.enlargePhoto, { name })}
       >
         <div className="aspect-square w-full overflow-hidden rounded-xl bg-white">
           <img
@@ -128,7 +134,7 @@ function ProductGallery({
               className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 bg-white transition ${
                 idx === active ? 'border-fairway-600' : 'border-transparent opacity-70 hover:opacity-100'
               }`}
-              aria-label={`Foto ${idx + 1} de ${name}`}
+              aria-label={interpolate(t.photoNOf, { n: idx + 1, name })}
             >
               <img src={src} alt="" className="h-full w-full object-cover" />
             </button>
@@ -143,13 +149,24 @@ function ProductGallery({
           active={active}
           onClose={() => setLightboxOpen(false)}
           onNavigate={setActive}
+          t={t}
         />
       )}
     </div>
   )
 }
 
-function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void }) {
+function ProductCard({
+  product,
+  onOpen,
+  t,
+  locale,
+}: {
+  product: Product
+  onOpen: () => void
+  t: typeof es.shop
+  locale: string
+}) {
   const thumbnail = product.images?.[0] ?? product.colors?.[0]?.images[0]
 
   return (
@@ -176,9 +193,9 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void
         <h2 className="mt-1 font-semibold text-fairway-900">{product.name}</h2>
         <div className="mt-auto pt-3">
           <span className="block text-lg font-semibold text-fairway-900">
-            {formatPrice(product.price)}
+            {formatPrice(product.price, locale)}
           </span>
-          <span className="text-xs font-medium text-fairway-600">Ver detalles</span>
+          <span className="text-xs font-medium text-fairway-600">{t.viewDetails}</span>
         </div>
       </div>
     </button>
@@ -189,10 +206,14 @@ function ProductDetailModal({
   product,
   onClose,
   onAdd,
+  t,
+  locale,
 }: {
   product: Product
   onClose: () => void
   onAdd: (size?: string, color?: string) => void
+  t: typeof es.shop
+  locale: string
 }) {
   const [size, setSize] = useState('')
   const [colorIdx, setColorIdx] = useState(0)
@@ -259,7 +280,7 @@ function ProductDetailModal({
           where the address bar can cover an in-flow close button. */}
       <button
         onClick={onClose}
-        aria-label="Cerrar"
+        aria-label={t.close}
         className="fixed right-4 top-4 z-[60] flex h-9 w-9 items-center justify-center rounded-full bg-white text-xl leading-none text-fairway-600 shadow-md transition hover:text-fairway-900"
       >
         ✕
@@ -281,6 +302,7 @@ function ProductDetailModal({
             images={galleryImages}
             name={product.name}
             placeholderEmoji={product.placeholderEmoji}
+            t={t}
           />
         </div>
 
@@ -301,7 +323,7 @@ function ProductDetailModal({
         {hasColors && (
           <div className="mt-4">
             <label className="block text-xs font-medium text-fairway-700 mb-1">
-              Color: <span className="font-normal text-fairway-600">{activeColor!.name}</span>
+              {t.color}: <span className="font-normal text-fairway-600">{activeColor!.name}</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {product.colors!.map((c, idx) => (
@@ -324,14 +346,14 @@ function ProductDetailModal({
 
         {needsSize && (
           <div className="mt-4">
-            <label className="block text-xs font-medium text-fairway-700 mb-1">Talla</label>
+            <label className="block text-xs font-medium text-fairway-700 mb-1">{t.size}</label>
             <select
               value={size}
               onChange={(e) => setSize(e.target.value)}
               className="w-full rounded-lg border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
             >
               <option value="" disabled>
-                Selecciona talla
+                {t.selectSize}
               </option>
               {availableSizes.map((s) => (
                 <option key={s} value={s}>
@@ -344,14 +366,14 @@ function ProductDetailModal({
 
         <div className="mt-4 flex items-center justify-between">
           <span className="text-lg font-semibold text-fairway-900">
-            {formatPrice(product.price)}
+            {formatPrice(product.price, locale)}
           </span>
           <button
             onClick={() => onAdd(needsSize ? size : undefined, activeColor?.name)}
             disabled={needsSize && !size}
             className="rounded-lg bg-fairway-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:bg-fairway-300"
           >
-            {needsSize && !size ? 'Selecciona talla' : 'Añadir'}
+            {needsSize && !size ? t.selectSize : t.addToCart}
           </button>
         </div>
 
@@ -381,6 +403,8 @@ function AddedToast({ message }: { message: string }) {
 }
 
 export function ShopPage() {
+  const { dict, locale } = useLanguage()
+  const t = dict.shop
   const [products, setProducts] = useState<Product[]>([])
   const [openProductId, setOpenProductId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -404,16 +428,14 @@ export function ShopPage() {
   function handleAdd(productId: string, size?: string, color?: string) {
     addItem(productId, size, color)
     setOpenProductId(null)
-    setToast('Producto añadido al carrito correctamente')
+    setToast(t.addedToast)
   }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-fairway-900">Shop</h1>
-        <p className="mt-1 text-sm text-fairway-600">
-          Aquí puedes ver el catálogo de merchandising de AfterGolf.
-        </p>
+        <h1 className="text-2xl font-semibold text-fairway-900">{t.title}</h1>
+        <p className="mt-1 text-sm text-fairway-600">{t.subtitle}</p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
@@ -428,7 +450,7 @@ export function ShopPage() {
                   : 'border border-cream-300 text-fairway-800 hover:border-fairway-400'
               }`}
             >
-              Ropa
+              {t.ropaFilter}
             </button>
             <button
               type="button"
@@ -439,12 +461,12 @@ export function ShopPage() {
                   : 'border border-cream-300 text-fairway-800 hover:border-fairway-400'
               }`}
             >
-              Artículos
+              {t.articulosFilter}
             </button>
           </div>
 
           {filteredProducts.length === 0 ? (
-            <p className="mt-6 text-sm text-fairway-500">Todavía no hay productos en esta categoría.</p>
+            <p className="mt-6 text-sm text-fairway-500">{t.emptyCategory}</p>
           ) : (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
               {filteredProducts.map((product) => (
@@ -452,6 +474,8 @@ export function ShopPage() {
                   key={product.id}
                   product={product}
                   onOpen={() => setOpenProductId(product.id)}
+                  t={t}
+                  locale={locale}
                 />
               ))}
             </div>
@@ -466,6 +490,8 @@ export function ShopPage() {
           product={openProduct}
           onClose={() => setOpenProductId(null)}
           onAdd={(size, color) => handleAdd(openProduct.id, size, color)}
+          t={t}
+          locale={locale}
         />
       )}
 
