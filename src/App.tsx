@@ -12,8 +12,11 @@ import { FederatedHandicapPage } from './pages/FederatedHandicapPage'
 import { ContactPage } from './pages/ContactPage'
 import { TermsPage } from './pages/TermsPage'
 import { PrivacyPage } from './pages/PrivacyPage'
+import { useLanguage } from './context/LanguageContext'
 
 function App() {
+  const { dict } = useLanguage()
+
   return (
     <div className="flex min-h-screen flex-col bg-cream-50 md:flex-row">
       <PasswordRecoveryGate />
@@ -37,17 +40,17 @@ function App() {
         </main>
 
         <footer className="mx-auto max-w-5xl px-6 py-8 text-center text-xs text-fairway-500">
-          Cálculos basados en el World Handicap System (WHS) / RFEG. ·{' '}
+          {dict.footer.calculationsNote} ·{' '}
           <Link to="/contacto" className="underline-offset-2 hover:underline">
-            Contacto
+            {dict.footer.contacto}
           </Link>{' '}
           ·{' '}
           <Link to="/terminos" className="underline-offset-2 hover:underline">
-            Términos y condiciones
+            {dict.footer.terminos}
           </Link>{' '}
           ·{' '}
           <Link to="/privacidad" className="underline-offset-2 hover:underline">
-            Privacidad
+            {dict.footer.privacidad}
           </Link>
         </footer>
       </div>

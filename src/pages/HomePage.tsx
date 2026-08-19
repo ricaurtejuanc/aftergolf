@@ -1,16 +1,15 @@
 import { Link } from 'react-router-dom'
 import { Logo } from '../components/Logo'
+import { useLanguage } from '../context/LanguageContext'
 
 export function HomePage() {
+  const { dict } = useLanguage()
+
   return (
     <div className="mx-auto max-w-3xl space-y-10">
       <div className="flex flex-col items-center gap-4 py-8 text-center">
         <Logo className="h-56 w-56" />
-        <p className="max-w-md text-fairway-700">
-          Calcula tu handicap de juego antes de salir y tu handicap jugado al
-          terminar la ronda, con las fórmulas oficiales del World Handicap
-          System (WHS / RFEG).
-        </p>
+        <p className="max-w-md text-fairway-700">{dict.home.heroText}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -19,13 +18,10 @@ export function HomePage() {
           className="rounded-2xl border border-cream-300 bg-white p-6 shadow-sm transition hover:border-fairway-400 hover:shadow-md"
         >
           <div className="text-sm font-semibold uppercase tracking-wide text-gold-600">
-            Antes de jugar
+            {dict.home.antesKicker}
           </div>
-          <h2 className="mt-1 text-xl font-semibold text-fairway-900">Handicap de Juego</h2>
-          <p className="mt-2 text-sm text-fairway-600">
-            Introduce tu Handicap Index y el tee que vas a jugar para saber
-            cuántos golpes de ventaja tienes en ese campo.
-          </p>
+          <h2 className="mt-1 text-xl font-semibold text-fairway-900">{dict.home.antesTitle}</h2>
+          <p className="mt-2 text-sm text-fairway-600">{dict.home.antesDesc}</p>
         </Link>
 
         <Link
@@ -33,13 +29,10 @@ export function HomePage() {
           className="rounded-2xl border border-cream-300 bg-white p-6 shadow-sm transition hover:border-fairway-400 hover:shadow-md"
         >
           <div className="text-sm font-semibold uppercase tracking-wide text-gold-600">
-            Después de jugar
+            {dict.home.despuesKicker}
           </div>
-          <h2 className="mt-1 text-xl font-semibold text-fairway-900">Handicap Jugado</h2>
-          <p className="mt-2 text-sm text-fairway-600">
-            Introduce tu resultado bruto y obtén tu resultado neto, puntos
-            Stableford, el Score Differential y tu historial de rondas.
-          </p>
+          <h2 className="mt-1 text-xl font-semibold text-fairway-900">{dict.home.despuesTitle}</h2>
+          <p className="mt-2 text-sm text-fairway-600">{dict.home.despuesDesc}</p>
         </Link>
 
         <Link
@@ -47,13 +40,10 @@ export function HomePage() {
           className="rounded-2xl border border-cream-300 bg-white p-6 shadow-sm transition hover:border-fairway-400 hover:shadow-md"
         >
           <div className="text-sm font-semibold uppercase tracking-wide text-gold-600">
-            19º hoyo
+            {dict.home.shopKicker}
           </div>
-          <h2 className="mt-1 text-xl font-semibold text-fairway-900">Shop</h2>
-          <p className="mt-2 text-sm text-fairway-600">
-            Merchandising AfterGolf: bolas de golf y accesorios con el escudo
-            del club.
-          </p>
+          <h2 className="mt-1 text-xl font-semibold text-fairway-900">{dict.home.shopTitle}</h2>
+          <p className="mt-2 text-sm text-fairway-600">{dict.home.shopDesc}</p>
         </Link>
       </div>
     </div>
