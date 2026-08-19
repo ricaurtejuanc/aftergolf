@@ -253,4 +253,148 @@ export const es = {
     noTeesError: 'Ese campo no tiene datos de tees disponibles.',
     loadError: 'No se pudo cargar el campo',
   },
+  contact: {
+    title: 'Contacto',
+    subtitle: '¿Alguna duda, sugerencia o incidencia? Escríbenos y te responderemos a {{email}}.',
+    sentTitle: 'Tu consulta ha sido enviada correctamente.',
+    sentSubtitle: 'Te responderemos lo antes posible al email que nos has indicado.',
+    sendAnother: 'Enviar otra consulta',
+    name: 'Nombre',
+    yourEmail: 'Tu email',
+    message: 'Mensaje',
+    sendError: 'No se pudo enviar el mensaje. Inténtalo de nuevo en un momento.',
+    sending: 'Enviando...',
+    send: 'Enviar mensaje',
+  },
+  terms: {
+    pageTitle: 'Términos y condiciones de venta',
+    pageSubtitle: 'Aplicables a las compras realizadas en la Shop de aftergolf.es.',
+    section1Title: '1. Identificación',
+    section1Body:
+      'AfterGolf (aftergolf.es) es un proyecto operado por Juan Carlos Ricaurte, con ' +
+      'NIF 03186893J y domicilio en C/ Circunvalación, 25, Madrid, actuando como ' +
+      'persona física. Para cualquier consulta puedes escribir a info@aftergolf.es.',
+    section2Title: '2. Objeto',
+    section2Body:
+      'Estas condiciones regulan la compra de artículos de merchandising (ropa y ' +
+      'accesorios de golf) a través de la Shop de AfterGolf. Los productos se ' +
+      'fabrican bajo pedido a través de nuestro proveedor de impresión bajo demanda ' +
+      'en el momento en que se confirma cada compra.',
+    section3Title: '3. Precios',
+    section3Body:
+      'Todos los precios se muestran en euros (€) y corresponden al importe total a ' +
+      'pagar; al vender como particular, no se repercute IVA sobre el precio. Los ' +
+      'gastos de envío se calculan durante el proceso de compra y se muestran antes ' +
+      'de confirmar el pedido.',
+    section4Title: '4. Proceso de compra y pago',
+    section4Body:
+      'Los pedidos se realizan a través de la Shop de aftergolf.es y requieren una ' +
+      'cuenta con email y contraseña. Al finalizar el pedido se te indicará el número ' +
+      'de Bizum al que hacer el pago junto con la referencia de tu pedido, que debes ' +
+      'incluir en el concepto para que podamos identificarlo. El pedido queda ' +
+      'pendiente de pago hasta que verificamos manualmente que lo hemos recibido; en ' +
+      'ese momento te lo confirmamos por correo electrónico y pasa a producción.',
+    section5Title: '5. Envío',
+    section5Body:
+      'Actualmente solo enviamos a España. El plazo de entrega estimado se indica en ' +
+      'la ficha de cada producto y puede variar según el artículo, ya que se fabrica ' +
+      'bajo pedido. Te avisaremos por correo si hay algún retraso relevante.',
+    section6Title: '6. Derecho de desistimiento',
+    section6Body:
+      'Como consumidor, dispones con carácter general de 14 días naturales desde la ' +
+      'recepción del pedido para desistir de la compra sin necesidad de justificación. ' +
+      'No obstante, dado que nuestros productos se fabrican bajo pedido para cada ' +
+      'compra concreta, este derecho puede no ser de aplicación conforme al artículo ' +
+      '103.c) del Texto Refundido de la Ley General para la Defensa de los ' +
+      'Consumidores y Usuarios, que excluye los bienes confeccionados conforme a ' +
+      'especificaciones del consumidor o claramente personalizados. En cualquier ' +
+      'caso, si tienes algún problema con tu pedido, escríbenos a info@aftergolf.es y ' +
+      'buscaremos una solución.',
+    section7Title: '7. Productos defectuosos o incorrectos',
+    section7Body:
+      'Si recibes un artículo defectuoso, dañado o distinto al que pediste, ' +
+      'contáctanos en info@aftergolf.es con fotos del producto en un plazo de 14 días ' +
+      'desde la recepción, y gestionaremos la sustitución o el reembolso sin coste ' +
+      'para ti.',
+    section8Title: '8. Protección de datos',
+    section8Body:
+      'Los datos que nos facilitas (nombre, email, dirección de envío) se usan ' +
+      'exclusivamente para gestionar tu pedido y se comparten solo con nuestro ' +
+      'proveedor de impresión bajo demanda, necesario para la fabricación y el envío. ' +
+      'No cedemos tus datos a terceros con fines comerciales.',
+    section9Title: '9. Ley aplicable',
+    section9Body:
+      'Estas condiciones se rigen por la legislación española. Cualquier ' +
+      'controversia se someterá a los juzgados y tribunales que correspondan según la ' +
+      'normativa de protección de consumidores.',
+    section10Title: '10. Contacto',
+    section10Body: 'Para cualquier duda sobre estas condiciones o sobre tu pedido, escríbenos a info@aftergolf.es.',
+  },
+  privacy: {
+    pageTitle: 'Política de privacidad',
+    pageSubtitle:
+      'Aplicable al uso de aftergolf.es, incluida la calculadora de handicap, el ' +
+      'historial de rondas y la Shop.',
+    section1Title: '1. Responsable del tratamiento',
+    section1Body:
+      'AfterGolf (aftergolf.es) es un proyecto operado por Juan Carlos Ricaurte, con ' +
+      'NIF 03186893J y domicilio en C/ Circunvalación, 25, Madrid, actuando como ' +
+      'persona física. Para cualquier consulta sobre tus datos puedes escribir a ' +
+      'info@aftergolf.es.',
+    section2Title: '2. Qué datos recogemos',
+    section2Intro: 'Dependiendo de cómo uses la app, podemos tratar:',
+    section2Item1: 'Si te registras con email y contraseña: nombre, apellidos y email.',
+    section2Item2:
+      'Si inicias sesión con Google: el nombre y el email que tu cuenta de Google ' +
+      'nos proporciona al autorizar el acceso.',
+    section2Item3:
+      'El historial de rondas que guardas voluntariamente (campo jugado, tee, ' +
+      'resultado bruto y neto, differential y fecha).',
+    section2Item4Prefix: 'Si realizas un pedido en la Shop: nombre, teléfono y dirección de envío, necesarios para gestionarlo (ver también nuestros ',
+    section2Item4LinkText: 'Términos y condiciones',
+    section2Item4Suffix: ').',
+    section2Item5:
+      'Un registro anónimo de qué páginas se visitan, sin dirección IP ni ningún ' +
+      'identificador personal, que usamos solo para estadísticas internas de uso.',
+    section3Title: '3. Para qué usamos tus datos',
+    section3Body:
+      'Para crear y gestionar tu cuenta, guardar y mostrarte tu historial de rondas, ' +
+      'tramitar los pedidos que hagas en la Shop, y responder a tus consultas de ' +
+      'contacto. No usamos tus datos con fines publicitarios ni de perfilado.',
+    section4Title: '4. Base legal',
+    section4Body:
+      'El tratamiento se basa en tu consentimiento al registrarte y usar la app de ' +
+      'forma voluntaria, y en la ejecución del contrato de compraventa cuando haces ' +
+      'un pedido en la Shop.',
+    section5Title: '5. Con quién compartimos tus datos',
+    section5Body:
+      'Tus datos se almacenan en Supabase, nuestro proveedor de base de datos, ' +
+      'autenticación y alojamiento. Si inicias sesión con Google, Google trata los ' +
+      'datos de tu cuenta conforme a su propia política de privacidad. Si haces un ' +
+      'pedido en la Shop, tu nombre y dirección de envío se comparten con nuestro ' +
+      'proveedor de impresión bajo demanda, necesario para fabricar y enviar el ' +
+      'producto. No cedemos ni vendemos tus datos a terceros con fines comerciales.',
+    section6Title: '6. Cuánto tiempo conservamos tus datos',
+    section6Body:
+      'Mientras mantengas tu cuenta activa. Puedes pedir la eliminación de tu cuenta ' +
+      'y de todos tus datos en cualquier momento escribiendo a info@aftergolf.es.',
+    section7Title: '7. Tus derechos',
+    section7Body:
+      'Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, ' +
+      'limitación del tratamiento y portabilidad escribiendo a info@aftergolf.es. ' +
+      'También tienes derecho a presentar una reclamación ante la Agencia Española ' +
+      'de Protección de Datos (aepd.es) si consideras que no hemos tratado tus datos ' +
+      'correctamente.',
+    section8Title: '8. Almacenamiento local',
+    section8Body:
+      'Usamos el almacenamiento local de tu navegador (localStorage) para mantener ' +
+      'tu sesión iniciada y algunas preferencias mientras usas la app. No usamos ' +
+      'cookies de publicidad ni de rastreo de terceros.',
+    section9Title: '9. Cambios en esta política',
+    section9Body:
+      'Podemos actualizar esta política si cambia cómo tratamos tus datos. Los ' +
+      'cambios relevantes se reflejarán en esta misma página.',
+    section10Title: '10. Contacto',
+    section10Body: 'Para cualquier duda sobre esta política, escríbenos a info@aftergolf.es.',
+  },
 }

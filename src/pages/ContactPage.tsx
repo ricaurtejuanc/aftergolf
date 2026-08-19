@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from 'react'
+import { interpolate, useLanguage } from '../context/LanguageContext'
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../lib/supabaseClient'
 
 const CONTACT_EMAIL = 'info@aftergolf.es'
 
 export function ContactPage() {
+  const { dict } = useLanguage()
+  const t = dict.contact
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
@@ -44,27 +47,22 @@ export function ContactPage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-fairway-900">Contacto</h1>
+        <h1 className="text-2xl font-semibold text-fairway-900">{t.title}</h1>
         <p className="mt-1 text-sm text-fairway-600">
-          ¿Alguna duda, sugerencia o incidencia? Escríbenos y te responderemos
-          a {CONTACT_EMAIL}.
+          {interpolate(t.subtitle, { email: CONTACT_EMAIL })}
         </p>
       </div>
 
       {sent ? (
         <div className="rounded-2xl border border-fairway-300 bg-fairway-50 p-6 text-center">
-          <p className="font-semibold text-fairway-900">
-            Tu consulta ha sido enviada correctamente.
-          </p>
-          <p className="mt-1 text-sm text-fairway-600">
-            Te responderemos lo antes posible al email que nos has indicado.
-          </p>
+          <p className="font-semibold text-fairway-900">{t.sentTitle}</p>
+          <p className="mt-1 text-sm text-fairway-600">{t.sentSubtitle}</p>
           <button
             type="button"
             onClick={handleReset}
             className="mt-4 text-sm text-fairway-600 underline-offset-2 hover:underline"
           >
-            Enviar otra consulta
+            {t.sendAnother}
           </button>
         </div>
       ) : (
@@ -74,7 +72,7 @@ export function ContactPage() {
         >
           <div>
             <label className="block text-sm font-medium text-fairway-800 mb-1">
-              Nombre
+              {t.name}
             </label>
             <input
               type="text"
@@ -87,7 +85,7 @@ export function ContactPage() {
 
           <div>
             <label className="block text-sm font-medium text-fairway-800 mb-1">
-              Tu email
+              {t.yourEmail}
             </label>
             <input
               type="email"
@@ -100,7 +98,7 @@ export function ContactPage() {
 
           <div>
             <label className="block text-sm font-medium text-fairway-800 mb-1">
-              Mensaje
+              {t.message}
             </label>
             <textarea
               required
@@ -111,18 +109,14 @@ export function ContactPage() {
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-500">
-              No se pudo enviar el mensaje. Inténtalo de nuevo en un momento.
-            </p>
-          )}
+          {error && <p className="text-sm text-red-500">{t.sendError}</p>}
 
           <button
             type="submit"
             disabled={sending}
             className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800 disabled:opacity-60"
           >
-            {sending ? 'Enviando...' : 'Enviar mensaje'}
+            {sending ? t.sending : t.send}
           </button>
         </form>
       )}

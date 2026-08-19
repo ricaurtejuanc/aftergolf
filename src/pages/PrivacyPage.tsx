@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useLanguage } from '../context/LanguageContext'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -11,115 +12,66 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function PrivacyPage() {
+  const { dict } = useLanguage()
+  const t = dict.privacy
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-fairway-900">Política de privacidad</h1>
-        <p className="mt-1 text-sm text-fairway-600">
-          Aplicable al uso de aftergolf.es, incluida la calculadora de handicap, el
-          historial de rondas y la Shop.
-        </p>
+        <h1 className="text-2xl font-semibold text-fairway-900">{t.pageTitle}</h1>
+        <p className="mt-1 text-sm text-fairway-600">{t.pageSubtitle}</p>
       </div>
 
-      <Section title="1. Responsable del tratamiento">
-        <p>
-          AfterGolf (aftergolf.es) es un proyecto operado por Juan Carlos Ricaurte, con
-          NIF 03186893J y domicilio en C/ Circunvalación, 25, Madrid, actuando como
-          persona física. Para cualquier consulta sobre tus datos puedes escribir a
-          info@aftergolf.es.
-        </p>
+      <Section title={t.section1Title}>
+        <p>{t.section1Body}</p>
       </Section>
 
-      <Section title="2. Qué datos recogemos">
-        <p>Dependiendo de cómo uses la app, podemos tratar:</p>
+      <Section title={t.section2Title}>
+        <p>{t.section2Intro}</p>
         <ul className="list-disc space-y-1 pl-5">
+          <li>{t.section2Item1}</li>
+          <li>{t.section2Item2}</li>
+          <li>{t.section2Item3}</li>
           <li>
-            Si te registras con email y contraseña: nombre, apellidos y email.
-          </li>
-          <li>
-            Si inicias sesión con Google: el nombre y el email que tu cuenta de Google
-            nos proporciona al autorizar el acceso.
-          </li>
-          <li>
-            El historial de rondas que guardas voluntariamente (campo jugado, tee,
-            resultado bruto y neto, differential y fecha).
-          </li>
-          <li>
-            Si realizas un pedido en la Shop: nombre, teléfono y dirección de envío,
-            necesarios para gestionarlo (ver también nuestros{' '}
+            {t.section2Item4Prefix}
             <Link to="/terminos" className="underline-offset-2 hover:underline">
-              Términos y condiciones
+              {t.section2Item4LinkText}
             </Link>
-            ).
+            {t.section2Item4Suffix}
           </li>
-          <li>
-            Un registro anónimo de qué páginas se visitan, sin dirección IP ni ningún
-            identificador personal, que usamos solo para estadísticas internas de uso.
-          </li>
+          <li>{t.section2Item5}</li>
         </ul>
       </Section>
 
-      <Section title="3. Para qué usamos tus datos">
-        <p>
-          Para crear y gestionar tu cuenta, guardar y mostrarte tu historial de rondas,
-          tramitar los pedidos que hagas en la Shop, y responder a tus consultas de
-          contacto. No usamos tus datos con fines publicitarios ni de perfilado.
-        </p>
+      <Section title={t.section3Title}>
+        <p>{t.section3Body}</p>
       </Section>
 
-      <Section title="4. Base legal">
-        <p>
-          El tratamiento se basa en tu consentimiento al registrarte y usar la app de
-          forma voluntaria, y en la ejecución del contrato de compraventa cuando haces
-          un pedido en la Shop.
-        </p>
+      <Section title={t.section4Title}>
+        <p>{t.section4Body}</p>
       </Section>
 
-      <Section title="5. Con quién compartimos tus datos">
-        <p>
-          Tus datos se almacenan en Supabase, nuestro proveedor de base de datos,
-          autenticación y alojamiento. Si inicias sesión con Google, Google trata los
-          datos de tu cuenta conforme a su propia política de privacidad. Si haces un
-          pedido en la Shop, tu nombre y dirección de envío se comparten con nuestro
-          proveedor de impresión bajo demanda, necesario para fabricar y enviar el
-          producto. No cedemos ni vendemos tus datos a terceros con fines comerciales.
-        </p>
+      <Section title={t.section5Title}>
+        <p>{t.section5Body}</p>
       </Section>
 
-      <Section title="6. Cuánto tiempo conservamos tus datos">
-        <p>
-          Mientras mantengas tu cuenta activa. Puedes pedir la eliminación de tu cuenta
-          y de todos tus datos en cualquier momento escribiendo a info@aftergolf.es.
-        </p>
+      <Section title={t.section6Title}>
+        <p>{t.section6Body}</p>
       </Section>
 
-      <Section title="7. Tus derechos">
-        <p>
-          Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición,
-          limitación del tratamiento y portabilidad escribiendo a info@aftergolf.es.
-          También tienes derecho a presentar una reclamación ante la Agencia Española
-          de Protección de Datos (aepd.es) si consideras que no hemos tratado tus datos
-          correctamente.
-        </p>
+      <Section title={t.section7Title}>
+        <p>{t.section7Body}</p>
       </Section>
 
-      <Section title="8. Almacenamiento local">
-        <p>
-          Usamos el almacenamiento local de tu navegador (localStorage) para mantener
-          tu sesión iniciada y algunas preferencias mientras usas la app. No usamos
-          cookies de publicidad ni de rastreo de terceros.
-        </p>
+      <Section title={t.section8Title}>
+        <p>{t.section8Body}</p>
       </Section>
 
-      <Section title="9. Cambios en esta política">
-        <p>
-          Podemos actualizar esta política si cambia cómo tratamos tus datos. Los
-          cambios relevantes se reflejarán en esta misma página.
-        </p>
+      <Section title={t.section9Title}>
+        <p>{t.section9Body}</p>
       </Section>
 
-      <Section title="10. Contacto">
-        <p>Para cualquier duda sobre esta política, escríbenos a info@aftergolf.es.</p>
+      <Section title={t.section10Title}>
+        <p>{t.section10Body}</p>
       </Section>
     </div>
   )
