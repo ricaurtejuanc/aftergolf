@@ -1,3 +1,3 @@
-export function formatPrice(value: number) {
-  return value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
+export function formatPrice(value: number, locale = 'es-ES') {
+  return value.toLocaleString(locale, { style: 'currency', currency: 'EUR' })
 }
