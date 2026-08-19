@@ -106,7 +106,7 @@ export function Sidebar() {
     }`
 
   const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition ${
+    `flex flex-1 flex-col items-center justify-start gap-0.5 pt-2.5 pb-1.5 text-[11px] font-medium leading-tight transition ${
       isActive ? 'text-fairway-900' : 'text-fairway-500'
     }`
 
