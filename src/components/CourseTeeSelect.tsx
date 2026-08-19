@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import type { CourseTee, GolfCourse } from '../data/courses'
 import { loadCourses } from '../lib/courseStore'
@@ -109,7 +110,16 @@ function GolfCourseApiFallback({
 
       {results &&
         (results.length === 0 ? (
-          <p className="text-xs text-fairway-500">{t.noResults}</p>
+          <div className="space-y-1">
+            <p className="text-xs text-fairway-500">{t.noResults}</p>
+            <p className="text-xs text-fairway-500">
+              {t.noResultsContactPrefix}
+              <Link to="/contacto" className="underline-offset-2 hover:underline">
+                {t.noResultsContactLinkText}
+              </Link>
+              {t.noResultsContactSuffix}
+            </p>
+          </div>
         ) : (
           <div className="space-y-1">
             {results.map((r) => (
