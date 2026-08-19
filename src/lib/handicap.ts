@@ -93,21 +93,3 @@ export const HANDICAP_ALLOWANCES = [
   { value: 0.9, label: 'Four-ball stroke play (90%)' },
   { value: 0.85, label: 'Four-ball match play (85%)' },
 ] as const
-
-export const PCC_EXPLANATION =
-  'El PCC (Playing Conditions Calculation) es un ajuste que puede aplicar el ' +
-  'comité del campo cuando las condiciones del día (viento fuerte, lluvia, ' +
-  'campo muy rápido o muy lento...) hacen que jugar sea más difícil o más ' +
-  'fácil de lo normal para todos los jugadores. Puede ser positivo o ' +
-  'negativo, normalmente entre -1 y +3. Por defecto es 0 — solo cámbialo si ' +
-  'el club te lo ha comunicado tras la ronda.'
-
-export const GROSS_STABLEFORD_EXPLANATION =
-  'El resultado Bruto Stableford es el número total de golpes Stableford donde ' +
-  'únicamente se cuenta como máximo el doble bogey bruto, es decir en un Par 4 ' +
-  'si tienes 1 punto, tu resultado máximo es 7, si tienes 2 puntos, tu resultado ' +
-  'máximo es 8 y sin punto el resultado máximo es 6. ' +
-  'Dicho de forma sencilla: es tu resultado bruto total, pero en cada hoyo no ' +
-  'cuentan los golpes que superen el doble bogey (ajustado a los golpes de ' +
-  'hándicap que recibes en ese hoyo), para que un hoyo desastroso no dispare tu ' +
-  'resultado.'

@@ -2,19 +2,16 @@ import { useEffect, useState } from 'react'
 import { CourseTeeSelect } from '../components/CourseTeeSelect'
 import { InfoTooltip } from '../components/InfoTooltip'
 import { StatCard } from '../components/StatCard'
+import { interpolate, useLanguage } from '../context/LanguageContext'
 import type { CourseTee } from '../data/courses'
-import {
-  calculateCourseHandicap,
-  calculateRoundResult,
-  GROSS_STABLEFORD_EXPLANATION,
-  HANDICAP_ALLOWANCES,
-  PCC_EXPLANATION,
-} from '../lib/handicap'
+import { calculateCourseHandicap, calculateRoundResult, HANDICAP_ALLOWANCES } from '../lib/handicap'
 import { loadHandicapIndex, saveHandicapIndex } from '../lib/storage'
 
 const MAX_PLAYERS = 4
 
 export function AntesDeJugarPage() {
+  const { dict } = useLanguage()
+  const t = dict.antesDeJugar
   const [numPlayers, setNumPlayers] = useState(1)
   const [playerInputs, setPlayerInputs] = useState<string[]>(() => [
     String(loadHandicapIndex() ?? 12.0),
@@ -118,17 +115,14 @@ export function AntesDeJugarPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-fairway-900">Handicap de Juego</h1>
-        <p className="mt-1 text-sm text-fairway-600">
-          Calcula tu Course Handicap para el tee que vas a jugar, a partir de tu
-          Handicap Index (WHS/RFEG).
-        </p>
+        <h1 className="text-2xl font-semibold text-fairway-900">{t.title}</h1>
+        <p className="mt-1 text-sm text-fairway-600">{t.subtitle}</p>
       </div>
 
       <div className="rounded-2xl border border-cream-300 bg-white p-5 space-y-5 shadow-sm">
         <div>
           <label className="block text-sm font-medium text-fairway-800 mb-1">
-            Número de jugadores
+            {t.numPlayers}
           </label>
           <div className="grid grid-cols-4 gap-2">
             {Array.from({ length: MAX_PLAYERS }, (_, i) => i + 1).map((n) => (
@@ -152,7 +146,7 @@ export function AntesDeJugarPage() {
           {playerInputs.map((value, idx) => (
             <div key={idx}>
               <label className="block text-sm font-medium text-fairway-800 mb-1">
-                {numPlayers === 1 ? 'Tu Handicap Index (HI)' : `Jugador ${idx + 1} — Handicap Index (HI)`}
+                {numPlayers === 1 ? t.yourHi : interpolate(t.playerHi, { n: idx + 1 })}
               </label>
               <input
                 type="number"
@@ -179,7 +173,7 @@ export function AntesDeJugarPage() {
 
         <div>
           <label className="block text-sm font-medium text-fairway-800 mb-1">
-            Modalidad / % de handicap
+            {t.allowance}
           </label>
           <select
             value={allowance}
@@ -200,13 +194,13 @@ export function AntesDeJugarPage() {
 
       {!tee ? (
         <div className="rounded-xl border border-cream-300 bg-white p-8 text-center text-fairway-500">
-          Selecciona un campo y tee para calcular tu handicap de juego.
+          {t.selectCoursePrompt}
         </div>
       ) : numPlayers === 1 ? (
         <>
           <div className="grid grid-cols-2 gap-4">
-            <StatCard label="Handicap de juego" value={courseHandicap} accent />
-            <StatCard label="Valor exacto" value={exact.toFixed(2)} />
+            <StatCard label={t.courseHandicap} value={courseHandicap} accent />
+            <StatCard label={t.exactValue} value={exact.toFixed(2)} />
           </div>
 
           <div className="rounded-xl border border-cream-300 bg-cream-100 p-4 text-sm text-fairway-700">
@@ -227,7 +221,7 @@ export function AntesDeJugarPage() {
               className="flex items-center justify-between rounded-xl border border-cream-300 bg-white p-4 shadow-sm"
             >
               <div>
-                <div className="font-medium text-fairway-900">Jugador {idx + 1}</div>
+                <div className="font-medium text-fairway-900">{interpolate(t.player, { n: idx + 1 })}</div>
                 <div className="text-xs text-fairway-500">HI {playerInputs[idx] || 0}</div>
               </div>
               <div className="text-right">
@@ -235,8 +229,10 @@ export function AntesDeJugarPage() {
                 {showDistribution && (
                   <div className="text-xs font-medium text-gold-600">
                     {strokesGiven[idx] === 0
-                      ? 'Juega scratch'
-                      : `Recibe ${strokesGiven[idx]} golpe${strokesGiven[idx] === 1 ? '' : 's'}`}
+                      ? t.scratch
+                      : interpolate(strokesGiven[idx] === 1 ? t.receivesStroke : t.receivesStrokes, {
+                          n: strokesGiven[idx],
+                        })}
                   </div>
                 )}
               </div>
@@ -247,7 +243,7 @@ export function AntesDeJugarPage() {
             onClick={() => setShowDistribution(true)}
             className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800"
           >
-            Distribuir Handicap
+            {t.distributeHandicap}
           </button>
         </div>
       )}
@@ -259,15 +255,15 @@ export function AntesDeJugarPage() {
               onClick={() => setShowRoundCalc(true)}
               className="w-full rounded-lg bg-fairway-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-fairway-800"
             >
-              Calcular handicap jugado y puntos Stableford
+              {t.calculateRoundButton}
             </button>
           ) : numPlayers === 1 ? (
             roundResult && (
               <div className="space-y-4 border-t border-cream-300 pt-6">
                 <div className="rounded-2xl border border-cream-300 bg-white p-5 shadow-sm">
                   <label className="mb-1 flex items-center text-sm font-medium text-fairway-800">
-                    Resultado Bruto Stableford
-                    <InfoTooltip text={GROSS_STABLEFORD_EXPLANATION} />
+                    {t.grossStableford}
+                    <InfoTooltip text={dict.explanations.grossStableford} />
                   </label>
                   <input
                     type="number"
@@ -276,8 +272,8 @@ export function AntesDeJugarPage() {
                     className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-900 focus:border-fairway-500 focus:outline-none"
                   />
                   <label className="mb-1 mt-3 flex items-center text-sm font-medium text-fairway-800">
-                    Ajuste PCC
-                    <InfoTooltip text={PCC_EXPLANATION} />
+                    {t.pccAdjustment}
+                    <InfoTooltip text={dict.explanations.pcc} />
                   </label>
                   <input
                     type="number"
@@ -289,11 +285,11 @@ export function AntesDeJugarPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <StatCard label="Golpes recibidos" value={roundResult.strokesReceived} />
-                  <StatCard label="Resultado neto" value={roundResult.netScore} accent />
-                  <StatCard label="Puntos Stableford" value={roundResult.stablefordPoints} />
+                  <StatCard label={t.strokesReceived} value={roundResult.strokesReceived} />
+                  <StatCard label={t.netScore} value={roundResult.netScore} accent />
+                  <StatCard label={t.stablefordPoints} value={roundResult.stablefordPoints} />
                   <StatCard
-                    label="Handicap jugado"
+                    label={t.playedHandicap}
                     value={roundResult.differential.toFixed(1)}
                     accent
                   />
@@ -309,11 +305,11 @@ export function AntesDeJugarPage() {
                     key={idx}
                     className="space-y-3 rounded-2xl border border-cream-300 bg-white p-4 shadow-sm"
                   >
-                    <div className="text-sm font-semibold text-fairway-900">Jugador {idx + 1}</div>
+                    <div className="text-sm font-semibold text-fairway-900">{interpolate(t.player, { n: idx + 1 })}</div>
                     <div>
                       <label className="mb-1 flex items-center text-xs font-medium text-fairway-700">
-                        Resultado Bruto Stableford
-                        <InfoTooltip text={GROSS_STABLEFORD_EXPLANATION} />
+                        {t.grossStableford}
+                        <InfoTooltip text={dict.explanations.grossStableford} />
                       </label>
                       <input
                         type="number"
@@ -324,8 +320,8 @@ export function AntesDeJugarPage() {
                     </div>
                     <div>
                       <label className="mb-1 flex items-center text-xs font-medium text-fairway-700">
-                        Ajuste PCC
-                        <InfoTooltip text={PCC_EXPLANATION} />
+                        {t.pccAdjustment}
+                        <InfoTooltip text={dict.explanations.pcc} />
                       </label>
                       <input
                         type="number"
@@ -337,8 +333,12 @@ export function AntesDeJugarPage() {
                     </div>
                     {r && (
                       <div className="text-sm text-fairway-700">
-                        Golpes recibidos {r.strokesReceived} · Neto {r.netScore} · Stableford{' '}
-                        {r.stablefordPoints} pts · Handicap jugado {r.differential.toFixed(1)}
+                        {interpolate(t.roundSummaryLine, {
+                          strokesReceived: r.strokesReceived,
+                          netScore: r.netScore,
+                          stablefordPoints: r.stablefordPoints,
+                          differential: r.differential.toFixed(1),
+                        })}
                       </div>
                     )}
                   </div>
@@ -354,7 +354,7 @@ export function AntesDeJugarPage() {
           onClick={handleReset}
           className="w-full rounded-lg border border-cream-300 px-4 py-2.5 text-sm font-medium text-fairway-700 transition hover:border-fairway-400"
         >
-          Nuevo cálculo
+          {t.newCalculation}
         </button>
       )}
     </div>
