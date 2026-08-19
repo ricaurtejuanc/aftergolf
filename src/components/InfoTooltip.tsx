@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLanguage } from '../context/LanguageContext'
 
 export function InfoTooltip({ text }: { text: string }) {
+  const { dict } = useLanguage()
   const [open, setOpen] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const popupRef = useRef<HTMLSpanElement>(null)
@@ -37,7 +39,7 @@ export function InfoTooltip({ text }: { text: string }) {
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Más información"
+        aria-label={dict.infoTooltip.ariaLabel}
         aria-expanded={open}
         className="ml-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-fairway-400 align-middle text-fairway-600 transition hover:border-fairway-600 hover:text-fairway-800"
       >

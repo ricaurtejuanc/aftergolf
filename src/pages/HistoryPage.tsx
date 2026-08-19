@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { TEE_LABEL } from '../components/CourseTeeSelect'
 import { RegisterGate } from '../components/RegisterGate'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import { deleteRound, loadRounds, type SavedRound } from '../lib/storage'
 
 export function HistoryPage() {
   const { user, profile, loading: authLoading, signOut } = useAuth()
+  const { dict } = useLanguage()
   const [rounds, setRounds] = useState<SavedRound[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -91,7 +92,7 @@ export function HistoryPage() {
                     )}
                   </div>
                   <div className="text-xs text-fairway-500">
-                    {r.datePlayed} · Tee {TEE_LABEL[r.teeColor]} · CR {r.courseRating} / Slope{' '}
+                    {r.datePlayed} · Tee {dict.teeColors[r.teeColor]} · CR {r.courseRating} / Slope{' '}
                     {r.slopeRating}
                   </div>
                   <div className="mt-1 text-sm text-fairway-700">
