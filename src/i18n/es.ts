@@ -6,9 +6,9 @@
 export const es = {
   sidebar: {
     home: 'Inicio',
-    antesDeJugar: 'Antes de Jugar',
-    despuesDeJugar: 'Después de Jugar',
-    historial: 'Historial de Rondas',
+    antesDeJugar: 'Antes',
+    despuesDeJugar: 'Después',
+    historial: 'Historial',
     shop: 'Shop',
     contacto: 'Contacto',
     handicapCta: '¿No sabes tu handicap?',
