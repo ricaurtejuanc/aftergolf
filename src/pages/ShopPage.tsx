@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { DEFAULT_SHIPPING_TIME, type Product } from '../data/products'
 import { loadProducts } from '../lib/productStore'
 import { useCart } from '../context/CartContext'
@@ -206,12 +207,14 @@ function ProductDetailModal({
   product,
   onClose,
   onAdd,
+  onCopyLink,
   t,
   locale,
 }: {
   product: Product
   onClose: () => void
   onAdd: (size?: string, color?: string) => void
+  onCopyLink: () => void
   t: typeof es.shop
   locale: string
 }) {
@@ -377,9 +380,18 @@ function ProductDetailModal({
           </button>
         </div>
 
-        <p className="mt-3 text-xs text-fairway-500">
-          {product.shippingTime || DEFAULT_SHIPPING_TIME}
-        </p>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <p className="text-xs text-fairway-500">
+            {product.shippingTime || DEFAULT_SHIPPING_TIME}
+          </p>
+          <button
+            type="button"
+            onClick={onCopyLink}
+            className="shrink-0 text-xs font-medium text-fairway-500 underline-offset-2 hover:text-fairway-800 hover:underline"
+          >
+            🔗 {t.copyLink}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -406,7 +418,8 @@ export function ShopPage() {
   const { dict, locale } = useLanguage()
   const t = dict.shop
   const [products, setProducts] = useState<Product[]>([])
-  const [openProductId, setOpenProductId] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const openProductId = searchParams.get('producto')
   const [toast, setToast] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<'ropa' | 'articulos'>('ropa')
 
@@ -415,6 +428,14 @@ export function ShopPage() {
   }, [])
   const { addItem } = useCart()
   const openProduct = products.find((p) => p.id === openProductId) ?? null
+
+  // A direct product link (e.g. shared on Instagram) should land on the
+  // right category filter too, so the grid behind the modal makes sense
+  // once it's closed — independent of whatever the default filter is.
+  useEffect(() => {
+    if (openProduct) setCategoryFilter(isClothing(openProduct.category) ? 'ropa' : 'articulos')
+  }, [openProduct])
+
   const filteredProducts = products.filter(
     (p) => p.visible && (categoryFilter === 'ropa' ? isClothing(p.category) : !isClothing(p.category)),
   )
@@ -425,10 +446,31 @@ export function ShopPage() {
     return () => clearTimeout(timer)
   }, [toast])
 
+  function openProductModal(id: string) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('producto', id)
+      return next
+    })
+  }
+
+  function closeProductModal() {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('producto')
+      return next
+    })
+  }
+
   function handleAdd(productId: string, size?: string, color?: string) {
     addItem(productId, size, color)
-    setOpenProductId(null)
+    closeProductModal()
     setToast(t.addedToast)
+  }
+
+  function handleCopyLink(productId: string) {
+    const url = `${window.location.origin}${window.location.pathname}#/shop?producto=${productId}`
+    navigator.clipboard.writeText(url).then(() => setToast(t.linkCopiedToast))
   }
 
   return (
@@ -473,7 +515,7 @@ export function ShopPage() {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  onOpen={() => setOpenProductId(product.id)}
+                  onOpen={() => openProductModal(product.id)}
                   t={t}
                   locale={locale}
                 />
@@ -488,8 +530,9 @@ export function ShopPage() {
       {openProduct && (
         <ProductDetailModal
           product={openProduct}
-          onClose={() => setOpenProductId(null)}
+          onClose={closeProductModal}
           onAdd={(size, color) => handleAdd(openProduct.id, size, color)}
+          onCopyLink={() => handleCopyLink(openProduct.id)}
           t={t}
           locale={locale}
         />
