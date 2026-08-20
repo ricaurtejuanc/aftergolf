@@ -243,6 +243,8 @@ export const es = {
     searchPlaceholder: 'Buscar campo o ubicación...',
     notInList: '¿No está en la lista? Buscar en GolfCourseAPI',
     change: 'Cambiar',
+    recorridoLabel: 'Recorrido',
+    changeRecorrido: 'Cambiar recorrido',
     outboundTee: 'Tee de salida',
     changeTee: 'Cambiar tee',
     apiSearchTitle: 'Buscar en GolfCourseAPI',

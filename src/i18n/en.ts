@@ -244,6 +244,8 @@ export const en: SameShape<typeof es> = {
     searchPlaceholder: 'Search course or location...',
     notInList: "Not on the list? Search GolfCourseAPI",
     change: 'Change',
+    recorridoLabel: 'Course layout',
+    changeRecorrido: 'Change layout',
     outboundTee: 'Tee',
     changeTee: 'Change tee',
     apiSearchTitle: 'Search GolfCourseAPI',
