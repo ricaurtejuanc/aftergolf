@@ -11,9 +11,15 @@ export interface CourseTee {
   par: number
 }
 
+export interface CourseRound {
+  id: string
+  name: string
+  tees: CourseTee[]
+}
+
 export interface GolfCourse {
   id: string
   name: string
   location: string
-  tees: CourseTee[]
+  rounds: CourseRound[]
 }

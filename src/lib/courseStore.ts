@@ -8,9 +8,16 @@ interface CourseRow {
   location: string
 }
 
-interface TeeRow {
+interface RecorridoRow {
   id: string
   course_id: string
+  name: string
+  position: number
+}
+
+interface TeeRow {
+  id: string
+  recorrido_id: string
   color: string
   gender: string
   cr: number
@@ -31,25 +38,33 @@ function slugify(name: string): string {
 }
 
 export async function loadCourses(): Promise<GolfCourse[]> {
-  const [{ data: courseRows }, { data: teeRows }] = await Promise.all([
+  const [{ data: courseRows }, { data: recorridoRows }, { data: teeRows }] = await Promise.all([
     supabase.from('courses').select('*').order('name'),
+    supabase.from('recorridos').select('*').order('position'),
     supabase.from('tees').select('*').order('position'),
   ])
   const courses = (courseRows ?? []) as CourseRow[]
+  const recorridos = (recorridoRows ?? []) as RecorridoRow[]
   const tees = (teeRows ?? []) as TeeRow[]
 
   return courses.map((c) => ({
     id: c.id,
     name: c.name,
     location: c.location,
-    tees: tees
-      .filter((t) => t.course_id === c.id)
-      .map((t) => ({
-        color: t.color as CourseTee['color'],
-        gender: t.gender as CourseTee['gender'],
-        cr: t.cr,
-        slope: t.slope,
-        par: t.par,
+    rounds: recorridos
+      .filter((r) => r.course_id === c.id)
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        tees: tees
+          .filter((t) => t.recorrido_id === r.id)
+          .map((t) => ({
+            color: t.color as CourseTee['color'],
+            gender: t.gender as CourseTee['gender'],
+            cr: t.cr,
+            slope: t.slope,
+            par: t.par,
+          })),
       })),
   }))
 }
@@ -81,10 +96,17 @@ export async function importGolfCourse(detail: GolfCourseApiDetail): Promise<Gol
     .insert({ id, name: detail.name, location: detail.location })
   if (courseError) throw courseError
 
+  const { data: recorridoRow, error: recorridoError } = await supabase
+    .from('recorridos')
+    .insert({ course_id: id, name: detail.name, position: 0 })
+    .select('id')
+    .single()
+  if (recorridoError) throw recorridoError
+
   if (detail.tees.length > 0) {
     const { error: teesError } = await supabase.from('tees').insert(
       detail.tees.map((tee, position) => ({
-        course_id: id,
+        recorrido_id: (recorridoRow as { id: string }).id,
         color: tee.color,
         gender: tee.gender,
         cr: tee.cr,
@@ -117,23 +139,47 @@ export async function deleteCourse(id: string): Promise<GolfCourse[]> {
   return loadCourses()
 }
 
-async function teeIdAtPosition(courseId: string, index: number): Promise<string | null> {
+export async function addRecorrido(courseId: string, name: string): Promise<GolfCourse[]> {
+  const { count } = await supabase
+    .from('recorridos')
+    .select('id', { count: 'exact', head: true })
+    .eq('course_id', courseId)
+  const { error } = await supabase
+    .from('recorridos')
+    .insert({ course_id: courseId, name, position: count ?? 0 })
+  if (error) throw error
+  return loadCourses()
+}
+
+export async function updateRecorrido(recorridoId: string, name: string): Promise<GolfCourse[]> {
+  const { error } = await supabase.from('recorridos').update({ name }).eq('id', recorridoId)
+  if (error) throw error
+  return loadCourses()
+}
+
+export async function deleteRecorrido(recorridoId: string): Promise<GolfCourse[]> {
+  const { error } = await supabase.from('recorridos').delete().eq('id', recorridoId)
+  if (error) throw error
+  return loadCourses()
+}
+
+async function teeIdAtPosition(recorridoId: string, index: number): Promise<string | null> {
   const { data } = await supabase
     .from('tees')
     .select('id')
-    .eq('course_id', courseId)
+    .eq('recorrido_id', recorridoId)
     .order('position')
     .range(index, index)
   return data?.[0]?.id ?? null
 }
 
-export async function addTee(courseId: string, tee: CourseTee): Promise<GolfCourse[]> {
+export async function addTee(recorridoId: string, tee: CourseTee): Promise<GolfCourse[]> {
   const { count } = await supabase
     .from('tees')
     .select('id', { count: 'exact', head: true })
-    .eq('course_id', courseId)
+    .eq('recorrido_id', recorridoId)
   const { error } = await supabase.from('tees').insert({
-    course_id: courseId,
+    recorrido_id: recorridoId,
     color: tee.color,
     gender: tee.gender,
     cr: tee.cr,
@@ -146,11 +192,11 @@ export async function addTee(courseId: string, tee: CourseTee): Promise<GolfCour
 }
 
 export async function updateTee(
-  courseId: string,
+  recorridoId: string,
   teeIndex: number,
   tee: CourseTee,
 ): Promise<GolfCourse[]> {
-  const teeId = await teeIdAtPosition(courseId, teeIndex)
+  const teeId = await teeIdAtPosition(recorridoId, teeIndex)
   if (teeId) {
     const { error } = await supabase
       .from('tees')
@@ -161,8 +207,8 @@ export async function updateTee(
   return loadCourses()
 }
 
-export async function deleteTee(courseId: string, teeIndex: number): Promise<GolfCourse[]> {
-  const teeId = await teeIdAtPosition(courseId, teeIndex)
+export async function deleteTee(recorridoId: string, teeIndex: number): Promise<GolfCourse[]> {
+  const teeId = await teeIdAtPosition(recorridoId, teeIndex)
   if (teeId) {
     const { error } = await supabase.from('tees').delete().eq('id', teeId)
     if (error) throw error

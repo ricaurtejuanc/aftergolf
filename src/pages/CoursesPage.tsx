@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { TEE_LABEL } from '../components/CourseTeeSelect'
-import type { CourseTee, GolfCourse, TeeColor, TeeGender } from '../data/courses'
+import type { CourseRound, CourseTee, GolfCourse, TeeColor, TeeGender } from '../data/courses'
 import {
   addCourse,
+  addRecorrido,
   addTee,
   deleteCourse,
+  deleteRecorrido,
   deleteTee,
   importGolfCourse,
   loadCourses,
   updateCourse,
+  updateRecorrido,
   updateTee,
 } from '../lib/courseStore'
 import {
@@ -122,95 +125,82 @@ function TeeForm({
   )
 }
 
-function CourseRow({
-  course,
+function RecorridoRow({
+  recorrido,
   onUpdate,
   onDelete,
   onAddTee,
   onUpdateTee,
   onDeleteTee,
 }: {
-  course: GolfCourse
-  onUpdate: (patch: { name: string; location: string }) => void
+  recorrido: CourseRound
+  onUpdate: (name: string) => void
   onDelete: () => void
   onAddTee: (tee: CourseTee) => void
   onUpdateTee: (index: number, tee: CourseTee) => void
   onDeleteTee: (index: number) => void
 }) {
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(course.name)
-  const [location, setLocation] = useState(course.location)
+  const [editingName, setEditingName] = useState(false)
+  const [name, setName] = useState(recorrido.name)
   const [addingTee, setAddingTee] = useState(false)
   const [editingTeeIndex, setEditingTeeIndex] = useState<number | null>(null)
 
-  if (!editing) {
-    return (
-      <div className="rounded-xl border border-cream-300 bg-white p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="font-medium text-fairway-900">{course.name}</div>
-            <div className="text-xs text-fairway-500">{course.location}</div>
-          </div>
-          <div className="flex shrink-0 gap-2">
+  return (
+    <div className="space-y-2 rounded-lg border border-cream-300 bg-cream-50 p-3">
+      <div className="flex items-center justify-between gap-2">
+        {editingName ? (
+          <div className="flex flex-1 items-center gap-2">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="flex-1 rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+            />
             <button
-              onClick={() => setEditing(true)}
-              className="rounded-md border border-cream-300 px-2.5 py-1 text-xs font-medium text-fairway-700 transition hover:border-fairway-400"
+              onClick={() => {
+                if (!name.trim()) return
+                onUpdate(name.trim())
+                setEditingName(false)
+              }}
+              className="shrink-0 text-xs font-medium text-fairway-700 hover:underline"
             >
-              Editar
+              Guardar
             </button>
             <button
               onClick={() => {
-                if (window.confirm(`¿Seguro que quieres eliminar "${course.name}"? Esta acción no se puede deshacer.`)) onDelete()
+                setName(recorrido.name)
+                setEditingName(false)
               }}
-              className="rounded-md border border-cream-300 px-2.5 py-1 text-xs text-fairway-500 transition hover:border-red-400 hover:text-red-500"
+              className="shrink-0 text-xs text-fairway-500 hover:underline"
             >
-              Eliminar
+              Cancelar
             </button>
           </div>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {course.tees.map((t, idx) => (
-            <span
-              key={idx}
-              className="rounded-full border border-cream-300 bg-cream-100 px-2.5 py-1 text-xs text-fairway-700"
-            >
-              {TEE_LABEL[t.color]} · CR {t.cr} · Slope {t.slope} · Par {t.par}
-            </span>
-          ))}
-          {course.tees.length === 0 && (
-            <span className="text-xs text-fairway-400">Sin tees todavía.</span>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-3 rounded-xl border border-fairway-400 bg-white p-4 shadow-sm">
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div>
-          <label className="block text-xs font-medium text-fairway-700 mb-1">Nombre</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-fairway-700 mb-1">Ubicación</label>
-          <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
-          />
-        </div>
+        ) : (
+          <>
+            <span className="text-sm font-medium text-fairway-800">{recorrido.name}</span>
+            <div className="flex shrink-0 gap-3">
+              <button
+                onClick={() => setEditingName(true)}
+                className="text-xs font-medium text-fairway-700 hover:underline"
+              >
+                Editar nombre
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm(`¿Eliminar el recorrido "${recorrido.name}"? Esta acción no se puede deshacer.`)) onDelete()
+                }}
+                className="text-xs text-fairway-500 hover:text-red-500"
+              >
+                Eliminar recorrido
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="space-y-2">
-        <div className="text-xs font-medium text-fairway-700">Tees</div>
-        {course.tees.map((t, idx) =>
+      <div className="space-y-2 pl-2">
+        {recorrido.tees.map((t, idx) =>
           editingTeeIndex === idx ? (
             <TeeForm
               key={idx}
@@ -224,7 +214,7 @@ function CourseRow({
           ) : (
             <div
               key={idx}
-              className="flex items-center justify-between rounded-lg border border-cream-300 bg-cream-100 px-3 py-2 text-sm text-fairway-800"
+              className="flex items-center justify-between rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-fairway-800"
             >
               <span>
                 {TEE_LABEL[t.color]} ({t.gender}) · CR {t.cr} · Slope {t.slope} · Par {t.par}
@@ -262,6 +252,152 @@ function CourseRow({
             className="rounded-md border border-dashed border-cream-300 px-3 py-1.5 text-xs font-medium text-fairway-600 transition hover:border-fairway-400"
           >
             + Añadir tee
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CourseRow({
+  course,
+  onUpdate,
+  onDelete,
+  onAddRecorrido,
+  onUpdateRecorrido,
+  onDeleteRecorrido,
+  onAddTee,
+  onUpdateTee,
+  onDeleteTee,
+}: {
+  course: GolfCourse
+  onUpdate: (patch: { name: string; location: string }) => void
+  onDelete: () => void
+  onAddRecorrido: (name: string) => void
+  onUpdateRecorrido: (recorridoId: string, name: string) => void
+  onDeleteRecorrido: (recorridoId: string) => void
+  onAddTee: (recorridoId: string, tee: CourseTee) => void
+  onUpdateTee: (recorridoId: string, index: number, tee: CourseTee) => void
+  onDeleteTee: (recorridoId: string, index: number) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(course.name)
+  const [location, setLocation] = useState(course.location)
+  const [addingRecorrido, setAddingRecorrido] = useState(false)
+  const [newRecorridoName, setNewRecorridoName] = useState('')
+
+  if (!editing) {
+    return (
+      <div className="rounded-xl border border-cream-300 bg-white p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="font-medium text-fairway-900">{course.name}</div>
+            <div className="text-xs text-fairway-500">{course.location}</div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              className="rounded-md border border-cream-300 px-2.5 py-1 text-xs font-medium text-fairway-700 transition hover:border-fairway-400"
+            >
+              Editar
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm(`¿Seguro que quieres eliminar "${course.name}"? Esta acción no se puede deshacer.`)) onDelete()
+              }}
+              className="rounded-md border border-cream-300 px-2.5 py-1 text-xs text-fairway-500 transition hover:border-red-400 hover:text-red-500"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {course.rounds.map((r) => (
+            <span
+              key={r.id}
+              className="rounded-full border border-cream-300 bg-cream-100 px-2.5 py-1 text-xs text-fairway-700"
+            >
+              {r.name} · {r.tees.length} tees
+            </span>
+          ))}
+          {course.rounds.length === 0 && (
+            <span className="text-xs text-fairway-400">Sin recorridos todavía.</span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-fairway-400 bg-white p-4 shadow-sm">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div>
+          <label className="block text-xs font-medium text-fairway-700 mb-1">Nombre</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-fairway-700 mb-1">Ubicación</label>
+          <input
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="text-xs font-medium text-fairway-700">Recorridos</div>
+        {course.rounds.map((r) => (
+          <RecorridoRow
+            key={r.id}
+            recorrido={r}
+            onUpdate={(newName) => onUpdateRecorrido(r.id, newName)}
+            onDelete={() => onDeleteRecorrido(r.id)}
+            onAddTee={(tee) => onAddTee(r.id, tee)}
+            onUpdateTee={(idx, tee) => onUpdateTee(r.id, idx, tee)}
+            onDeleteTee={(idx) => onDeleteTee(r.id, idx)}
+          />
+        ))}
+
+        {addingRecorrido ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newRecorridoName}
+              onChange={(e) => setNewRecorridoName(e.target.value)}
+              placeholder="Nombre del recorrido"
+              className="flex-1 rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+            />
+            <button
+              onClick={() => {
+                if (!newRecorridoName.trim()) return
+                onAddRecorrido(newRecorridoName.trim())
+                setNewRecorridoName('')
+                setAddingRecorrido(false)
+              }}
+              className="shrink-0 rounded-md bg-fairway-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-fairway-800"
+            >
+              Crear
+            </button>
+            <button
+              onClick={() => setAddingRecorrido(false)}
+              className="shrink-0 rounded-md border border-cream-300 px-3 py-1.5 text-xs text-fairway-600 transition hover:border-fairway-400"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setAddingRecorrido(true)}
+            className="rounded-md border border-dashed border-cream-300 px-3 py-1.5 text-xs font-medium text-fairway-600 transition hover:border-fairway-400"
+          >
+            + Añadir recorrido
           </button>
         )}
       </div>
@@ -392,9 +528,9 @@ function GolfCourseApiImportPanel({
       )}
 
       <p className="text-xs text-fairway-500">
-        Trae el nombre, la ubicación y los tees (color aproximado, CR, Slope y Par) del campo.
-        Revisa el color de cada tee después de importar — se adivina a partir del nombre en
-        inglés y puede no ser exacto.
+        Trae el nombre, la ubicación y los tees (color aproximado, CR, Slope y Par) del campo en
+        un único recorrido. Revisa el color de cada tee después de importar — se adivina a partir
+        del nombre en inglés y puede no ser exacto.
       </p>
     </div>
   )
@@ -436,7 +572,7 @@ export function CoursesPage() {
       <div>
         <h1 className="text-2xl font-semibold text-fairway-900">Campos de golf</h1>
         <p className="mt-1 text-sm text-fairway-600">
-          {loading ? 'Cargando...' : `${courses.length} campos con sus tees, Course Rating y Slope.`}{' '}
+          {loading ? 'Cargando...' : `${courses.length} campos, cada uno con sus recorridos y los tees de cada uno.`}{' '}
           Visible para todos; solo tú puedes editarlos.
         </p>
       </div>
@@ -501,7 +637,7 @@ export function CoursesPage() {
             Crear campo
           </button>
           <p className="text-xs text-fairway-500">
-            Después de crearlo, pulsa "Editar" en su tarjeta para añadirle los tees.
+            Después de crearlo, pulsa "Editar" en su tarjeta para añadirle recorridos y tees.
           </p>
         </div>
       )}
@@ -513,9 +649,20 @@ export function CoursesPage() {
             course={course}
             onUpdate={async (patch) => setCourses(await updateCourse(course.id, patch))}
             onDelete={async () => setCourses(await deleteCourse(course.id))}
-            onAddTee={async (tee) => setCourses(await addTee(course.id, tee))}
-            onUpdateTee={async (idx, tee) => setCourses(await updateTee(course.id, idx, tee))}
-            onDeleteTee={async (idx) => setCourses(await deleteTee(course.id, idx))}
+            onAddRecorrido={async (name) => setCourses(await addRecorrido(course.id, name))}
+            onUpdateRecorrido={async (recorridoId, name) =>
+              setCourses(await updateRecorrido(recorridoId, name))
+            }
+            onDeleteRecorrido={async (recorridoId) =>
+              setCourses(await deleteRecorrido(recorridoId))
+            }
+            onAddTee={async (recorridoId, tee) => setCourses(await addTee(recorridoId, tee))}
+            onUpdateTee={async (recorridoId, idx, tee) =>
+              setCourses(await updateTee(recorridoId, idx, tee))
+            }
+            onDeleteTee={async (recorridoId, idx) =>
+              setCourses(await deleteTee(recorridoId, idx))
+            }
           />
         ))}
       </div>

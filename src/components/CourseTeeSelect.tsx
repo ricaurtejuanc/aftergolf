@@ -67,7 +67,15 @@ function GolfCourseApiFallback({
         setError(t.noTeesError)
         return
       }
-      onSelect({ id: `api:${id}`, name: detail.name, location: detail.location, tees: detail.tees })
+      // GolfCourseAPI has no recorrido concept — wrapped into a single round
+      // so the rest of the component can treat every course the same way;
+      // with only one round it's auto-selected and never shown to the user.
+      onSelect({
+        id: `api:${id}`,
+        name: detail.name,
+        location: detail.location,
+        rounds: [{ id: 'unico', name: detail.name, tees: detail.tees }],
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : t.loadError)
     } finally {
@@ -160,6 +168,8 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
   const [courses, setCourses] = useState<GolfCourse[]>([])
   const [apiCourse, setApiCourse] = useState<GolfCourse | null>(null)
   const [showApiSearch, setShowApiSearch] = useState(false)
+  const [roundId, setRoundId] = useState<string | null>(null)
+  const [roundExpanded, setRoundExpanded] = useState(true)
   const [teeExpanded, setTeeExpanded] = useState(true)
 
   useEffect(() => {
@@ -179,12 +189,37 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
   // locally — the round is saved with copied values either way, so it
   // doesn't need to live in the local courses table.
   const course = courses.find((c) => c.id === courseId) ?? (apiCourse?.id === courseId ? apiCourse : undefined)
+  const round = course?.rounds.find((r) => r.id === roundId)
 
-  // Re-expand the tee picker whenever a different course is chosen, so
-  // there's always a chance to review/pick a tee for it.
+  function combinedName(c: GolfCourse, r: { name: string }): string {
+    return c.rounds.length > 1 ? `${c.name} — ${r.name}` : c.name
+  }
+
+  // Picking a course with exactly one recorrido auto-selects it (and its
+  // first tee), same as before there was a recorrido concept at all. A
+  // course with several recorridos leaves the tee unset until one is
+  // picked — the recorrido picker takes over from there.
+  function selectCourse(c: GolfCourse) {
+    const singleRound = c.rounds.length === 1 ? c.rounds[0] : null
+    const tee = singleRound?.tees[0] ?? null
+    onChange(c.id, 0, tee, singleRound ? combinedName(c, singleRound) : c.name, c.location)
+  }
+
+  // Re-pick the recorrido (auto-selecting when there's only one, otherwise
+  // showing the picker) and re-expand the tee picker whenever a different
+  // course is chosen.
   useEffect(() => {
+    if (!course) {
+      setRoundId(null)
+    } else if (course.rounds.length === 1) {
+      setRoundId(course.rounds[0].id)
+      setRoundExpanded(false)
+    } else {
+      setRoundId(null)
+      setRoundExpanded(true)
+    }
     setTeeExpanded(true)
-  }, [course?.id])
+  }, [course])
 
   if (!course) {
     return (
@@ -207,7 +242,7 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
                 type="button"
                 onClick={() => {
                   setQuery('')
-                  onChange(c.id, 0, c.tees[0], c.name, c.location)
+                  selectCourse(c)
                 }}
                 className="block w-full rounded-md px-3 py-2 text-left text-sm text-fairway-900 transition hover:bg-cream-100"
               >
@@ -224,7 +259,7 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
             onSelect={(golfCourse) => {
               setApiCourse(golfCourse)
               setShowApiSearch(false)
-              onChange(golfCourse.id, 0, golfCourse.tees[0], golfCourse.name, golfCourse.location)
+              selectCourse(golfCourse)
             }}
           />
         ) : (
@@ -264,61 +299,109 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
         </div>
       </div>
 
-      <div>
-        <div className="mb-1 flex items-center justify-between">
-          <label className="block text-sm font-medium text-fairway-800">{t.outboundTee}</label>
-          {!teeExpanded && (
-            <button
-              type="button"
-              onClick={() => setTeeExpanded(true)}
-              className="text-xs text-fairway-600 underline-offset-2 hover:underline"
-            >
-              {t.changeTee}
-            </button>
+      {course.rounds.length > 1 && (
+        <div>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="block text-sm font-medium text-fairway-800">{t.recorridoLabel}</label>
+            {!roundExpanded && round && (
+              <button
+                type="button"
+                onClick={() => setRoundExpanded(true)}
+                className="text-xs text-fairway-600 underline-offset-2 hover:underline"
+              >
+                {t.changeRecorrido}
+              </button>
+            )}
+          </div>
+
+          {roundExpanded ? (
+            <div className="space-y-1">
+              {course.rounds.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => {
+                    setRoundId(r.id)
+                    setRoundExpanded(false)
+                    onChange(course.id, 0, r.tees[0] ?? null, combinedName(course, r), course.location)
+                  }}
+                  className={`block w-full rounded-lg border p-2.5 text-left text-xs font-medium transition ${
+                    r.id === roundId
+                      ? 'border-fairway-700 bg-fairway-800 text-cream-50'
+                      : 'border-cream-300 bg-white text-fairway-800 hover:border-fairway-400'
+                  }`}
+                >
+                  {r.name}
+                </button>
+              ))}
+            </div>
+          ) : (
+            round && (
+              <div className="rounded-lg border border-fairway-700 bg-fairway-800 p-2.5 text-xs font-medium text-cream-50">
+                {round.name}
+              </div>
+            )
           )}
         </div>
+      )}
 
-        {teeExpanded ? (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {course.tees.map((tee, idx) => (
+      {round && (
+        <div>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="block text-sm font-medium text-fairway-800">{t.outboundTee}</label>
+            {!teeExpanded && (
               <button
-                key={idx}
                 type="button"
-                onClick={() => {
-                  onChange(course.id, idx, tee, course.name, course.location)
-                  setTeeExpanded(false)
-                }}
-                className={`rounded-lg border p-2.5 text-left text-xs transition ${
-                  idx === teeIndex
-                    ? 'border-fairway-700 bg-fairway-800 text-cream-50'
-                    : 'border-cream-300 bg-white text-fairway-800 hover:border-fairway-400'
-                }`}
+                onClick={() => setTeeExpanded(true)}
+                className="text-xs text-fairway-600 underline-offset-2 hover:underline"
               >
-                <div className="flex items-center gap-1.5 font-medium">
-                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TEE_DOT[tee.color]}`} />
-                  {dict.teeColors[tee.color]}
-                </div>
-                <div className={idx === teeIndex ? 'mt-1 text-cream-100' : 'mt-1 text-fairway-500'}>
-                  CR {tee.cr} · Slope {tee.slope} · Par {tee.par}
-                </div>
+                {t.changeTee}
               </button>
-            ))}
+            )}
           </div>
-        ) : (
-          course.tees[teeIndex] && (
-            <div className="flex items-center gap-2 rounded-lg border border-fairway-700 bg-fairway-800 p-2.5 text-xs text-cream-50">
-              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TEE_DOT[course.tees[teeIndex].color]}`} />
-              <div>
-                <div className="font-medium">{dict.teeColors[course.tees[teeIndex].color]}</div>
-                <div className="mt-0.5 text-cream-100">
-                  CR {course.tees[teeIndex].cr} · Slope {course.tees[teeIndex].slope} · Par{' '}
-                  {course.tees[teeIndex].par}
+
+          {teeExpanded ? (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {round.tees.map((tee, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    onChange(course.id, idx, tee, combinedName(course, round), course.location)
+                    setTeeExpanded(false)
+                  }}
+                  className={`rounded-lg border p-2.5 text-left text-xs transition ${
+                    idx === teeIndex
+                      ? 'border-fairway-700 bg-fairway-800 text-cream-50'
+                      : 'border-cream-300 bg-white text-fairway-800 hover:border-fairway-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TEE_DOT[tee.color]}`} />
+                    {dict.teeColors[tee.color]}
+                  </div>
+                  <div className={idx === teeIndex ? 'mt-1 text-cream-100' : 'mt-1 text-fairway-500'}>
+                    CR {tee.cr} · Slope {tee.slope} · Par {tee.par}
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            round.tees[teeIndex] && (
+              <div className="flex items-center gap-2 rounded-lg border border-fairway-700 bg-fairway-800 p-2.5 text-xs text-cream-50">
+                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TEE_DOT[round.tees[teeIndex].color]}`} />
+                <div>
+                  <div className="font-medium">{dict.teeColors[round.tees[teeIndex].color]}</div>
+                  <div className="mt-0.5 text-cream-100">
+                    CR {round.tees[teeIndex].cr} · Slope {round.tees[teeIndex].slope} · Par{' '}
+                    {round.tees[teeIndex].par}
+                  </div>
                 </div>
               </div>
-            </div>
-          )
-        )}
-      </div>
+            )
+          )}
+        </div>
+      )}
     </div>
   )
 }
