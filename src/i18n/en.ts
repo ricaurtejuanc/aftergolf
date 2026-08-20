@@ -200,6 +200,8 @@ export const en: SameShape<typeof es> = {
     selectSize: 'Select size',
     addToCart: 'Add',
     addedToast: 'Product added to cart',
+    copyLink: 'Copy link',
+    linkCopiedToast: 'Link copied to clipboard',
   },
   cartPanel: {
     orderRegistered: 'Order registered!',
