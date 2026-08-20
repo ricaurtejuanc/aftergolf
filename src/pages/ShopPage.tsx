@@ -306,7 +306,7 @@ function ProductDetailModal({
           />
         </div>
 
-        <p className="mt-4 text-sm text-fairway-600">{product.description}</p>
+        <p className="mt-4 whitespace-pre-wrap text-sm text-fairway-600">{product.description}</p>
         {product.specs && (
           <ul className="mt-2 space-y-1 text-xs text-fairway-600">
             {product.specs.map((spec) => (
@@ -415,8 +415,8 @@ export function ShopPage() {
   }, [])
   const { addItem } = useCart()
   const openProduct = products.find((p) => p.id === openProductId) ?? null
-  const filteredProducts = products.filter((p) =>
-    categoryFilter === 'ropa' ? isClothing(p.category) : !isClothing(p.category),
+  const filteredProducts = products.filter(
+    (p) => p.visible && (categoryFilter === 'ropa' ? isClothing(p.category) : !isClothing(p.category)),
   )
 
   useEffect(() => {
