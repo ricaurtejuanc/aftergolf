@@ -415,8 +415,8 @@ export function ShopPage() {
   }, [])
   const { addItem } = useCart()
   const openProduct = products.find((p) => p.id === openProductId) ?? null
-  const filteredProducts = products.filter((p) =>
-    categoryFilter === 'ropa' ? isClothing(p.category) : !isClothing(p.category),
+  const filteredProducts = products.filter(
+    (p) => p.visible && (categoryFilter === 'ropa' ? isClothing(p.category) : !isClothing(p.category)),
   )
 
   useEffect(() => {

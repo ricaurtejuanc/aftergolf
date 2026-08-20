@@ -10,6 +10,7 @@ import {
   reorderColorPhoto,
   reorderProduct,
   reorderProductColor,
+  setProductVisible,
   updateProduct,
 } from '../lib/productStore'
 import { getPrintfulProduct, listPrintfulProducts, type PrintfulListItem } from '../lib/printful'
@@ -23,6 +24,7 @@ interface ProductDraft {
   sizesInput: string
   placeholderEmoji: string
   shippingTime: string
+  visible: boolean
 }
 
 function toDraft(p?: Product): ProductDraft {
@@ -35,6 +37,7 @@ function toDraft(p?: Product): ProductDraft {
     sizesInput: (p?.sizes ?? CLOTHING_SIZES).join(', '),
     placeholderEmoji: p?.placeholderEmoji ?? '🏌️',
     shippingTime: p?.shippingTime ?? DEFAULT_SHIPPING_TIME,
+    visible: p?.visible ?? true,
   }
 }
 
@@ -55,6 +58,7 @@ function draftToProduct(draft: ProductDraft, existing?: Product): Omit<Product, 
     specs: existing?.specs,
     placeholderEmoji: draft.placeholderEmoji || undefined,
     shippingTime: draft.shippingTime.trim() || undefined,
+    visible: draft.visible,
   }
 }
 
@@ -153,9 +157,27 @@ function ProductForm({
         />
       </div>
 
+      <div>
+        <label className="flex items-center gap-2 text-xs font-medium text-fairway-700">
+          <input
+            type="checkbox"
+            checked={draft.visible}
+            onChange={(e) => update('visible', e.target.checked)}
+          />
+          Visible en la Shop
+        </label>
+        {!draft.visible && (
+          <p className="mt-1 text-xs text-fairway-500">
+            El producto se guarda pero no aparece en la Shop hasta que lo marques como visible.
+          </p>
+        )}
+      </div>
+
       <div className="rounded-lg border border-gold-400 bg-gold-400/10 p-3 text-xs text-fairway-700">
-        Esto se guarda de verdad y ya lo ven tus clientes en la Shop. Si el
-        producto ya existe en tu tienda de Printful, mejor usa "Importar
+        {draft.visible
+          ? 'Esto se guarda de verdad y ya lo ven tus clientes en la Shop.'
+          : 'Esto se guarda de verdad pero, al estar oculto, tus clientes no lo verán todavía.'}{' '}
+        Si el producto ya existe en tu tienda de Printful, mejor usa "Importar
         desde Printful" para traer las fotos automáticamente — desde aquí, sin
         fotos, se muestra con un emoji.
       </div>
@@ -585,7 +607,9 @@ export function ProductsAdminPage() {
           ) : (
             <div
               key={product.id}
-              className="flex items-center justify-between rounded-xl border border-cream-300 bg-white p-4 shadow-sm"
+              className={`flex items-center justify-between rounded-xl border bg-white p-4 shadow-sm ${
+                product.visible ? 'border-cream-300' : 'border-cream-300 opacity-60'
+              }`}
             >
               <div className="flex items-center gap-3">
                 <div className="flex flex-col gap-0.5">
@@ -623,7 +647,14 @@ export function ProductsAdminPage() {
                   </button>
                 </div>
                 <div>
-                  <div className="font-medium text-fairway-900">{product.name}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-fairway-900">{product.name}</span>
+                    {!product.visible && (
+                      <span className="rounded-full bg-fairway-100 px-1.5 py-0.5 text-[10px] font-semibold text-fairway-600">
+                        Oculto
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-fairway-500">
                     {product.category} · {product.price.toFixed(2)}€
                     {product.sizes ? ` · Tallas: ${product.sizes.join(', ')}` : ''}
@@ -632,6 +663,16 @@ export function ProductsAdminPage() {
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">
+                <button
+                  onClick={async () => setProducts(await setProductVisible(product.id, !product.visible))}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                    product.visible
+                      ? 'border-cream-300 text-fairway-700 hover:border-fairway-400'
+                      : 'border-gold-400 bg-gold-400/10 text-fairway-800 hover:border-gold-500'
+                  }`}
+                >
+                  {product.visible ? 'Ocultar' : 'Mostrar'}
+                </button>
                 <button
                   onClick={() => setPhotosId(product.id)}
                   className="rounded-md border border-cream-300 px-2.5 py-1 text-xs font-medium text-fairway-700 transition hover:border-fairway-400"

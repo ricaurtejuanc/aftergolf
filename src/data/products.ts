@@ -26,6 +26,8 @@ export interface Product {
   colors?: ProductColor[]
   /** Estimated delivery time for this specific product, shown in its detail view. */
   shippingTime?: string
+  /** Whether the product shows up in the public Shop. Defaults to true. */
+  visible: boolean
 }
 
 export const CLOTHING_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL']

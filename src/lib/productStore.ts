@@ -23,6 +23,7 @@ interface ProductRow {
   sizes: string[] | null
   colors: Product['colors'] | null
   shipping_time: string | null
+  visible: boolean
 }
 
 function fromRow(row: ProductRow): Product {
@@ -40,6 +41,7 @@ function fromRow(row: ProductRow): Product {
     sizes: row.sizes ?? undefined,
     colors: row.colors ?? undefined,
     shippingTime: row.shipping_time ?? undefined,
+    visible: row.visible,
   }
 }
 
@@ -84,6 +86,7 @@ export async function addProduct(input: Omit<Product, 'id'>): Promise<Product[]>
     specs: input.specs ?? null,
     sizes: input.sizes ?? null,
     shipping_time: input.shippingTime || null,
+    visible: input.visible,
     position: count ?? 0,
   })
   if (error) throw error
@@ -103,8 +106,15 @@ export async function updateProduct(id: string, patch: Omit<Product, 'id'>): Pro
       sizes: patch.sizes ?? null,
       shipping_time: patch.shippingTime || null,
       colors: patch.colors ?? null,
+      visible: patch.visible,
     })
     .eq('id', id)
+  if (error) throw error
+  return loadProducts()
+}
+
+export async function setProductVisible(id: string, visible: boolean): Promise<Product[]> {
+  const { error } = await supabase.from('products').update({ visible }).eq('id', id)
   if (error) throw error
   return loadProducts()
 }

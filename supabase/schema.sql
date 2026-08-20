@@ -118,6 +118,9 @@ create table if not exists public.products (
   -- Estimated delivery time for this specific product (varies per product,
   -- not shop-wide), shown in its detail view. Editable by the admin.
   shipping_time text,
+  -- Lets the admin create/import a product and keep working on it without
+  -- it showing in the public Shop yet, instead of deleting and re-adding it.
+  visible boolean not null default true,
   position integer not null default 0,
   printful_id integer,
   -- Sync variant IDs from Printful, needed to place an order through their
