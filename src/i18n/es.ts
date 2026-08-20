@@ -219,6 +219,7 @@ export const es = {
     freeShippingNote: 'Envío gratis en pedidos superiores a {{amount}}.',
     total: 'Total',
     loginToContinue: 'Inicia sesión para continuar con tu pedido.',
+    ordersDisabled: 'En breve podrás realizar tus pedidos.',
     shippingAddress: 'Dirección de envío',
     fullName: 'Nombre completo',
     phone: 'Teléfono',

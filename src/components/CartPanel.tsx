@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { useCart } from '../context/CartContext'
+import { ORDERS_ENABLED, useCart } from '../context/CartContext'
 import { interpolate, useLanguage } from '../context/LanguageContext'
 import { formatPrice } from '../lib/format'
 import { createBizumOrder, type BizumOrderResult } from '../lib/checkout'
@@ -155,7 +155,20 @@ export function CartPanel({ className = '' }: { className?: string }) {
             </div>
           </div>
 
-          {showLogin ? (
+          {!ORDERS_ENABLED ? (
+            <div className="space-y-2 border-t border-cream-200 pt-3">
+              <div className="rounded-lg border border-gold-400 bg-gold-400/10 p-3 text-center text-sm text-fairway-800">
+                {t.ordersDisabled}
+              </div>
+              <button
+                type="button"
+                onClick={clear}
+                className="w-full rounded-lg border border-cream-300 px-4 py-2 text-xs text-fairway-500 transition hover:text-red-500"
+              >
+                {t.emptyCartButton}
+              </button>
+            </div>
+          ) : showLogin ? (
             <div className="space-y-2">
               <p className="text-xs text-fairway-600">{t.loginToContinue}</p>
               <RegisterGate onCancel={() => setShowLogin(false)} />
