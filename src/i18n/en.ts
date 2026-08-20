@@ -220,6 +220,7 @@ export const en: SameShape<typeof es> = {
     freeShippingNote: 'Free shipping on orders over {{amount}}.',
     total: 'Total',
     loginToContinue: 'Log in to continue with your order.',
+    ordersDisabled: "You'll be able to place orders again shortly.",
     shippingAddress: 'Shipping address',
     fullName: 'Full name',
     phone: 'Phone',

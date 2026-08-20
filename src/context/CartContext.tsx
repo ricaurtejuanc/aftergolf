@@ -4,6 +4,11 @@ import { loadProducts } from '../lib/productStore'
 import { loadCart, saveCart, type CartItem } from '../lib/cart'
 import { DEFAULT_SHOP_SETTINGS, loadShopSettings } from '../lib/shopSettingsStore'
 
+// Temporary kill switch for checkout while the Shop isn't ready to take
+// orders yet — browsing and building a cart still works, only the final
+// confirmation step is blocked. Flip back to true when ready.
+export const ORDERS_ENABLED = false
+
 interface CartContextValue {
   items: CartItem[]
   products: Product[]
