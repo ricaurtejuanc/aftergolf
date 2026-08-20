@@ -14,6 +14,12 @@ import {
   updateProduct,
 } from '../lib/productStore'
 import { getPrintfulProduct, listPrintfulProducts, type PrintfulListItem } from '../lib/printful'
+import {
+  DEFAULT_SHOP_SETTINGS,
+  loadShopSettings,
+  updateShopSettings,
+  type ShopSettings,
+} from '../lib/shopSettingsStore'
 
 interface ProductDraft {
   name: string
@@ -528,6 +534,105 @@ function ProductPhotosPanel({
   )
 }
 
+function ShippingSettingsPanel() {
+  const [settings, setSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS)
+  const [costInput, setCostInput] = useState('')
+  const [thresholdInput, setThresholdInput] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    loadShopSettings().then((s) => {
+      setSettings(s)
+      setCostInput(String(s.shippingCost))
+      setThresholdInput(String(s.freeShippingThreshold))
+      setLoading(false)
+    })
+  }, [])
+
+  const dirty =
+    costInput !== String(settings.shippingCost) || thresholdInput !== String(settings.freeShippingThreshold)
+
+  async function handleSave() {
+    setSaving(true)
+    setError(null)
+    setSaved(false)
+    try {
+      const next = await updateShopSettings({
+        shippingCost: Number(costInput) || 0,
+        freeShippingThreshold: Number(thresholdInput) || 0,
+      })
+      setSettings(next)
+      setCostInput(String(next.shippingCost))
+      setThresholdInput(String(next.freeShippingThreshold))
+      setSaved(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron guardar los ajustes de envío')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-cream-300 bg-white p-4 shadow-sm">
+      <h2 className="text-sm font-semibold text-fairway-900">Envío</h2>
+      {loading ? (
+        <p className="text-sm text-fairway-500">Cargando...</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-fairway-700 mb-1">Coste de envío (€)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={costInput}
+                onChange={(e) => {
+                  setCostInput(e.target.value)
+                  setSaved(false)
+                }}
+                className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-fairway-700 mb-1">
+                Envío gratis a partir de (€)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={thresholdInput}
+                onChange={(e) => {
+                  setThresholdInput(e.target.value)
+                  setSaved(false)
+                }}
+                className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+              />
+            </div>
+          </div>
+
+          {error && <p className="text-xs text-red-500">{error}</p>}
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving || !dirty}
+              className="rounded-md bg-fairway-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saving ? 'Guardando...' : 'Guardar'}
+            </button>
+            {saved && <span className="text-xs text-fairway-600">Guardado ✓</span>}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -552,6 +657,8 @@ export function ProductsAdminPage() {
           para cambiar el orden en el que aparecen en la Shop.
         </p>
       </div>
+
+      <ShippingSettingsPanel />
 
       <div className="flex flex-wrap gap-2">
         <button

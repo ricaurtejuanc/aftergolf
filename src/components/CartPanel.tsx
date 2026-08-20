@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { FREE_SHIPPING_THRESHOLD, useCart } from '../context/CartContext'
+import { useCart } from '../context/CartContext'
 import { interpolate, useLanguage } from '../context/LanguageContext'
 import { formatPrice } from '../lib/format'
 import { createBizumOrder, type BizumOrderResult } from '../lib/checkout'
@@ -16,6 +16,7 @@ export function CartPanel({ className = '' }: { className?: string }) {
     totalCount,
     totalPrice,
     shippingCost,
+    freeShippingThreshold,
     orderTotal,
     clear,
   } = useCart()
@@ -145,7 +146,7 @@ export function CartPanel({ className = '' }: { className?: string }) {
             </div>
             {shippingCost > 0 && (
               <p className="text-xs text-fairway-500">
-                {interpolate(t.freeShippingNote, { amount: formatPrice(FREE_SHIPPING_THRESHOLD, locale) })}
+                {interpolate(t.freeShippingNote, { amount: formatPrice(freeShippingThreshold, locale) })}
               </p>
             )}
             <div className="flex items-center justify-between pt-1 font-semibold text-fairway-900">

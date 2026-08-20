@@ -14,10 +14,12 @@ const SMTP_PORT = 465
 const SMTP_USER = 'info@aftergolf.es'
 const SMTP_PASSWORD = Deno.env.get('CONTACT_SMTP_PASSWORD')
 
-// Must match src/context/CartContext.tsx — there's no shared package between
-// the Vite app and these Deno functions, so these are duplicated on purpose.
-const SHIPPING_COST = 4.99
-const FREE_SHIPPING_THRESHOLD = 100
+// Fallback values, only used if the shop_settings row is somehow missing —
+// the admin-editable values live in the shop_settings table (see
+// src/lib/shopSettingsStore.ts), read fresh on every order below so a
+// changed setting takes effect immediately without redeploying.
+const DEFAULT_SHIPPING_COST = 4.99
+const DEFAULT_FREE_SHIPPING_THRESHOLD = 100
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -231,6 +233,14 @@ Deno.serve(async (req) => {
       items.map((i) => i.productId),
     )
 
+  const { data: shopSettings } = await supabase
+    .from('shop_settings')
+    .select('shipping_cost, free_shipping_threshold')
+    .eq('id', 1)
+    .maybeSingle()
+  const shippingCostSetting = shopSettings?.shipping_cost ?? DEFAULT_SHIPPING_COST
+  const freeShippingThreshold = shopSettings?.free_shipping_threshold ?? DEFAULT_FREE_SHIPPING_THRESHOLD
+
   if (productsError || !products) {
     console.error('Failed to load products for bizum order', productsError)
     return jsonResponse({ error: 'No se pudieron cargar los productos' }, 500)
@@ -265,7 +275,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Ninguno de los productos del carrito existe ya' }, 400)
   }
 
-  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
+  const shippingCost = subtotal >= freeShippingThreshold ? 0 : shippingCostSetting
   const amountTotal = subtotal + shippingCost
 
   const { data: order, error: insertError } = await supabase
