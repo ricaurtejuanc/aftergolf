@@ -2,9 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Product } from '../data/products'
 import { loadProducts } from '../lib/productStore'
 import { loadCart, saveCart, type CartItem } from '../lib/cart'
-
-export const SHIPPING_COST = 4.99
-export const FREE_SHIPPING_THRESHOLD = 100
+import { DEFAULT_SHOP_SETTINGS, loadShopSettings } from '../lib/shopSettingsStore'
 
 interface CartContextValue {
   items: CartItem[]
@@ -16,6 +14,7 @@ interface CartContextValue {
   totalCount: number
   totalPrice: number
   shippingCost: number
+  freeShippingThreshold: number
   orderTotal: number
 }
 
@@ -24,6 +23,7 @@ const CartContext = createContext<CartContextValue | null>(null)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => loadCart())
   const [products, setProducts] = useState<Product[]>([])
+  const [settings, setSettings] = useState(DEFAULT_SHOP_SETTINGS)
 
   useEffect(() => {
     saveCart(items)
@@ -31,6 +31,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadProducts().then(setProducts)
+    loadShopSettings().then(setSettings)
   }, [])
 
   function addItem(productId: string, size?: string, color?: string) {
@@ -90,7 +91,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return { totalCount: count, totalPrice: price }
   }, [items, products])
 
-  const shippingCost = totalCount === 0 || totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
+  const shippingCost =
+    totalCount === 0 || totalPrice >= settings.freeShippingThreshold ? 0 : settings.shippingCost
   const orderTotal = totalPrice + shippingCost
 
   return (
@@ -105,6 +107,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         totalCount,
         totalPrice,
         shippingCost,
+        freeShippingThreshold: settings.freeShippingThreshold,
         orderTotal,
       }}
     >
