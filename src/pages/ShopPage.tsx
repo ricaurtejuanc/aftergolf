@@ -306,7 +306,7 @@ function ProductDetailModal({
           />
         </div>
 
-        <p className="mt-4 text-sm text-fairway-600">{product.description}</p>
+        <p className="mt-4 whitespace-pre-wrap text-sm text-fairway-600">{product.description}</p>
         {product.specs && (
           <ul className="mt-2 space-y-1 text-xs text-fairway-600">
             {product.specs.map((spec) => (
