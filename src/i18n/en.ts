@@ -13,7 +13,7 @@ export const en: SameShape<typeof es> = {
     historial: 'History',
     shop: 'Shop',
     contacto: 'Contact',
-    handicapCta: "Don't know your handicap?",
+    handicapCta: 'Consult handicap',
     handicapCtaLink: 'Look it up here',
     viewCart: 'View cart',
   },
