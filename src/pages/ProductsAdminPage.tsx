@@ -607,12 +607,12 @@ export function ProductsAdminPage() {
           ) : (
             <div
               key={product.id}
-              className={`flex items-center justify-between rounded-xl border bg-white p-4 shadow-sm ${
+              className={`rounded-xl border bg-white p-4 shadow-sm ${
                 product.visible ? 'border-cream-300' : 'border-cream-300 opacity-60'
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-0.5">
+                <div className="flex shrink-0 flex-col gap-0.5">
                   <button
                     onClick={async () =>
                       setProducts(
@@ -646,8 +646,8 @@ export function ProductsAdminPage() {
                     ▼
                   </button>
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span className="font-medium text-fairway-900">{product.name}</span>
                     {!product.visible && (
                       <span className="rounded-full bg-fairway-100 px-1.5 py-0.5 text-[10px] font-semibold text-fairway-600">
@@ -662,7 +662,7 @@ export function ProductsAdminPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex shrink-0 gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   onClick={async () => setProducts(await setProductVisible(product.id, !product.visible))}
                   className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
