@@ -124,8 +124,6 @@ export const es = {
     stablefordPoints: 'Puntos Stableford',
     scoreDifferential: 'Score Differential (handicap jugado)',
     scoreDifferentialFormula: '(113 / Slope) x (Bruto - Course Rating - PCC)',
-    multiPlayerSummary:
-      'Hcp {{courseHandicap}} · Golpes recibidos {{strokesReceived}} · Neto {{netScore}} · Stableford {{stablefordPoints}} pts · Diff {{differential}}',
     savedButton: 'Ronda guardada ✓',
     savingButton: 'Guardando...',
     saveRoundsButton: 'Guardar rondas en el historial',

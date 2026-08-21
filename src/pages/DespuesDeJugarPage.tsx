@@ -275,24 +275,26 @@ export function DespuesDeJugarPage() {
           />
         </>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-6">
           {results.map(
             (r, idx) =>
               r && (
-                <div
-                  key={idx}
-                  className="rounded-xl border border-cream-300 bg-white p-4 shadow-sm"
-                >
-                  <div className="font-medium text-fairway-900">{interpolate(t.player, { n: idx + 1 })}</div>
-                  <div className="mt-1 text-sm text-fairway-700">
-                    {interpolate(t.multiPlayerSummary, {
-                      courseHandicap: r.courseHandicap,
-                      strokesReceived: r.strokesReceived,
-                      netScore: r.netScore,
-                      stablefordPoints: r.stablefordPoints,
-                      differential: r.differential.toFixed(1),
-                    })}
+                <div key={idx} className="space-y-3">
+                  <div className="text-sm font-semibold text-fairway-900">
+                    {interpolate(t.player, { n: idx + 1 })}
                   </div>
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <StatCard label={t.hcpDeJuego} value={r.courseHandicap} />
+                    <StatCard label={t.strokesReceived} value={r.strokesReceived} />
+                    <StatCard label={t.netScore} value={r.netScore} accent />
+                    <StatCard label={t.stablefordPoints} value={r.stablefordPoints} />
+                  </div>
+                  <StatCard
+                    label={t.scoreDifferential}
+                    value={r.differential.toFixed(1)}
+                    hint={t.scoreDifferentialFormula}
+                    accent
+                  />
                 </div>
               ),
           )}
