@@ -272,4 +272,13 @@ begin
     using (bucket_id = 'product-mockups' and auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
     with check (bucket_id = 'product-mockups' and auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
   end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'product_mockups_admin_delete'
+  ) then
+    create policy "product_mockups_admin_delete"
+    on storage.objects for delete
+    using (bucket_id = 'product-mockups' and auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
+  end if;
 end $$;
