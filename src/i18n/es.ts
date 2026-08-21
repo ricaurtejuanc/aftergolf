@@ -102,8 +102,6 @@ export const es = {
     netScore: 'Resultado neto',
     stablefordPoints: 'Puntos Stableford',
     playedHandicap: 'Handicap jugado',
-    roundSummaryLine:
-      'Golpes recibidos {{strokesReceived}} · Neto {{netScore}} · Stableford {{stablefordPoints}} pts · Handicap jugado {{differential}}',
     newCalculation: 'Nuevo cálculo',
   },
   despuesDeJugar: {

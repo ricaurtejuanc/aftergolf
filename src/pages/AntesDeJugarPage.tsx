@@ -332,13 +332,11 @@ export function AntesDeJugarPage() {
                       />
                     </div>
                     {r && (
-                      <div className="text-sm text-fairway-700">
-                        {interpolate(t.roundSummaryLine, {
-                          strokesReceived: r.strokesReceived,
-                          netScore: r.netScore,
-                          stablefordPoints: r.stablefordPoints,
-                          differential: r.differential.toFixed(1),
-                        })}
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <StatCard label={t.strokesReceived} value={r.strokesReceived} />
+                        <StatCard label={t.netScore} value={r.netScore} accent />
+                        <StatCard label={t.stablefordPoints} value={r.stablefordPoints} />
+                        <StatCard label={t.playedHandicap} value={r.differential.toFixed(1)} accent />
                       </div>
                     )}
                   </div>
