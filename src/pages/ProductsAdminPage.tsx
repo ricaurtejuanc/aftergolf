@@ -7,6 +7,7 @@ import {
   deleteProduct,
   importPrintfulProduct,
   loadProducts,
+  optimizeExistingPhotos,
   reorderColorPhoto,
   reorderProduct,
   reorderProductColor,
@@ -266,6 +267,8 @@ function PrintfulImportPanel({
                   <img
                     src={item.thumbnail}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     className="h-10 w-10 rounded object-cover"
                   />
                 )}
@@ -333,7 +336,7 @@ function PhotoThumb({
             isMain ? 'border-fairway-700' : 'border-cream-300'
           }`}
         >
-          <img src={url} alt="" className="h-full w-full object-cover" />
+          <img src={url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
         </div>
         {isMain && badgeLabel && (
           <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-fairway-700 px-1.5 py-0.5 text-[8px] font-semibold text-white">
@@ -633,6 +636,70 @@ function ShippingSettingsPanel() {
   )
 }
 
+function formatMB(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function OptimizePhotosPanel({ onUpdated }: { onUpdated: (products: Product[]) => void }) {
+  const [running, setRunning] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [summary, setSummary] = useState<{ optimized: number; skipped: number; savedBytes: number } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleRun() {
+    setRunning(true)
+    setError(null)
+    setSummary(null)
+    setProgress({ done: 0, total: 0 })
+    try {
+      const result = await optimizeExistingPhotos((done, total) => setProgress({ done, total }))
+      setSummary(result)
+      onUpdated(await loadProducts())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron optimizar las fotos')
+    } finally {
+      setRunning(false)
+      setProgress(null)
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-xl border border-cream-300 bg-white p-4 shadow-sm">
+      <h2 className="text-sm font-semibold text-fairway-900">Optimización de fotos</h2>
+      <p className="text-xs text-fairway-500">
+        Recomprime y redimensiona las fotos que ya has subido manualmente (no toca las importadas
+        de Printful), para que carguen más rápido en la Shop. Las fotos nuevas ya se optimizan
+        automáticamente al subirlas.
+      </p>
+
+      {error && <p className="text-xs text-red-500">{error}</p>}
+
+      {running && progress && (
+        <p className="text-xs text-fairway-600">
+          {progress.total > 0
+            ? `Optimizando foto ${progress.done} de ${progress.total}...`
+            : 'Buscando fotos...'}
+        </p>
+      )}
+
+      {summary && !running && (
+        <p className="text-xs text-fairway-600">
+          {summary.optimized} fotos optimizadas ({formatMB(summary.savedBytes)} ahorrados)
+          {summary.skipped > 0 ? `, ${summary.skipped} sin cambios` : ''}.
+        </p>
+      )}
+
+      <button
+        onClick={handleRun}
+        disabled={running}
+        className="rounded-md bg-fairway-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-fairway-800 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {running ? 'Optimizando...' : 'Optimizar fotos existentes'}
+      </button>
+    </div>
+  )
+}
+
 export function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -659,6 +726,7 @@ export function ProductsAdminPage() {
       </div>
 
       <ShippingSettingsPanel />
+      <OptimizePhotosPanel onUpdated={setProducts} />
 
       <div className="flex flex-wrap gap-2">
         <button

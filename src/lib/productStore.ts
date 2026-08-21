@@ -1,13 +1,16 @@
 import { DEFAULT_SHIPPING_TIME, type Product } from '../data/products'
 import { localImagesFor } from '../data/productImages'
+import { optimizeImage } from './imageOptimize'
 import type { PrintfulProductDetail } from './printful'
 import { SUPABASE_URL, supabase } from './supabaseClient'
 
 // A manually-uploaded photo (via the "Fotos" panel) lives in our own
 // Storage bucket rather than Printful's CDN — used to tell reimports which
 // photos are safe to refresh from Printful and which ones the admin set on
-// purpose and should be left alone.
-function isManualPhoto(url: string | undefined | null): boolean {
+// purpose and should be left alone, and to scope photo-optimization to the
+// photos we actually host (Printful's CDN images are its own mockups, not
+// unoptimized phone photos).
+export function isManualPhoto(url: string | undefined | null): boolean {
   return Boolean(url && url.startsWith(`${SUPABASE_URL}/storage/v1/object/public/product-mockups/manual/`))
 }
 
@@ -286,10 +289,11 @@ async function writeImages(productId: string, colorName: string | null, images: 
 // already showing: the DB row is only updated after the file is confirmed
 // stored, and if that fails partway through, nothing changes.
 export async function addColorPhoto(productId: string, colorName: string | null, file: File): Promise<Product[]> {
+  const optimized = await optimizeImage(file)
   const path = `manual/${productId}/${colorName ? slugify(colorName) : 'unico'}/${randomFileId()}`
   const { error: uploadError } = await supabase.storage
     .from(MOCKUP_BUCKET)
-    .upload(path, file, { contentType: file.type || 'image/jpeg' })
+    .upload(path, optimized, { contentType: optimized.type || file.type || 'image/jpeg' })
   if (uploadError) throw uploadError
   const url = supabase.storage.from(MOCKUP_BUCKET).getPublicUrl(path).data.publicUrl
 
@@ -334,4 +338,88 @@ export async function reorderColorPhoto(
   const next = [...images]
   ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
   return writeImages(productId, colorName, next)
+}
+
+// Swaps one photo's URL for another in place, without touching its position
+// or any other photo — used by optimizeExistingPhotos to point a gallery at
+// a freshly-recompressed copy. Re-reads the current images first, so a
+// concurrent edit elsewhere in the gallery isn't clobbered; if the old URL
+// is no longer present (e.g. deleted meanwhile), this is a no-op.
+async function replaceColorPhotoUrl(
+  productId: string,
+  colorName: string | null,
+  oldUrl: string,
+  newUrl: string,
+): Promise<void> {
+  const images = await readImages(productId, colorName)
+  const idx = images.indexOf(oldUrl)
+  if (idx === -1) return
+  const next = [...images]
+  next[idx] = newUrl
+  await writeImages(productId, colorName, next)
+}
+
+interface OptimizeExistingPhotosResult {
+  total: number
+  optimized: number
+  skipped: number
+  savedBytes: number
+}
+
+// One-off admin action: recompresses every manually-uploaded photo already
+// sitting in Storage (uploaded before addColorPhoto started optimizing on
+// the way in). Runs from the admin's own browser, since the RLS policies on
+// storage.objects only allow writes/deletes from an authenticated admin
+// session — there's no service-role key available to script this any other
+// way. Sequential on purpose: avoids hammering Storage and keeps each
+// gallery's read-modify-write race-free.
+export async function optimizeExistingPhotos(
+  onProgress?: (done: number, total: number) => void,
+): Promise<OptimizeExistingPhotosResult> {
+  const products = await loadProducts()
+  const targets: { productId: string; colorName: string | null; url: string }[] = []
+  for (const product of products) {
+    for (const url of product.images ?? []) {
+      if (isManualPhoto(url)) targets.push({ productId: product.id, colorName: null, url })
+    }
+    for (const color of product.colors ?? []) {
+      for (const url of color.images) {
+        if (isManualPhoto(url)) targets.push({ productId: product.id, colorName: color.name, url })
+      }
+    }
+  }
+
+  const result: OptimizeExistingPhotosResult = { total: targets.length, optimized: 0, skipped: 0, savedBytes: 0 }
+
+  for (const [i, target] of targets.entries()) {
+    try {
+      const original = await (await fetch(target.url)).blob()
+      const optimized = await optimizeImage(original)
+
+      if (optimized.size >= original.size * 0.9) {
+        result.skipped++
+      } else {
+        const marker = `/${MOCKUP_BUCKET}/`
+        const markerIndex = target.url.indexOf(marker)
+        const oldPath = markerIndex !== -1 ? target.url.slice(markerIndex + marker.length) : null
+        const path = `manual/${target.productId}/${target.colorName ? slugify(target.colorName) : 'unico'}/${randomFileId()}`
+        const { error: uploadError } = await supabase.storage
+          .from(MOCKUP_BUCKET)
+          .upload(path, optimized, { contentType: optimized.type || 'image/webp' })
+        if (uploadError) throw uploadError
+        const newUrl = supabase.storage.from(MOCKUP_BUCKET).getPublicUrl(path).data.publicUrl
+
+        await replaceColorPhotoUrl(target.productId, target.colorName, target.url, newUrl)
+        if (oldPath) await supabase.storage.from(MOCKUP_BUCKET).remove([oldPath])
+
+        result.optimized++
+        result.savedBytes += original.size - optimized.size
+      }
+    } catch {
+      result.skipped++
+    }
+    onProgress?.(i + 1, targets.length)
+  }
+
+  return result
 }

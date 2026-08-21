@@ -50,7 +50,12 @@ function ProductLightbox({
         className="max-h-full max-w-full overflow-hidden rounded-lg bg-white"
         onClick={(e) => e.stopPropagation()}
       >
-        <img src={images[active]} alt={alt} className="max-h-[85vh] max-w-[90vw] object-contain" />
+        <img
+          src={images[active]}
+          alt={alt}
+          decoding="async"
+          className="max-h-[85vh] max-w-[90vw] object-contain"
+        />
       </div>
       {images.length > 1 && (
         <>
@@ -122,6 +127,7 @@ function ProductGallery({
           <img
             src={images[active]}
             alt={name}
+            decoding="async"
             className="h-full w-full object-cover"
           />
         </div>
@@ -137,7 +143,7 @@ function ProductGallery({
               }`}
               aria-label={interpolate(t.photoNOf, { n: idx + 1, name })}
             >
-              <img src={src} alt="" className="h-full w-full object-cover" />
+              <img src={src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>
@@ -180,7 +186,13 @@ function ProductCard({
         className={`flex aspect-square w-full items-center justify-center overflow-hidden ${thumbnail ? 'bg-white' : 'bg-cream-100'}`}
       >
         {thumbnail ? (
-          <img src={thumbnail} alt={product.name} className="h-full w-full object-cover" />
+          <img
+            src={thumbnail}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
         ) : (
           <span className="text-5xl" aria-hidden>
             {product.placeholderEmoji ?? '🏌️'}
