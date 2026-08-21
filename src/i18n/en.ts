@@ -103,8 +103,6 @@ export const en: SameShape<typeof es> = {
     netScore: 'Net score',
     stablefordPoints: 'Stableford points',
     playedHandicap: 'Playing handicap',
-    roundSummaryLine:
-      'Strokes received {{strokesReceived}} · Net {{netScore}} · Stableford {{stablefordPoints}} pts · Playing handicap {{differential}}',
     newCalculation: 'New calculation',
   },
   despuesDeJugar: {
