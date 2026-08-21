@@ -125,8 +125,6 @@ export const en: SameShape<typeof es> = {
     stablefordPoints: 'Stableford points',
     scoreDifferential: 'Score Differential (playing handicap)',
     scoreDifferentialFormula: '(113 / Slope) x (Gross - Course Rating - PCC)',
-    multiPlayerSummary:
-      'Hcp {{courseHandicap}} · Strokes received {{strokesReceived}} · Net {{netScore}} · Stableford {{stablefordPoints}} pts · Diff {{differential}}',
     savedButton: 'Round saved ✓',
     savingButton: 'Saving...',
     saveRoundsButton: 'Save rounds to history',
