@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateCourseHandicap, calculateRoundResult } from './handicap'
+import { calculateCourseHandicap, calculateRoundResult, strokesOnHole } from './handicap'
 
 describe('calculateCourseHandicap', () => {
   it('matches a known Aloha Golf Club round (HI 6.1, slope 132, CR 71.2, par 72)', () => {
@@ -69,5 +69,24 @@ describe('calculateRoundResult', () => {
       pcc: 2,
     })
     expect(withPcc.differential).toBeCloseTo(withoutPcc.differential - 2, 5)
+  })
+})
+
+describe('strokesOnHole', () => {
+  it('gives a scratch player (0 strokes) nothing on any hole', () => {
+    expect(strokesOnHole(0, 1)).toBe(0)
+    expect(strokesOnHole(0, 18)).toBe(0)
+  })
+
+  it('gives one stroke on the hardest N holes for a player receiving N strokes', () => {
+    expect(strokesOnHole(5, 5)).toBe(1)
+    expect(strokesOnHole(5, 6)).toBe(0)
+  })
+
+  it('gives every hole a base stroke plus an extra on the hardest holes beyond 18', () => {
+    // 20 strokes = 1 base stroke everywhere, plus an extra on the 2 hardest holes
+    expect(strokesOnHole(20, 1)).toBe(2)
+    expect(strokesOnHole(20, 2)).toBe(2)
+    expect(strokesOnHole(20, 3)).toBe(1)
   })
 })

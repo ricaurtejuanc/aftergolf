@@ -103,6 +103,7 @@ export const en: SameShape<typeof es> = {
     netScore: 'Net score',
     stablefordPoints: 'Stableford points',
     playedHandicap: 'Playing handicap',
+    viewHolesWithStrokes: 'View holes with strokes',
     newCalculation: 'New calculation',
   },
   despuesDeJugar: {
