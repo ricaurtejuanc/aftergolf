@@ -85,7 +85,10 @@ function HolesWithStrokesModal({
                 <th className="py-1.5 pr-2">Hcp</th>
                 {players.map((p) => (
                   <th key={p} className="py-1.5 pr-2 text-center">
-                    {interpolate(dict.antesDeJugar.player, { n: p + 1 })}
+                    {interpolate(
+                      numPlayers > 1 ? dict.antesDeJugar.playerAbbrev : dict.antesDeJugar.player,
+                      { n: p + 1 },
+                    )}
                   </th>
                 ))}
               </tr>
