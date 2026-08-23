@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
-import type { CourseTee, GolfCourse } from '../data/courses'
+import type { es } from '../i18n/es'
+import type { CourseTee, GolfCourse, HoleScore } from '../data/courses'
 import { loadCourses } from '../lib/courseStore'
 import {
   getGolfCourse,
   searchGolfCourses,
   type GolfCourseApiSearchResult,
 } from '../lib/golfCourseApi'
+import { loadHoleScores } from '../lib/holeScoreStore'
 
 // Spanish-only, for the (Spanish-only) admin panel's CoursesPage — customer-
 // facing code should use dict.teeColors instead, which reacts to the
@@ -149,6 +151,94 @@ function GolfCourseApiFallback({
   )
 }
 
+function ScorecardModal({
+  title,
+  holes,
+  onClose,
+  t,
+}: {
+  title: string
+  holes: HoleScore[]
+  onClose: () => void
+  t: typeof es.courseTeeSelect
+}) {
+  const [filter, setFilter] = useState<'all' | 'front' | 'back'>('all')
+  const visible = holes.filter((h) =>
+    filter === 'front' ? h.holeNumber <= 9 : filter === 'back' ? h.holeNumber >= 10 : true,
+  )
+  const totalMeters = visible.reduce((sum, h) => sum + h.meters, 0)
+  const totalPar = visible.reduce((sum, h) => sum + h.par, 0)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <h3 className="text-sm font-semibold text-fairway-900">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 text-xs text-fairway-500 underline-offset-2 hover:underline"
+          >
+            {t.closeScorecard}
+          </button>
+        </div>
+
+        <div className="mb-3 flex gap-2">
+          {(['all', 'front', 'back'] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                filter === f
+                  ? 'border-fairway-700 bg-fairway-800 text-cream-50'
+                  : 'border-cream-300 bg-white text-fairway-700 hover:border-fairway-400'
+              }`}
+            >
+              {f === 'all' ? t.filterAll : f === 'front' ? t.filterFront : t.filterBack}
+            </button>
+          ))}
+        </div>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-cream-300 text-left text-xs uppercase tracking-wide text-fairway-500">
+              <th className="py-1.5 pr-2">{t.holeNumber}</th>
+              <th className="py-1.5 pr-2">{t.distance}</th>
+              <th className="py-1.5 pr-2">Par</th>
+              <th className="py-1.5">Hcp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((h) => (
+              <tr key={h.holeNumber} className="border-b border-cream-100 text-fairway-900">
+                <td className="py-1.5 pr-2">{h.holeNumber}</td>
+                <td className="py-1.5 pr-2">{h.meters} m</td>
+                <td className="py-1.5 pr-2">{h.par}</td>
+                <td className="py-1.5">{h.hcp}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="text-sm font-semibold text-fairway-900">
+              <td className="py-1.5 pr-2">{t.scorecardTotals}</td>
+              <td className="py-1.5 pr-2">{totalMeters} m</td>
+              <td className="py-1.5 pr-2">{totalPar}</td>
+              <td className="py-1.5" />
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 interface Props {
   courseId: string
   teeIndex: number
@@ -171,6 +261,8 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
   const [roundId, setRoundId] = useState<string | null>(null)
   const [roundExpanded, setRoundExpanded] = useState(true)
   const [teeExpanded, setTeeExpanded] = useState(true)
+  const [holes, setHoles] = useState<HoleScore[]>([])
+  const [showScorecard, setShowScorecard] = useState(false)
 
   useEffect(() => {
     loadCourses().then(setCourses)
@@ -190,10 +282,29 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
   // doesn't need to live in the local courses table.
   const course = courses.find((c) => c.id === courseId) ?? (apiCourse?.id === courseId ? apiCourse : undefined)
   const round = course?.rounds.find((r) => r.id === roundId)
+  const selectedTee = round?.tees[teeIndex]
 
   function combinedName(c: GolfCourse, r: { name: string }): string {
     return c.rounds.length > 1 ? `${c.name} — ${r.name}` : c.name
   }
+
+  // Only tees loaded from our own courses table carry an id (GolfCourseAPI
+  // ones don't) — the "Ver tarjeta" button only appears once a scorecard
+  // actually exists for the selected tee.
+  useEffect(() => {
+    setShowScorecard(false)
+    if (!selectedTee?.id) {
+      setHoles([])
+      return
+    }
+    let cancelled = false
+    loadHoleScores(selectedTee.id).then((h) => {
+      if (!cancelled) setHoles(h)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedTee?.id])
 
   // Picking a course with exactly one recorrido auto-selects it (and its
   // first tee), same as before there was a recorrido concept at all. A
@@ -401,6 +512,25 @@ export function CourseTeeSelect({ courseId, teeIndex, onChange }: Props) {
             )
           )}
         </div>
+      )}
+
+      {selectedTee && holes.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowScorecard(true)}
+          className="rounded-lg border border-cream-300 bg-white px-3 py-2 text-xs font-medium text-fairway-700 transition hover:border-fairway-400"
+        >
+          {t.viewScorecard}
+        </button>
+      )}
+
+      {showScorecard && round && selectedTee && (
+        <ScorecardModal
+          title={`${combinedName(course, round)} — ${dict.teeColors[selectedTee.color]}`}
+          holes={holes}
+          onClose={() => setShowScorecard(false)}
+          t={t}
+        />
       )}
     </div>
   )

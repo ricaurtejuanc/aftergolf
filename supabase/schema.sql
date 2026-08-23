@@ -118,6 +118,28 @@ create policy "tees_write_admin" on public.tees
 
 create index if not exists tees_recorrido_id_idx on public.tees (recorrido_id);
 
+-- Hole-by-hole scorecard (distance/par/stroke-index) per tee, for the
+-- "Ver tarjeta" button in CourseTeeSelect.tsx.
+create table if not exists public.hole_scores (
+  id uuid primary key default gen_random_uuid(),
+  tee_id uuid not null references public.tees (id) on delete cascade,
+  hole_number integer not null,
+  meters integer not null,
+  par integer not null,
+  hcp integer not null,
+  unique (tee_id, hole_number)
+);
+
+alter table public.hole_scores enable row level security;
+
+create policy "hole_scores_select_all" on public.hole_scores for select using (true);
+
+create policy "hole_scores_write_admin" on public.hole_scores for all
+  using (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
+
+create index if not exists hole_scores_tee_id_idx on public.hole_scores (tee_id);
+
 -- Productos del Shop: misma idea, lectura pública / escritura solo admin.
 -- "images" se deja vacío por ahora (no hay subida de fotos todavía); los
 -- productos con fotos ya subidas (bolas, polo) las siguen sirviendo desde

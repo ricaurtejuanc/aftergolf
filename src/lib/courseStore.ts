@@ -59,6 +59,7 @@ export async function loadCourses(): Promise<GolfCourse[]> {
         tees: tees
           .filter((t) => t.recorrido_id === r.id)
           .map((t) => ({
+            id: t.id,
             color: t.color as CourseTee['color'],
             gender: t.gender as CourseTee['gender'],
             cr: t.cr,
