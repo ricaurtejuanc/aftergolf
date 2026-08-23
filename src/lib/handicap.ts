@@ -87,6 +87,18 @@ export function calculateRoundResult({
   }
 }
 
+/**
+ * Standard stroke-index allocation: a player receiving N strokes gets one
+ * extra stroke on each of the N hardest holes (lowest hole hcp/stroke-index
+ * first), wrapping around for every full 18 strokes (relevant only for very
+ * large handicap gaps).
+ */
+export function strokesOnHole(strokesGiven: number, holeHcp: number): number {
+  const base = Math.floor(strokesGiven / 18)
+  const extra = holeHcp <= strokesGiven % 18 ? 1 : 0
+  return base + extra
+}
+
 export const HANDICAP_ALLOWANCES = [
   { value: 1, label: 'Individual stroke play (100%)' },
   { value: 0.95, label: 'Individual match play (95%)' },

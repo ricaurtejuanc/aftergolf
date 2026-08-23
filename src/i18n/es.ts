@@ -102,6 +102,7 @@ export const es = {
     netScore: 'Resultado neto',
     stablefordPoints: 'Puntos Stableford',
     playedHandicap: 'Handicap jugado',
+    viewHolesWithStrokes: 'Ver hoyos con punto',
     newCalculation: 'Nuevo cálculo',
   },
   despuesDeJugar: {

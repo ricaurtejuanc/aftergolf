@@ -3,11 +3,128 @@ import { CourseTeeSelect } from '../components/CourseTeeSelect'
 import { InfoTooltip } from '../components/InfoTooltip'
 import { StatCard } from '../components/StatCard'
 import { interpolate, useLanguage } from '../context/LanguageContext'
-import type { CourseTee } from '../data/courses'
-import { calculateCourseHandicap, calculateRoundResult, HANDICAP_ALLOWANCES } from '../lib/handicap'
+import type { CourseTee, HoleScore } from '../data/courses'
+import type { es } from '../i18n/es'
+import {
+  calculateCourseHandicap,
+  calculateRoundResult,
+  HANDICAP_ALLOWANCES,
+  strokesOnHole,
+} from '../lib/handicap'
+import { loadHoleScores } from '../lib/holeScoreStore'
 import { loadHandicapIndex, saveHandicapIndex } from '../lib/storage'
 
 const MAX_PLAYERS = 4
+
+function HolesWithStrokesModal({
+  holes,
+  numPlayers,
+  strokesGiven,
+  onClose,
+  dict,
+}: {
+  holes: HoleScore[]
+  numPlayers: number
+  strokesGiven: number[]
+  onClose: () => void
+  dict: typeof es
+}) {
+  const t = dict.courseTeeSelect
+  const [filter, setFilter] = useState<'all' | 'front' | 'back'>('all')
+  const visible = holes.filter((h) =>
+    filter === 'front' ? h.holeNumber <= 9 : filter === 'back' ? h.holeNumber >= 10 : true,
+  )
+  const totalMeters = visible.reduce((sum, h) => sum + h.meters, 0)
+  const totalPar = visible.reduce((sum, h) => sum + h.par, 0)
+  const players = Array.from({ length: numPlayers }, (_, i) => i)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <h3 className="text-sm font-semibold text-fairway-900">{dict.antesDeJugar.viewHolesWithStrokes}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 text-xs text-fairway-500 underline-offset-2 hover:underline"
+          >
+            {t.closeScorecard}
+          </button>
+        </div>
+
+        <div className="mb-3 flex gap-2">
+          {(['all', 'front', 'back'] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                filter === f
+                  ? 'border-fairway-700 bg-fairway-800 text-cream-50'
+                  : 'border-cream-300 bg-white text-fairway-700 hover:border-fairway-400'
+              }`}
+            >
+              {f === 'all' ? t.filterAll : f === 'front' ? t.filterFront : t.filterBack}
+            </button>
+          ))}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-cream-300 text-left text-xs uppercase tracking-wide text-fairway-500">
+                <th className="py-1.5 pr-2">{t.holeNumber}</th>
+                <th className="py-1.5 pr-2">{t.distance}</th>
+                <th className="py-1.5 pr-2">Par</th>
+                <th className="py-1.5 pr-2">Hcp</th>
+                {players.map((p) => (
+                  <th key={p} className="py-1.5 pr-2 text-center">
+                    {interpolate(dict.antesDeJugar.player, { n: p + 1 })}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((h) => (
+                <tr key={h.holeNumber} className="border-b border-cream-100 text-fairway-900">
+                  <td className="py-1.5 pr-2">{h.holeNumber}</td>
+                  <td className="py-1.5 pr-2">{h.meters} m</td>
+                  <td className="py-1.5 pr-2">{h.par}</td>
+                  <td className="py-1.5 pr-2">{h.hcp}</td>
+                  {players.map((p) => {
+                    const strokes = strokesOnHole(strokesGiven[p] ?? 0, h.hcp)
+                    return (
+                      <td key={p} className="py-1.5 pr-2 text-center font-semibold text-gold-600">
+                        {strokes > 0 ? '*'.repeat(strokes) : ''}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="text-sm font-semibold text-fairway-900">
+                <td className="py-1.5 pr-2">{t.scorecardTotals}</td>
+                <td className="py-1.5 pr-2">{totalMeters} m</td>
+                <td className="py-1.5 pr-2">{totalPar}</td>
+                <td className="py-1.5 pr-2" />
+                {players.map((p) => (
+                  <td key={p} className="py-1.5 pr-2" />
+                ))}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function AntesDeJugarPage() {
   const { dict } = useLanguage()
@@ -24,12 +141,29 @@ export function AntesDeJugarPage() {
   const [showDistribution, setShowDistribution] = useState(false)
   const [grossScoreInputs, setGrossScoreInputs] = useState<string[]>(['90'])
   const [pccInputs, setPccInputs] = useState<string[]>(['0'])
+  const [holes, setHoles] = useState<HoleScore[]>([])
+  const [showHolesWithStrokes, setShowHolesWithStrokes] = useState(false)
 
   const handicapIndex = Number(playerInputs[0]) || 0
 
   useEffect(() => {
     saveHandicapIndex(handicapIndex)
   }, [handicapIndex])
+
+  useEffect(() => {
+    setShowHolesWithStrokes(false)
+    if (!tee?.id) {
+      setHoles([])
+      return
+    }
+    let cancelled = false
+    loadHoleScores(tee.id).then((h) => {
+      if (!cancelled) setHoles(h)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [tee?.id])
 
   function handleReset() {
     setNumPlayers(1)
@@ -246,6 +380,26 @@ export function AntesDeJugarPage() {
             {t.distributeHandicap}
           </button>
         </div>
+      )}
+
+      {tee && holes.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowHolesWithStrokes(true)}
+          className="rounded-lg border border-cream-300 bg-white px-3 py-2 text-xs font-medium text-fairway-700 transition hover:border-fairway-400"
+        >
+          {t.viewHolesWithStrokes}
+        </button>
+      )}
+
+      {showHolesWithStrokes && (
+        <HolesWithStrokesModal
+          holes={holes}
+          numPlayers={numPlayers}
+          strokesGiven={strokesGiven}
+          onClose={() => setShowHolesWithStrokes(false)}
+          dict={dict}
+        />
       )}
 
       {tee && (
