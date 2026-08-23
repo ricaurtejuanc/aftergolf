@@ -91,6 +91,7 @@ export const es = {
     courseHandicap: 'Handicap de juego',
     exactValue: 'Valor exacto',
     player: 'Jugador {{n}}',
+    playerAbbrev: 'J#{{n}}',
     scratch: 'Juega scratch',
     receivesStroke: 'Recibe {{n}} golpe',
     receivesStrokes: 'Recibe {{n}} golpes',

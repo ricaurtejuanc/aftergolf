@@ -92,6 +92,7 @@ export const en: SameShape<typeof es> = {
     courseHandicap: 'Course Handicap',
     exactValue: 'Exact value',
     player: 'Player {{n}}',
+    playerAbbrev: 'P#{{n}}',
     scratch: 'Plays scratch',
     receivesStroke: 'Gets {{n}} stroke',
     receivesStrokes: 'Gets {{n}} strokes',
