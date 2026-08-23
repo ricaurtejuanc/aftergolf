@@ -19,18 +19,24 @@ const MAX_PLAYERS = 4
 function HolesWithStrokesModal({
   holes,
   numPlayers,
-  strokesGiven,
+  distributedStrokes,
+  fullStrokes,
   onClose,
   dict,
 }: {
   holes: HoleScore[]
   numPlayers: number
-  strokesGiven: number[]
+  /** Strokes relative to the group's lowest handicap (scratch = 0) — only meaningful with 2+ players. */
+  distributedStrokes: number[]
+  /** Each player's own full course handicap, ignoring the rest of the group. */
+  fullStrokes: number[]
   onClose: () => void
   dict: typeof es
 }) {
   const t = dict.courseTeeSelect
   const [filter, setFilter] = useState<'all' | 'front' | 'back'>('all')
+  const [distribute, setDistribute] = useState(true)
+  const effectiveStrokes = numPlayers > 1 && distribute ? distributedStrokes : fullStrokes
   const visible = holes.filter((h) =>
     filter === 'front' ? h.holeNumber <= 9 : filter === 'back' ? h.holeNumber >= 10 : true,
   )
@@ -57,6 +63,17 @@ function HolesWithStrokesModal({
             {t.closeScorecard}
           </button>
         </div>
+
+        {numPlayers > 1 && (
+          <label className="mb-3 flex items-center gap-2 text-xs font-medium text-fairway-700">
+            <input
+              type="checkbox"
+              checked={distribute}
+              onChange={(e) => setDistribute(e.target.checked)}
+            />
+            {dict.antesDeJugar.distributeHandicap}
+          </label>
+        )}
 
         <div className="mb-3 flex gap-2">
           {(['all', 'front', 'back'] as const).map((f) => (
@@ -101,7 +118,7 @@ function HolesWithStrokesModal({
                   <td className="py-1.5 pr-2">{h.par}</td>
                   <td className="py-1.5 pr-2">{h.hcp}</td>
                   {players.map((p) => {
-                    const strokes = strokesOnHole(strokesGiven[p] ?? 0, h.hcp)
+                    const strokes = strokesOnHole(effectiveStrokes[p] ?? 0, h.hcp)
                     return (
                       <td key={p} className="py-1.5 pr-2 text-center font-semibold text-gold-600">
                         {strokes > 0 ? '*'.repeat(strokes) : ''}
@@ -231,13 +248,6 @@ export function AntesDeJugarPage() {
 
   const minCourseHandicap = Math.min(...playerResults.map((r) => r.courseHandicap))
   const strokesGiven = playerResults.map((r) => r.courseHandicap - minCourseHandicap)
-  // "Distribuir Handicap" plays everyone off the lowest handicap in the
-  // group, which only makes sense with 2+ players — with a single player
-  // there's no one to play off, so strokesGiven would always come out 0.
-  // The scorecard's hole-by-hole marks should show that player's own full
-  // course handicap instead.
-  const holeStrokeAllocation =
-    numPlayers > 1 ? strokesGiven : playerResults.map((r) => r.courseHandicap)
 
   const roundResults = playerResults.map((r, idx) => {
     const grossScore = Number(grossScoreInputs[idx]) || 0
@@ -406,7 +416,8 @@ export function AntesDeJugarPage() {
         <HolesWithStrokesModal
           holes={holes}
           numPlayers={numPlayers}
-          strokesGiven={holeStrokeAllocation}
+          distributedStrokes={strokesGiven}
+          fullStrokes={playerResults.map((r) => r.courseHandicap)}
           onClose={() => setShowHolesWithStrokes(false)}
           dict={dict}
         />
