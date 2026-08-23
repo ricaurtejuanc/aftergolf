@@ -228,6 +228,13 @@ export function AntesDeJugarPage() {
 
   const minCourseHandicap = Math.min(...playerResults.map((r) => r.courseHandicap))
   const strokesGiven = playerResults.map((r) => r.courseHandicap - minCourseHandicap)
+  // "Distribuir Handicap" plays everyone off the lowest handicap in the
+  // group, which only makes sense with 2+ players — with a single player
+  // there's no one to play off, so strokesGiven would always come out 0.
+  // The scorecard's hole-by-hole marks should show that player's own full
+  // course handicap instead.
+  const holeStrokeAllocation =
+    numPlayers > 1 ? strokesGiven : playerResults.map((r) => r.courseHandicap)
 
   const roundResults = playerResults.map((r, idx) => {
     const grossScore = Number(grossScoreInputs[idx]) || 0
@@ -396,7 +403,7 @@ export function AntesDeJugarPage() {
         <HolesWithStrokesModal
           holes={holes}
           numPlayers={numPlayers}
-          strokesGiven={strokesGiven}
+          strokesGiven={holeStrokeAllocation}
           onClose={() => setShowHolesWithStrokes(false)}
           dict={dict}
         />
