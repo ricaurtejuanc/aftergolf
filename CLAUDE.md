@@ -52,7 +52,7 @@ Client side, each function has a matching `src/lib/*.ts` file (`printful.ts`, `g
 
 ### Auth
 
-`AuthContext.tsx` wraps Supabase Auth (email/password + Google OAuth via `signInWithOAuth`, PKCE flow). `RegisterGate.tsx` is the shared login/signup/reset-password UI, reused wherever a feature needs a signed-in user (saving a round, checking out). The admin panel (`/admin`) has a *second*, independent gate on top of normal auth: a client-side PIN (`src/lib/admin.ts`) just to keep the tab out of casual view — the real access control is still the RLS policy, checked against `user.email === ADMIN_EMAIL` once past the PIN.
+`AuthContext.tsx` wraps Supabase Auth (email/password + Google OAuth via `signInWithOAuth`, PKCE flow). `RegisterGate.tsx` is the shared login/signup/reset-password UI, reused wherever a feature needs a signed-in user (saving a round, checking out, and — since there's no separate gate — the admin panel too). `AdminPage.tsx` just renders `RegisterGate` directly when `user?.email !== ADMIN_EMAIL` (`src/lib/admin.ts`); the real access control is the RLS policy checked against that same email, so there's nothing client-side worth gating beforehand.
 
 A signup made before confirming email, or a round played before signing in, doesn't get lost: `AuthContext.tsx` stashes pending profile data / a pending redirect path in `localStorage`, and `src/lib/pendingRounds.ts` queues an unsaved round the same way — both get flushed/replayed once a session actually appears.
 
