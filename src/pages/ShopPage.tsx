@@ -494,9 +494,9 @@ export function ShopPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-fairway-900">{t.title}</h1>
-        <p className="mt-1 text-sm text-fairway-600">{t.subtitle}</p>
+      <div className="text-center">
+        <h1 className="text-3xl font-semibold tracking-tight text-fairway-900 sm:text-4xl">{t.title}</h1>
+        <p className="mt-2 text-sm text-fairway-600">{t.subtitle}</p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
