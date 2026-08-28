@@ -199,8 +199,6 @@ export const es = {
     selectSize: 'Selecciona talla',
     addToCart: 'Añadir',
     addedToast: 'Producto añadido al carrito correctamente',
-    copyLink: 'Copiar enlace',
-    linkCopiedToast: 'Enlace copiado al portapapeles',
   },
   cartPanel: {
     orderRegistered: '¡Pedido registrado!',
