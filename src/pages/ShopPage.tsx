@@ -323,16 +323,24 @@ function ProductDetailModal({
 
         <p className="mt-4 whitespace-pre-wrap text-sm text-fairway-600">{product.description}</p>
         {product.specs && (
-          <ul className="mt-2 space-y-1 text-xs text-fairway-600">
-            {product.specs.map((spec) => (
-              <li key={spec} className="flex gap-1.5">
-                <span className="text-gold-600" aria-hidden>
-                  •
-                </span>
-                {spec}
-              </li>
-            ))}
-          </ul>
+          <details className="group mt-3 rounded-lg border border-cream-300">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-medium text-fairway-700">
+              {t.specsTitle}
+              <span className="text-fairway-400 transition group-open:rotate-180" aria-hidden>
+                ▾
+              </span>
+            </summary>
+            <ul className="space-y-1 px-3 pb-3 text-xs text-fairway-600">
+              {product.specs.map((spec) => (
+                <li key={spec} className="flex gap-1.5">
+                  <span className="text-gold-600" aria-hidden>
+                    •
+                  </span>
+                  {spec}
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
 
         {hasColors && (
@@ -376,6 +384,21 @@ function ProductDetailModal({
                 </option>
               ))}
             </select>
+            {product.sizeGuide && (
+              <details className="group mt-2 rounded-lg border border-cream-300">
+                <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-medium text-fairway-700">
+                  {t.sizeGuideTitle}
+                  <span className="text-fairway-400 transition group-open:rotate-180" aria-hidden>
+                    ▾
+                  </span>
+                </summary>
+                <ul className="space-y-1 px-3 pb-3 text-xs text-fairway-600">
+                  {product.sizeGuide.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
         )}
 

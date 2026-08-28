@@ -193,6 +193,8 @@ export const en: SameShape<typeof es> = {
     nextPhoto: 'Next photo',
     enlargePhoto: 'Enlarge photo of {{name}}',
     photoNOf: 'Photo {{n}} of {{name}}',
+    specsTitle: 'Specifications',
+    sizeGuideTitle: 'Size guide',
     color: 'Color',
     size: 'Size',
     selectSize: 'Select size',

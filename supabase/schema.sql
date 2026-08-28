@@ -155,6 +155,10 @@ create table if not exists public.products (
   images text[],
   specs text[],
   sizes text[],
+  -- Size chart (in cm), one line per row shown in a dropdown on the product
+  -- detail page — independent from "specs" (ficha técnica: materials, care,
+  -- etc.), which gets its own dropdown right above it.
+  size_guide text[],
   -- Color variants imported from Printful: [{ name, images, sizes }]. Null
   -- for products with no color options (or not imported from Printful).
   colors jsonb,

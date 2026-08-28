@@ -24,6 +24,7 @@ interface ProductRow {
   images: string[] | null
   specs: string[] | null
   sizes: string[] | null
+  size_guide: string[] | null
   colors: Product['colors'] | null
   shipping_time: string | null
   visible: boolean
@@ -45,6 +46,7 @@ function fromRow(row: ProductRow): Product {
     images: (row.images && row.images.length > 0 ? row.images : localImagesFor(row.id, row.name)) ?? undefined,
     specs: row.specs ?? undefined,
     sizes: row.sizes ?? undefined,
+    sizeGuide: row.size_guide ?? undefined,
     colors: row.colors ?? undefined,
     shippingTime: row.shipping_time ?? undefined,
     visible: row.visible,
@@ -91,6 +93,7 @@ export async function addProduct(input: Omit<Product, 'id'>): Promise<Product[]>
     placeholder_emoji: input.placeholderEmoji ?? null,
     specs: input.specs ?? null,
     sizes: input.sizes ?? null,
+    size_guide: input.sizeGuide ?? null,
     shipping_time: input.shippingTime || null,
     visible: input.visible,
     position: count ?? 0,
@@ -110,6 +113,7 @@ export async function updateProduct(id: string, patch: Omit<Product, 'id'>): Pro
       placeholder_emoji: patch.placeholderEmoji ?? null,
       specs: patch.specs ?? null,
       sizes: patch.sizes ?? null,
+      size_guide: patch.sizeGuide ?? null,
       shipping_time: patch.shippingTime || null,
       colors: patch.colors ?? null,
       visible: patch.visible,

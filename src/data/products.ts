@@ -18,10 +18,12 @@ export interface Product {
   images?: string[]
   /** Emoji shown as a placeholder while there are no product photos yet. */
   placeholderEmoji?: string
-  /** Bullet-point spec list shown below the description. */
+  /** Bullet-point spec list (ficha técnica) shown in a dropdown below the description. */
   specs?: string[]
   /** Available sizes; when set, a size must be picked before adding to cart. */
   sizes?: string[]
+  /** Size chart lines (in cm), shown in a dropdown near the size selector. */
+  sizeGuide?: string[]
   /** Color variants; when set, a color must be picked and determines the photos shown. */
   colors?: ProductColor[]
   /** Estimated delivery time for this specific product, shown in its detail view. */
