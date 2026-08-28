@@ -21,10 +21,11 @@ import gorroPescadorModel2 from '../assets/gorro-pescador/gorro-pescador-model-2
 import gorroPescadorAngle from '../assets/gorro-pescador/gorro-pescador-angle.webp'
 
 /**
- * Photos for products that already have them, keyed by product id.
- * Supabase Storage isn't wired up yet, so these stay bundled as local Vite
- * assets and get merged onto the DB record client-side (see productStore.ts)
- * instead of living in the products.images column.
+ * Default photos for a few seed products, keyed by product id, bundled as
+ * local Vite assets and merged onto the DB record client-side (see
+ * productStore.ts). Only used as a fallback while the product's own
+ * `images` DB column is empty — once the admin uploads real photos via the
+ * Fotos panel, those take over.
  */
 export const LOCAL_PRODUCT_IMAGES: Record<string, string[]> = {
   'vice-pro-docena': [viceGolf1, viceGolf2, viceGolf3, viceGolf4],

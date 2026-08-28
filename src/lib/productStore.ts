@@ -37,9 +37,12 @@ function fromRow(row: ProductRow): Product {
     price: row.price,
     category: row.category,
     placeholderEmoji: row.placeholder_emoji ?? undefined,
-    // Photos already committed as local assets take priority over the DB
-    // column (which is empty until Supabase Storage is wired up).
-    images: localImagesFor(row.id, row.name) ?? row.images ?? undefined,
+    // A few seed products ship with bundled local photos as a default
+    // gallery — but once the admin uploads real photos via the Fotos panel
+    // (writing to this same DB column), those take priority. Without this,
+    // an upload for one of those products would silently disappear behind
+    // the local default on the next reload.
+    images: (row.images && row.images.length > 0 ? row.images : localImagesFor(row.id, row.name)) ?? undefined,
     specs: row.specs ?? undefined,
     sizes: row.sizes ?? undefined,
     colors: row.colors ?? undefined,
