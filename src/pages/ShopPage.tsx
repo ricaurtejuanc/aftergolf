@@ -219,14 +219,12 @@ function ProductDetailModal({
   product,
   onClose,
   onAdd,
-  onCopyLink,
   t,
   locale,
 }: {
   product: Product
   onClose: () => void
   onAdd: (size?: string, color?: string) => void
-  onCopyLink: () => void
   t: typeof es.shop
   locale: string
 }) {
@@ -415,18 +413,9 @@ function ProductDetailModal({
           </button>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <p className="text-xs text-fairway-500">
-            {product.shippingTime || DEFAULT_SHIPPING_TIME}
-          </p>
-          <button
-            type="button"
-            onClick={onCopyLink}
-            className="shrink-0 text-xs font-medium text-fairway-500 underline-offset-2 hover:text-fairway-800 hover:underline"
-          >
-            🔗 {t.copyLink}
-          </button>
-        </div>
+        <p className="mt-3 text-xs text-fairway-500">
+          {product.shippingTime || DEFAULT_SHIPPING_TIME}
+        </p>
       </div>
     </div>
   )
@@ -503,11 +492,6 @@ export function ShopPage() {
     setToast(t.addedToast)
   }
 
-  function handleCopyLink(productId: string) {
-    const url = `${window.location.origin}${window.location.pathname}#/shop?producto=${productId}`
-    navigator.clipboard.writeText(url).then(() => setToast(t.linkCopiedToast))
-  }
-
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
@@ -567,7 +551,6 @@ export function ShopPage() {
           product={openProduct}
           onClose={closeProductModal}
           onAdd={(size, color) => handleAdd(openProduct.id, size, color)}
-          onCopyLink={() => handleCopyLink(openProduct.id)}
           t={t}
           locale={locale}
         />
