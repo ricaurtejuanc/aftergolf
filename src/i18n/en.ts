@@ -182,8 +182,8 @@ export const en: SameShape<typeof es> = {
     pccSuffix: ' (PCC {{pcc}})',
   },
   shop: {
-    title: 'Shop',
-    subtitle: 'Browse the AfterGolf merchandise catalog here.',
+    title: 'Welcome to AfterGolf Lifestyle',
+    subtitle: 'Shirts to carry the spirit of golf beyond the course.',
     ropaFilter: 'Clothing',
     articulosFilter: 'Items',
     emptyCategory: 'No products in this category yet.',

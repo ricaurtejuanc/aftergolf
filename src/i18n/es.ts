@@ -181,8 +181,8 @@ export const es = {
     pccSuffix: ' (PCC {{pcc}})',
   },
   shop: {
-    title: 'Shop',
-    subtitle: 'Aquí puedes ver el catálogo de merchandising de AfterGolf.',
+    title: 'Bienvenido a AfterGolf Lifestyle',
+    subtitle: 'Camisetas para llevar el espíritu del golf fuera del campo.',
     ropaFilter: 'Ropa',
     articulosFilter: 'Artículos',
     emptyCategory: 'Todavía no hay productos en esta categoría.',
