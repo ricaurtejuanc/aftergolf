@@ -192,6 +192,8 @@ export const es = {
     nextPhoto: 'Foto siguiente',
     enlargePhoto: 'Ampliar foto de {{name}}',
     photoNOf: 'Foto {{n}} de {{name}}',
+    specsTitle: 'Ficha técnica',
+    sizeGuideTitle: 'Guía de tallas',
     color: 'Color',
     size: 'Talla',
     selectSize: 'Selecciona talla',

@@ -29,9 +29,19 @@ interface ProductDraft {
   category: string
   hasSizes: boolean
   sizesInput: string
+  specsInput: string
+  sizeGuideInput: string
   placeholderEmoji: string
   shippingTime: string
   visible: boolean
+}
+
+function linesToList(input: string): string[] | undefined {
+  const lines = input
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  return lines.length > 0 ? lines : undefined
 }
 
 function toDraft(p?: Product): ProductDraft {
@@ -42,6 +52,8 @@ function toDraft(p?: Product): ProductDraft {
     category: p?.category ?? 'Ropa',
     hasSizes: Boolean(p?.sizes),
     sizesInput: (p?.sizes ?? CLOTHING_SIZES).join(', '),
+    specsInput: (p?.specs ?? []).join('\n'),
+    sizeGuideInput: (p?.sizeGuide ?? []).join('\n'),
     placeholderEmoji: p?.placeholderEmoji ?? '🏌️',
     shippingTime: p?.shippingTime ?? DEFAULT_SHIPPING_TIME,
     visible: p?.visible ?? true,
@@ -62,7 +74,8 @@ function draftToProduct(draft: ProductDraft, existing?: Product): Omit<Product, 
       : undefined,
     images: existing?.images,
     colors: existing?.colors,
-    specs: existing?.specs,
+    specs: linesToList(draft.specsInput),
+    sizeGuide: linesToList(draft.sizeGuideInput),
     placeholderEmoji: draft.placeholderEmoji || undefined,
     shippingTime: draft.shippingTime.trim() || undefined,
     visible: draft.visible,
@@ -107,6 +120,32 @@ function ProductForm({
           rows={3}
           value={draft.description}
           onChange={(e) => update('description', e.target.value)}
+          className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-fairway-700 mb-1">
+          Ficha técnica (una línea por punto, se muestra en un desplegable aparte de la descripción)
+        </label>
+        <textarea
+          rows={3}
+          value={draft.specsInput}
+          onChange={(e) => update('specsInput', e.target.value)}
+          placeholder={'100% algodón\nCorte regular\nLavar a máquina a 30°C'}
+          className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-fairway-700 mb-1">
+          Guía de tallas en cm (una línea por talla, se muestra en un desplegable junto al selector de talla)
+        </label>
+        <textarea
+          rows={3}
+          value={draft.sizeGuideInput}
+          onChange={(e) => update('sizeGuideInput', e.target.value)}
+          placeholder={'S — Pecho 46 cm · Largo 68 cm\nM — Pecho 51 cm · Largo 71 cm'}
           className="w-full rounded-md border border-cream-300 bg-white px-2 py-1.5 text-sm text-fairway-900"
         />
       </div>
