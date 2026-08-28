@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CLOTHING_SIZES, DEFAULT_SHIPPING_TIME, type Product } from '../data/products'
+import { localImagesFor } from '../data/productImages'
 import {
   addColorPhoto,
   addProduct,
@@ -437,7 +438,12 @@ function ProductPhotosPanel({
   ]
 
   function imagesFor(name: string | null): string[] {
-    return name ? (product.colors?.find((c) => c.name === name)?.images ?? []) : (product.images ?? [])
+    const images = name ? (product.colors?.find((c) => c.name === name)?.images ?? []) : (product.images ?? [])
+    // A product with no real uploaded photos yet shows bundled local default
+    // photos on the storefront (see localImagesFor() in productImages.ts) —
+    // those aren't real DB rows, so they can't be deleted or reordered from
+    // here. Hide them so this panel only shows what it can actually manage.
+    return images.filter((url) => url.startsWith('http'))
   }
 
   async function handleAdd(name: string | null, file: File) {
@@ -552,6 +558,12 @@ function ProductPhotosPanel({
                 )}
                 <span className="text-xs font-medium text-fairway-700">{label}</span>
               </div>
+              {images.length === 0 && isShopThumbnail && localImagesFor(product.id, product.name) && (
+                <p className="mb-1.5 text-xs text-fairway-500">
+                  Sin fotos subidas todavía — en la Shop se ve una foto de muestra por defecto
+                  hasta que subas la primera aquí.
+                </p>
+              )}
               <div className="flex flex-wrap items-start gap-2">
                 {images.map((url, idx) => (
                   <PhotoThumb
