@@ -10,6 +10,11 @@ export function PageViewTracker() {
   const lastPath = useRef<string | null>(null)
 
   useEffect(() => {
+    // supabaseClient.ts points at the live project in every environment
+    // (there's no separate dev/staging Supabase project), so without this
+    // guard every `npm run dev` session and Playwright check inflates the
+    // real site's visit counts.
+    if (import.meta.env.DEV) return
     if (lastPath.current === location.pathname) return
     lastPath.current = location.pathname
     supabase.from('page_views').insert({ path: location.pathname }).then()
