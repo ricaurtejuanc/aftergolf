@@ -323,7 +323,9 @@ export const en: SameShape<typeof es> = {
       'the General Law for the Defense of Consumers and Users, which excludes goods ' +
       "made to the consumer's specifications or clearly personalized. In any case, " +
       'if you have any problem with your order, write to us at info@aftergolf.es and ' +
-      "we'll look for a solution.",
+      "we'll look for a solution. If we accept a size exchange or a return, shipping " +
+      'from your home to our address is at your own expense; shipping back to your ' +
+      'home is free and we cover it.',
     section7Title: '7. Defective or incorrect products',
     section7Body:
       'If you receive a defective, damaged, or incorrect item, contact us at ' +
