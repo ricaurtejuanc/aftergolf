@@ -323,7 +323,9 @@ export const es = {
       'Consumidores y Usuarios, que excluye los bienes confeccionados conforme a ' +
       'especificaciones del consumidor o claramente personalizados. En cualquier ' +
       'caso, si tienes algún problema con tu pedido, escríbenos a info@aftergolf.es y ' +
-      'buscaremos una solución.',
+      'buscaremos una solución. Si aceptamos un cambio de talla o una devolución, el ' +
+      'envío de tu domicilio a nuestra dirección corre por tu cuenta; el envío de ' +
+      'vuelta a tu domicilio es gratuito y lo asumimos nosotros.',
     section7Title: '7. Productos defectuosos o incorrectos',
     section7Body:
       'Si recibes un artículo defectuoso, dañado o distinto al que pediste, ' +
