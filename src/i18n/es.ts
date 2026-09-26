@@ -40,6 +40,14 @@ export const es = {
     terminos: 'Términos y condiciones',
     privacidad: 'Privacidad',
   },
+  cookieBanner: {
+    text:
+      'Usamos almacenamiento local para funciones esenciales de la web (tu carrito, ' +
+      'tu sesión y tu idioma). No usamos cookies de publicidad ni de terceros. Más ' +
+      'información en nuestra',
+    linkText: 'Política de privacidad',
+    accept: 'Entendido',
+  },
   teeColors: {
     blanco: 'Blanco',
     amarillo: 'Amarillo',
