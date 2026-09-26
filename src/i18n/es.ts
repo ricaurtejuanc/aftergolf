@@ -293,9 +293,8 @@ export const es = {
     pageSubtitle: 'Aplicables a las compras realizadas en la Shop de aftergolf.es.',
     section1Title: '1. Identificación',
     section1Body:
-      'AfterGolf (aftergolf.es) es un proyecto operado por Juan Carlos Ricaurte, con ' +
-      'NIF 03186893J y domicilio en C/ Circunvalación, 25, Madrid, actuando como ' +
-      'persona física. Para cualquier consulta puedes escribir a info@aftergolf.es.',
+      'AfterGolf (aftergolf.es). Para cualquier consulta puedes escribir a ' +
+      'info@aftergolf.es.',
     section2Title: '2. Objeto',
     section2Body:
       'Estas condiciones regulan la compra de artículos de merchandising (ropa y ' +
@@ -361,10 +360,8 @@ export const es = {
       'historial de rondas y la Shop.',
     section1Title: '1. Responsable del tratamiento',
     section1Body:
-      'AfterGolf (aftergolf.es) es un proyecto operado por Juan Carlos Ricaurte, con ' +
-      'NIF 03186893J y domicilio en C/ Circunvalación, 25, Madrid, actuando como ' +
-      'persona física. Para cualquier consulta sobre tus datos puedes escribir a ' +
-      'info@aftergolf.es.',
+      'AfterGolf (aftergolf.es). Para cualquier consulta sobre tus datos puedes ' +
+      'escribir a info@aftergolf.es.',
     section2Title: '2. Qué datos recogemos',
     section2Intro: 'Dependiendo de cómo uses la app, podemos tratar:',
     section2Item1: 'Si te registras con email y contraseña: nombre, apellidos y email.',

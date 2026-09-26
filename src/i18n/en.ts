@@ -294,10 +294,7 @@ export const en: SameShape<typeof es> = {
     pageSubtitle: 'Applicable to purchases made in the AfterGolf.es Shop.',
     section1Title: '1. Identification',
     section1Body:
-      'AfterGolf (aftergolf.es) is a project operated by Juan Carlos Ricaurte, with ' +
-      'Spanish tax ID (NIF) 03186893J and address at C/ Circunvalación, 25, Madrid, ' +
-      'Spain, acting as a private individual. For any questions you can write to ' +
-      'info@aftergolf.es.',
+      'AfterGolf (aftergolf.es). For any questions you can write to info@aftergolf.es.',
     section2Title: '2. Purpose',
     section2Body:
       'These terms govern the purchase of merchandising items (golf clothing and ' +
@@ -359,10 +356,8 @@ export const en: SameShape<typeof es> = {
       'round history, and the Shop.',
     section1Title: '1. Data controller',
     section1Body:
-      'AfterGolf (aftergolf.es) is a project operated by Juan Carlos Ricaurte, with ' +
-      'Spanish tax ID (NIF) 03186893J and address at C/ Circunvalación, 25, Madrid, ' +
-      'Spain, acting as a private individual. For any question about your data you ' +
-      'can write to info@aftergolf.es.',
+      'AfterGolf (aftergolf.es). For any question about your data you can write to ' +
+      'info@aftergolf.es.',
     section2Title: '2. What data we collect',
     section2Intro: 'Depending on how you use the app, we may process:',
     section2Item1: 'If you sign up with email and password: first name, last name, and email.',
