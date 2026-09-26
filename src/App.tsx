@@ -1,6 +1,7 @@
 import { Link, Route, Routes } from 'react-router-dom'
 import { PasswordRecoveryGate } from './components/PasswordRecoveryGate'
 import { PageViewTracker } from './components/PageViewTracker'
+import { CookieBanner } from './components/CookieBanner'
 import { Sidebar } from './components/Sidebar'
 import { HomePage } from './pages/HomePage'
 import { AntesDeJugarPage } from './pages/AntesDeJugarPage'
@@ -21,6 +22,7 @@ function App() {
     <div className="flex min-h-screen flex-col bg-cream-50 md:flex-row">
       <PasswordRecoveryGate />
       <PageViewTracker />
+      <CookieBanner />
       <Sidebar />
 
       <div className="flex-1 pb-16 md:pb-0">

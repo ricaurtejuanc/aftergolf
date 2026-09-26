@@ -42,6 +42,14 @@ export const en: SameShape<typeof es> = {
     terminos: 'Terms and conditions',
     privacidad: 'Privacy',
   },
+  cookieBanner: {
+    text:
+      'We use local storage for essential site features (your cart, your session, ' +
+      'and your language). We do not use advertising or third-party cookies. More ' +
+      'information in our',
+    linkText: 'Privacy policy',
+    accept: 'Got it',
+  },
   teeColors: {
     blanco: 'White',
     amarillo: 'Yellow',
