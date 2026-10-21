@@ -308,3 +308,22 @@ begin
     using (bucket_id = 'product-mockups' and auth.jwt() ->> 'email' = 'ricaurtejuanc@gmail.com');
   end if;
 end $$;
+
+-- From 2026-10-30, Supabase stops automatically granting Data API
+-- (PostgREST/supabase-js/GraphQL) access to new tables created in
+-- "public" (see https://github.com/orgs/supabase/discussions/45329).
+-- Explicit grants below keep a from-scratch setup (fresh project, preview
+-- branch, `supabase db reset`) run after that date working the same way
+-- it does today. RLS policies above remain the actual access control —
+-- add the matching grant here (and in a new migration) for any future
+-- table.
+grant all on table public.profiles to anon, authenticated, service_role;
+grant all on table public.rounds to anon, authenticated, service_role;
+grant all on table public.courses to anon, authenticated, service_role;
+grant all on table public.recorridos to anon, authenticated, service_role;
+grant all on table public.tees to anon, authenticated, service_role;
+grant all on table public.hole_scores to anon, authenticated, service_role;
+grant all on table public.products to anon, authenticated, service_role;
+grant all on table public.shop_settings to anon, authenticated, service_role;
+grant all on table public.orders to anon, authenticated, service_role;
+grant all on table public.page_views to anon, authenticated, service_role;
